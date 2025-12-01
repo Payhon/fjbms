@@ -1,0 +1,107 @@
+# Operating System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*~
+
+# IDE and Editor Files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# Go Backend
+backend/bin/
+backend/tmp/
+backend/*.exe
+backend/*.exe~
+backend/*.dll
+backend/*.so
+backend/*.dylib
+backend/*.test
+backend/*.out
+backend/go.work
+backend/vendor/
+backend/coverage.txt
+backend/coverage.html
+
+# Frontend (Node.js)
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.next/
+frontend/out/
+frontend/.nuxt/
+frontend/.cache/
+frontend/.parcel-cache/
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+frontend/lerna-debug.log*
+
+# UniApp
+fjbms-uniapp/node_modules/
+fjbms-uniapp/unpackage/
+fjbms-uniapp/dist/
+fjbms-uniapp/.hbuilderx/
+fjbms-uniapp/platforms/
+fjbms-uniapp/.env.local
+fjbms-uniapp/.env.development.local
+fjbms-uniapp/.env.test.local
+fjbms-uniapp/.env.production.local
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary Files
+tmp/
+temp/
+*.tmp
+
+# Build Artifacts
+dist/
+build/
+out/
+
+# Test Coverage
+coverage/
+*.cover
+*.coverage
+
+# Backup Files
+*.bak
+*.backup
+*~
+
+# Compressed Files (optional, uncomment if needed)
+# *.zip
+# *.tar
+# *.tar.gz
+# *.rar
