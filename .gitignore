@@ -7,6 +7,8 @@
 ehthumbs.db
 Thumbs.db
 *~
+_dev_note_
+_ui
 
 # IDE and Editor Files
 .idea/
