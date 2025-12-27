@@ -72,6 +72,11 @@ fjbms-uniapp/.env.production.local
 logs/
 *.log.*
 
+# DevOps scripts (Python)
+scripts/.venv/
+scripts/config/test.yml
+scripts/config/prod.yml
+
 # Environment Variables
 .env
 .env.local

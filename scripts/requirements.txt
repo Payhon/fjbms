@@ -1,0 +1,4 @@
+paramiko==3.5.1
+PyYAML==6.0.2
+tqdm==4.67.1
+

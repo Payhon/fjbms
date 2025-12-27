@@ -1,0 +1,34 @@
+# Copy to scripts/config/test.yml and fill values. Do NOT commit secrets.
+
+ssh:
+  host: "test.example.com"
+  port: 22
+  user: "ubuntu"
+  # Prefer SSH key auth; leave password_env empty.
+  key_path: "~/.ssh/id_rsa"
+  # password_env: "FJBMS_TEST_SSH_PASSWORD"
+  # If remote paths require root permissions, enable passwordless sudo.
+  use_sudo: true
+
+frontend:
+  remote_target_dir: "/var/www/fjbms/frontend"
+  remote_tmp_dir: "/tmp/fjbms-deploy"
+  backup_dir: "/var/backups/fjbms/frontend"
+
+backend:
+  # This should match your systemd WorkingDirectory / app layout.
+  remote_binary_path: "/opt/fjbms/backend/fjbms"
+  remote_tmp_dir: "/tmp/fjbms-deploy"
+  backup_dir: "/var/backups/fjbms/backend"
+  restart_command: "systemctl restart fjbms-backend"
+
+db:
+  # Requires mysqldump/mysql (or pg_dump/psql) installed on the remote host.
+  type: "mysql" # mysql | postgres
+  host: "127.0.0.1"
+  port: 3306
+  user: "root"
+  password_env: "FJBMS_TEST_DB_PASSWORD"
+  database: "fjbms"
+  remote_tmp_dir: "/tmp/fjbms-deploy"
+
