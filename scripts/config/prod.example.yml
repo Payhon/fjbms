@@ -4,8 +4,12 @@ ssh:
   host: "prod.example.com"
   port: 22
   user: "ubuntu"
-  key_path: "~/.ssh/id_rsa"
-  # password_env: "FJBMS_PROD_SSH_PASSWORD"
+  # Force password auth (do not use ssh keys / ssh-agent).
+  auth: "password" # password | key | auto
+  # Password-based SSH login (recommended: keep password in env var).
+  password_env: "FJBMS_PROD_SSH_PASSWORD"
+  # If you must hardcode (NOT recommended): password: "xxx"
+  # key_path: "~/.ssh/id_rsa"
   use_sudo: true
 
 frontend:
@@ -17,7 +21,22 @@ backend:
   remote_binary_path: "/opt/fjbms/backend/fjbms"
   remote_tmp_dir: "/tmp/fjbms-deploy"
   backup_dir: "/var/backups/fjbms/backend"
-  restart_command: "systemctl restart fjbms-backend"
+  # make deploy-backend-prod uses systemd start by default.
+  start_mode: "systemd" # temp | systemd
+  local_configs_dir: "backend/configs"
+  remote_configs_dir: "/opt/fjbms/backend/configs"
+  local_sql_dir: "backend/sql"
+  remote_sql_dir: "/opt/fjbms/backend/sql"
+  local_config_path: "backend/configs/conf.yml"
+  remote_config_path: "/opt/fjbms/backend/config.yml"
+  remote_work_dir: "/opt/fjbms/backend"
+  remote_log_file: "/var/log/fjbms/backend.log"
+  config_flag: "-config"
+  systemd:
+    service_name: "fjbms-backend"
+    unit_path: "/etc/systemd/system/fjbms-backend.service"
+    install_script_path: "/opt/fjbms/backend/install_fjbms-backend_systemd.sh"
+    auto_install: true
 
 db:
   type: "mysql" # mysql | postgres
@@ -27,4 +46,3 @@ db:
   password_env: "FJBMS_PROD_DB_PASSWORD"
   database: "fjbms"
   remote_tmp_dir: "/tmp/fjbms-deploy"
-

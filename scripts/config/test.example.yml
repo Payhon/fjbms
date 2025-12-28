@@ -4,9 +4,12 @@ ssh:
   host: "test.example.com"
   port: 22
   user: "ubuntu"
-  # Prefer SSH key auth; leave password_env empty.
-  key_path: "~/.ssh/id_rsa"
-  # password_env: "FJBMS_TEST_SSH_PASSWORD"
+  # Force password auth (do not use ssh keys / ssh-agent).
+  auth: "password" # password | key | auto
+  # Password-based SSH login (recommended: keep password in env var).
+  password_env: "FJBMS_TEST_SSH_PASSWORD"
+  # If you must hardcode (NOT recommended): password: "xxx"
+  # key_path: "~/.ssh/id_rsa"
   # If remote paths require root permissions, enable passwordless sudo.
   use_sudo: true
 
@@ -16,11 +19,26 @@ frontend:
   backup_dir: "/var/backups/fjbms/frontend"
 
 backend:
-  # This should match your systemd WorkingDirectory / app layout.
   remote_binary_path: "/opt/fjbms/backend/fjbms"
   remote_tmp_dir: "/tmp/fjbms-deploy"
   backup_dir: "/var/backups/fjbms/backend"
-  restart_command: "systemctl restart fjbms-backend"
+  # make deploy-backend-test uses temp (nohup) start by default.
+  start_mode: "temp" # temp | systemd
+  # Upload these runtime directories from local -> remote.
+  local_configs_dir: "backend/configs"
+  remote_configs_dir: "/opt/fjbms/backend/configs"
+  local_sql_dir: "backend/sql"
+  remote_sql_dir: "/opt/fjbms/backend/sql"
+  # Upload a server config file together with the binary.
+  local_config_path: "backend/configs/conf-test.yml"
+  remote_config_path: "/opt/fjbms/backend/config.yml"
+  # Temp run mode (no systemd): run binary + config and redirect logs.
+  remote_work_dir: "/opt/fjbms/backend"
+  remote_log_file: "/var/log/fjbms/backend.log"
+  remote_pid_file: "/var/run/fjbms-backend.pid"
+  config_flag: "-config"
+  stop_timeout_sec: 15
+  # If you prefer systemd for test, set start_mode: systemd and configure backend.systemd below.
 
 db:
   # Requires mysqldump/mysql (or pg_dump/psql) installed on the remote host.
@@ -31,4 +49,3 @@ db:
   password_env: "FJBMS_TEST_DB_PASSWORD"
   database: "fjbms"
   remote_tmp_dir: "/tmp/fjbms-deploy"
-
