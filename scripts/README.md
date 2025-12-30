@@ -46,3 +46,19 @@ Backend deploy supports 2 modes:
 - `make export-sql-test`
 - `make export-sql-prod`
 - `make import-sql ENV=test SQL=./some.sql`
+
+## 导出本地 SQL
+```shell
+cd ~/project/work2025/project/fjbms
+docker exec -t -e PGPASSWORD=postgres thingspanel-postgres pg_dump -U postgres -d ThingsPanel > ./tp-all.sql
+```
+## 导入 SQL
+
+```shell
+cd ~/project/work2025/project/fjbms
+docker run --rm -i \
+  -e PGPASSWORD='pgRootPwd@2025' \
+  -v "$(pwd)/tp-all.sql:/backup.sql:ro" \
+  timescale/timescaledb:latest-pg14 \
+  psql -h 1.95.190.254 -p 5432 -U postgres -d fjbms -f /backup.sql
+```
