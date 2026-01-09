@@ -112,3 +112,6 @@ coverage/
 # *.tar
 # *.tar.gz
 # *.rar
+
+# release file
+release/
