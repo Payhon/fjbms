@@ -113,5 +113,8 @@ coverage/
 # *.tar.gz
 # *.rar
 
+# python 字节缓存
+*.pyc
+
 # release file
 release/

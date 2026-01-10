@@ -21,6 +21,8 @@ SCRIPTS_DIR = Path(__file__).resolve().parent
 CONFIG_DIR = SCRIPTS_DIR / "config"
 OUTPUT_DIR = REPO_ROOT / "dist" / "devops"
 
+QUIET = False
+
 
 def _now_ts() -> str:
     return time.strftime("%Y%m%d_%H%M%S", time.localtime())
@@ -28,6 +30,34 @@ def _now_ts() -> str:
 
 def _eprint(msg: str) -> None:
     print(msg, file=sys.stderr)
+
+
+def _cprint(msg: str) -> None:
+    if not QUIET:
+        print(msg)
+
+
+def _cprint_err(msg: str) -> None:
+    if not QUIET:
+        _eprint(msg)
+
+
+def _truncate(text: str, limit: int = 4000) -> str:
+    if len(text) <= limit:
+        return text
+    head = text[:limit]
+    return head + f"\n... (truncated, total={len(text)} chars)"
+
+
+def _remote_prefix(host: str, port: int) -> str:
+    return f"[remote {host}:{port}]"
+
+
+def _format_env_keys(env: Optional[Dict[str, str]]) -> str:
+    if not env:
+        return ""
+    keys = ", ".join(sorted(env.keys()))
+    return f"  # env: {keys}"
 
 
 def _run_local(cmd: list[str], cwd: Path) -> None:
@@ -142,6 +172,29 @@ class SSHClient:
             raise SystemExit(f"Remote command failed ({code}): {cmd}\n{err.strip()}")
         return out, err, code
 
+    def run(
+        self,
+        cmd: str,
+        *,
+        check: bool = True,
+        get_pty: bool = False,
+        env: Optional[Dict[str, str]] = None,
+        show_output: bool = True,
+    ) -> Tuple[str, str, int]:
+        prefix = _remote_prefix(self._conn.host, self._conn.port)
+        _cprint(f"{prefix}$ {cmd}{_format_env_keys(env)}")
+        out, err, code = self.exec(cmd, check=False, get_pty=get_pty, env=env)
+        if show_output:
+            if out.strip():
+                _cprint(_truncate(out.rstrip()))
+            if err.strip():
+                _cprint_err(_truncate(err.rstrip()))
+        if check and code != 0:
+            raise SystemExit(f"Remote command failed ({code}): {cmd}\n{err.strip()}")
+        if not show_output and code != 0:
+            _cprint_err(f"{prefix} exit={code}")
+        return out, err, code
+
     def upload_file(self, local_path: Path, remote_path: str, *, desc: str) -> None:
         st = local_path.stat()
         bar = tqdm(total=st.st_size, unit="B", unit_scale=True, desc=desc)
@@ -155,6 +208,8 @@ class SSHClient:
         bar.close()
 
     def stream_to_local_file(self, cmd: str, local_path: Path, *, desc: str, env: Dict[str, str]) -> None:
+        prefix = _remote_prefix(self._conn.host, self._conn.port)
+        _cprint(f"{prefix}$ {cmd}{_format_env_keys(env)}")
         transport = self._client.get_transport()
         if transport is None:
             raise SystemExit("SSH transport not available")
@@ -269,7 +324,7 @@ def _exec_sh(ssh: SSHClient, use_sudo: bool, script: str, *, check: bool = True)
     Use this for constructs like `if/then`, pipes, redirects, and compound commands.
     """
     prefix = "sudo -n " if use_sudo else ""
-    return ssh.exec(f"{prefix}bash -lc {shlex.quote(script)}", check=check)
+    return ssh.run(f"{prefix}bash -lc {shlex.quote(script)}", check=check)
 
 
 def _tar_dir(src_dir: Path, out_path: Path) -> None:
@@ -377,6 +432,51 @@ echo "  sudo systemctl stop $SERVICE_NAME"
 """
 
 
+def _backend_temp_stop(ssh: SSHClient, use_sudo: bool, *, pid_file: str, stop_timeout_sec: int) -> None:
+    stop_inner = (
+        f"if [ -f {shlex.quote(pid_file)} ]; then "
+        f"pid=$(cat {shlex.quote(pid_file)} || true); "
+        "echo \"pidfile found: " + shlex.quote(pid_file) + ", pid=$pid\"; "
+        "if [ -n \"$pid\" ] && kill -0 \"$pid\" 2>/dev/null; then "
+        "echo \"stopping pid $pid\"; "
+        "kill \"$pid\" 2>/dev/null || true; "
+        f"for i in $(seq 1 {stop_timeout_sec}); do "
+        "sleep 1; "
+        "kill -0 \"$pid\" 2>/dev/null || break; "
+        "done; "
+        "if kill -0 \"$pid\" 2>/dev/null; then "
+        "echo \"pid $pid still alive, sending SIGKILL\"; "
+        "kill -9 \"$pid\" 2>/dev/null || true; "
+        "else echo \"pid $pid stopped\"; fi; "
+        "else echo \"pid not running\"; fi; "
+        f"rm -f {shlex.quote(pid_file)}; "
+        "else echo \"pidfile not found\"; fi"
+    )
+    ssh.run(f"{_sudo_prefix(use_sudo)}bash -lc {shlex.quote(stop_inner)}", check=False)
+
+
+def _backend_temp_start(
+    ssh: SSHClient,
+    use_sudo: bool,
+    *,
+    work_dir: str,
+    binary_path: str,
+    config_flag: str,
+    config_path: str,
+    log_file: str,
+    pid_file: str,
+) -> None:
+    start_inner = (
+        f"cd {shlex.quote(work_dir)} && "
+        f"echo \"starting: {shlex.quote(binary_path)} {shlex.quote(config_flag)} {shlex.quote(config_path)}\" && "
+        f"nohup {shlex.quote(binary_path)} {shlex.quote(config_flag)} {shlex.quote(config_path)} "
+        f">> {shlex.quote(log_file)} 2>&1 & "
+        f"pid=$!; echo \"started pid $pid (log: {shlex.quote(log_file)})\"; "
+        f"echo $pid > {shlex.quote(pid_file)}"
+    )
+    ssh.run(f"{_sudo_prefix(use_sudo)}bash -lc {shlex.quote(start_inner)}")
+
+
 def build_frontend(service_env: str) -> None:
     frontend_dir = REPO_ROOT / "frontend"
     script = "build" if service_env == "prod" else "build:test"
@@ -405,7 +505,7 @@ def build_backend(goos: str, goarch: str) -> Path:
 
 
 def _remote_mkdir(ssh: SSHClient, use_sudo: bool, path: str) -> None:
-    ssh.exec(f"{_sudo_prefix(use_sudo)}mkdir -p {shlex.quote(path)}")
+    ssh.run(f"{_sudo_prefix(use_sudo)}mkdir -p {shlex.quote(path)}")
 
 
 def deploy_frontend(cfg: Dict[str, Any], service_env: str, *, skip_build: bool) -> None:
@@ -453,10 +553,10 @@ def deploy_frontend(cfg: Dict[str, Any], service_env: str, *, skip_build: bool) 
         new_dir = f"{remote_target_dir}.__new__{ts}"
         old_dir = f"{remote_target_dir}.__old__{ts}"
 
-        ssh.exec(f"{_sudo_prefix(use_sudo)}rm -rf {shlex.quote(extract_dir)} {shlex.quote(new_dir)} {shlex.quote(old_dir)}")
-        ssh.exec(f"{_sudo_prefix(use_sudo)}mkdir -p {shlex.quote(extract_dir)} {shlex.quote(new_dir)}")
-        ssh.exec(f"{_sudo_prefix(use_sudo)}tar -xzf {shlex.quote(remote_bundle)} -C {shlex.quote(extract_dir)}")
-        ssh.exec(f"{_sudo_prefix(use_sudo)}cp -a {shlex.quote(extract_dir)}/. {shlex.quote(new_dir)}/")
+        ssh.run(f"{_sudo_prefix(use_sudo)}rm -rf {shlex.quote(extract_dir)} {shlex.quote(new_dir)} {shlex.quote(old_dir)}")
+        ssh.run(f"{_sudo_prefix(use_sudo)}mkdir -p {shlex.quote(extract_dir)} {shlex.quote(new_dir)}")
+        ssh.run(f"{_sudo_prefix(use_sudo)}tar -xzf {shlex.quote(remote_bundle)} -C {shlex.quote(extract_dir)}")
+        ssh.run(f"{_sudo_prefix(use_sudo)}cp -a {shlex.quote(extract_dir)}/. {shlex.quote(new_dir)}/")
 
         _exec_sh(
             ssh,
@@ -465,8 +565,72 @@ def deploy_frontend(cfg: Dict[str, Any], service_env: str, *, skip_build: bool) 
             f"mv {shlex.quote(remote_target_dir)} {shlex.quote(old_dir)}; "
             f"fi",
         )
-        ssh.exec(f"{_sudo_prefix(use_sudo)}mv {shlex.quote(new_dir)} {shlex.quote(remote_target_dir)}")
-        ssh.exec(f"{_sudo_prefix(use_sudo)}rm -rf {shlex.quote(old_dir)} {shlex.quote(extract_dir)} {shlex.quote(remote_bundle)}")
+        ssh.run(f"{_sudo_prefix(use_sudo)}mv {shlex.quote(new_dir)} {shlex.quote(remote_target_dir)}")
+        ssh.run(f"{_sudo_prefix(use_sudo)}rm -rf {shlex.quote(old_dir)} {shlex.quote(extract_dir)} {shlex.quote(remote_bundle)}")
+
+
+def update_frontend(cfg: Dict[str, Any], service_env: str, *, skip_build: bool) -> None:
+    """
+    Lightweight frontend update:
+    - build dist locally (unless skip_build)
+    - tar.gz dist
+    - upload to remote tmp
+    - extract to a new dir and atomically swap into place
+    - no remote tar backup (fast path)
+    """
+    frontend_cfg = cfg.get("frontend") or {}
+    if not isinstance(frontend_cfg, dict):
+        raise SystemExit("Config error: frontend must be a mapping")
+
+    remote_target_dir = str(frontend_cfg.get("remote_target_dir", "")).strip()
+    remote_tmp_dir = str(frontend_cfg.get("remote_tmp_dir", "/tmp/fjbms-deploy")).strip()
+    if not remote_target_dir:
+        raise SystemExit("Config error: frontend.remote_target_dir is required")
+
+    ts = _now_ts()
+    if not skip_build:
+        build_frontend(service_env)
+    dist_dir = REPO_ROOT / "frontend" / "dist"
+    _require_file(dist_dir, "Frontend build output missing; did the build succeed?")
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    bundle = OUTPUT_DIR / f"frontend_update_{service_env}_{ts}.tar.gz"
+    with tarfile.open(bundle, "w:gz") as tf:
+        tf.add(dist_dir, arcname=".")
+
+    ssh_conn, use_sudo, known_hosts = _ssh_from_cfg(cfg)
+    with SSHClient(ssh_conn, known_hosts=known_hosts or None) as ssh:
+        _remote_mkdir(ssh, False, remote_tmp_dir)
+
+        remote_bundle = f"{remote_tmp_dir.rstrip('/')}/{bundle.name}"
+        ssh.upload_file(bundle, remote_bundle, desc="upload(frontend-update)")
+
+        extract_dir = f"{remote_tmp_dir.rstrip('/')}/frontend_update_extract_{ts}"
+        new_dir = f"{remote_target_dir}.__new__{ts}"
+        old_dir = f"{remote_target_dir}.__old__{ts}"
+
+        _exec_sh(
+            ssh,
+            use_sudo,
+            f"rm -rf {shlex.quote(extract_dir)} {shlex.quote(new_dir)} {shlex.quote(old_dir)} && "
+            f"mkdir -p {shlex.quote(extract_dir)} {shlex.quote(new_dir)} && "
+            f"tar -xzf {shlex.quote(remote_bundle)} -C {shlex.quote(extract_dir)} && "
+            f"cp -a {shlex.quote(extract_dir)}/. {shlex.quote(new_dir)}/",
+        )
+
+        _exec_sh(
+            ssh,
+            use_sudo,
+            f"if [ -d {shlex.quote(remote_target_dir)} ]; then "
+            f"mv {shlex.quote(remote_target_dir)} {shlex.quote(old_dir)}; "
+            f"fi && "
+            f"mv {shlex.quote(new_dir)} {shlex.quote(remote_target_dir)}",
+        )
+
+        ssh.run(
+            f"{_sudo_prefix(use_sudo)}rm -rf {shlex.quote(old_dir)} {shlex.quote(extract_dir)} {shlex.quote(remote_bundle)}",
+            check=False,
+        )
 
 
 def deploy_backend(
@@ -547,8 +711,8 @@ def deploy_backend(
         # Replace atomically in same filesystem when possible
         remote_dir = shlex.quote(str(Path(remote_binary_path).parent))
         ssh.exec(f"{_sudo_prefix(use_sudo)}mkdir -p {remote_dir}")
-        ssh.exec(f"{_sudo_prefix(use_sudo)}install -m 0755 {shlex.quote(remote_upload)} {shlex.quote(remote_binary_path)}")
-        ssh.exec(f"{_sudo_prefix(use_sudo)}rm -f {shlex.quote(remote_upload)}")
+        ssh.run(f"{_sudo_prefix(use_sudo)}install -m 0755 {shlex.quote(remote_upload)} {shlex.quote(remote_binary_path)}")
+        ssh.run(f"{_sudo_prefix(use_sudo)}rm -f {shlex.quote(remote_upload)}")
 
         # Upload configs directory (required for rsa keys / casbin.conf / etc)
         local_cfg_dir = (REPO_ROOT / local_configs_dir).resolve()
@@ -569,7 +733,7 @@ def deploy_backend(
                 label="backend_configs",
                 ts=ts,
             )
-            ssh.exec(f"{_sudo_prefix(use_sudo)}rm -f {shlex.quote(remote_cfg_bundle)}", check=False)
+            ssh.run(f"{_sudo_prefix(use_sudo)}rm -f {shlex.quote(remote_cfg_bundle)}", check=False)
 
         # Upload sql directory (migrations/schema files)
         local_sql_dir_path = (REPO_ROOT / local_sql_dir).resolve()
@@ -590,7 +754,7 @@ def deploy_backend(
                 label="backend_sql",
                 ts=ts,
             )
-            ssh.exec(f"{_sudo_prefix(use_sudo)}rm -f {shlex.quote(remote_sql_bundle)}", check=False)
+            ssh.run(f"{_sudo_prefix(use_sudo)}rm -f {shlex.quote(remote_sql_bundle)}", check=False)
 
         # Deploy backend config file (optional)
         if local_config_path and remote_config_path:
@@ -609,13 +773,13 @@ def deploy_backend(
             ssh.upload_file(local_cfg, remote_cfg_upload, desc="upload(config)")
 
             cfg_dir = shlex.quote(str(Path(remote_config_path).parent))
-            ssh.exec(f"{_sudo_prefix(use_sudo)}mkdir -p {cfg_dir}")
-            ssh.exec(f"{_sudo_prefix(use_sudo)}install -m 0644 {shlex.quote(remote_cfg_upload)} {shlex.quote(remote_config_path)}")
-            ssh.exec(f"{_sudo_prefix(use_sudo)}rm -f {shlex.quote(remote_cfg_upload)}")
+            ssh.run(f"{_sudo_prefix(use_sudo)}mkdir -p {cfg_dir}")
+            ssh.run(f"{_sudo_prefix(use_sudo)}install -m 0644 {shlex.quote(remote_cfg_upload)} {shlex.quote(remote_config_path)}")
+            ssh.run(f"{_sudo_prefix(use_sudo)}rm -f {shlex.quote(remote_cfg_upload)}")
 
         # Restart / run backend
         if restart_command:
-            ssh.exec(f"{_sudo_prefix(use_sudo)}{_quote(restart_command)}", get_pty=False)
+            ssh.run(f"{_sudo_prefix(use_sudo)}{_quote(restart_command)}", get_pty=False)
             return
 
         # Default: choose start mode by env/config.
@@ -629,8 +793,8 @@ def deploy_backend(
         if not remote_pid_file:
             remote_pid_file = f"{remote_work_dir.rstrip('/')}/backend.pid"
 
-        ssh.exec(f"{_sudo_prefix(use_sudo)}mkdir -p {shlex.quote(remote_work_dir)}")
-        ssh.exec(f"{_sudo_prefix(use_sudo)}mkdir -p {shlex.quote(str(Path(remote_log_file).parent))}")
+        ssh.run(f"{_sudo_prefix(use_sudo)}mkdir -p {shlex.quote(remote_work_dir)}")
+        ssh.run(f"{_sudo_prefix(use_sudo)}mkdir -p {shlex.quote(str(Path(remote_log_file).parent))}")
 
         if start_mode == "systemd":
             systemd_cfg = backend_cfg.get("systemd") or {}
@@ -662,38 +826,140 @@ def deploy_backend(
             )
             remote_installer_upload = f"{remote_tmp_dir.rstrip('/')}/{local_installer.name}"
             ssh.upload_file(local_installer, remote_installer_upload, desc="upload(systemd-installer)")
-            ssh.exec(
+            ssh.run(
                 f"{_sudo_prefix(use_sudo)}install -m 0755 {shlex.quote(remote_installer_upload)} {shlex.quote(install_script_path)}"
             )
-            ssh.exec(f"{_sudo_prefix(use_sudo)}rm -f {shlex.quote(remote_installer_upload)}", check=False)
+            ssh.run(f"{_sudo_prefix(use_sudo)}rm -f {shlex.quote(remote_installer_upload)}", check=False)
 
             if auto_install:
                 _exec_sh(ssh, use_sudo, f"bash {shlex.quote(install_script_path)}")
             return
 
-        stop_inner = (
-            f"if [ -f {shlex.quote(remote_pid_file)} ]; then "
-            f"pid=$(cat {shlex.quote(remote_pid_file)} || true); "
-            "if [ -n \"$pid\" ] && kill -0 \"$pid\" 2>/dev/null; then "
-            "kill \"$pid\" 2>/dev/null || true; "
-            f"for i in $(seq 1 {stop_timeout_sec}); do "
-            "sleep 1; "
-            "kill -0 \"$pid\" 2>/dev/null || break; "
-            "done; "
-            "kill -0 \"$pid\" 2>/dev/null && kill -9 \"$pid\" 2>/dev/null || true; "
-            "fi; "
-            f"rm -f {shlex.quote(remote_pid_file)}; "
-            "fi"
+        _backend_temp_stop(ssh, use_sudo, pid_file=remote_pid_file, stop_timeout_sec=stop_timeout_sec)
+        _backend_temp_start(
+            ssh,
+            use_sudo,
+            work_dir=remote_work_dir,
+            binary_path=remote_binary_path,
+            config_flag=config_flag,
+            config_path=remote_config_path,
+            log_file=remote_log_file,
+            pid_file=remote_pid_file,
         )
-        ssh.exec(f"{_sudo_prefix(use_sudo)}bash -lc {shlex.quote(stop_inner)}", check=False)
 
-        start_inner = (
-            f"cd {shlex.quote(remote_work_dir)} && "
-            f"nohup {shlex.quote(remote_binary_path)} {shlex.quote(config_flag)} {shlex.quote(remote_config_path)} "
-            f">> {shlex.quote(remote_log_file)} 2>&1 & "
-            f"echo $! > {shlex.quote(remote_pid_file)}"
+
+def update_backend(
+    cfg: Dict[str, Any],
+    env_name: str,
+    goos: str,
+    goarch: str,
+    *,
+    skip_build: bool,
+    with_config: bool = False,
+) -> None:
+    """
+    Lightweight backend update:
+    - upload new binary
+    - optionally upload config.yml (with_config)
+    - restart using start_mode:
+      - test: temp (pid + nohup)
+      - prod: systemd (systemctl restart)
+    """
+    backend_cfg = cfg.get("backend") or {}
+    if not isinstance(backend_cfg, dict):
+        raise SystemExit("Config error: backend must be a mapping")
+
+    remote_binary_path = str(backend_cfg.get("remote_binary_path", "")).strip()
+    remote_tmp_dir = str(backend_cfg.get("remote_tmp_dir", "/tmp/fjbms-deploy")).strip()
+    remote_work_dir = str(backend_cfg.get("remote_work_dir", "")).strip()
+    remote_log_file = str(backend_cfg.get("remote_log_file", "")).strip()
+    remote_pid_file = str(backend_cfg.get("remote_pid_file", "")).strip()
+    config_flag = str(backend_cfg.get("config_flag", "-config")).strip() or "-config"
+    stop_timeout_sec = int(backend_cfg.get("stop_timeout_sec", 15))
+
+    local_config_path = str(backend_cfg.get("local_config_path", "")).strip()
+    remote_config_path = str(backend_cfg.get("remote_config_path", "")).strip()
+    restart_command = str(backend_cfg.get("restart_command", "")).strip()
+
+    start_mode = str(backend_cfg.get("start_mode", "")).strip().lower()
+    if not start_mode:
+        start_mode = "systemd" if env_name == "prod" else "temp"
+    if start_mode not in ("temp", "systemd"):
+        raise SystemExit("Config error: backend.start_mode must be temp | systemd")
+
+    if not remote_binary_path:
+        raise SystemExit("Config error: backend.remote_binary_path is required")
+
+    ts = _now_ts()
+    if skip_build:
+        local_bin = REPO_ROOT / "backend" / "bin" / "fjbms"
+        _require_file(local_bin, "Backend binary missing; run build first.")
+    else:
+        local_bin = build_backend(goos, goarch)
+
+    if with_config:
+        if not local_config_path or not remote_config_path:
+            raise SystemExit("Config error: update --with-config requires backend.local_config_path + backend.remote_config_path")
+        _require_file(Path(local_config_path), "backend.local_config_path points to a missing file")
+
+    ssh_conn, use_sudo, known_hosts = _ssh_from_cfg(cfg)
+    with SSHClient(ssh_conn, known_hosts=known_hosts or None) as ssh:
+        _remote_mkdir(ssh, False, remote_tmp_dir)
+
+        remote_upload = f"{remote_tmp_dir.rstrip('/')}/{local_bin.name}.{ts}"
+        ssh.upload_file(local_bin, remote_upload, desc="upload(backend-update)")
+        remote_dir = shlex.quote(str(Path(remote_binary_path).parent))
+        ssh.run(f"{_sudo_prefix(use_sudo)}mkdir -p {remote_dir}")
+        ssh.run(f"{_sudo_prefix(use_sudo)}install -m 0755 {shlex.quote(remote_upload)} {shlex.quote(remote_binary_path)}")
+        ssh.run(f"{_sudo_prefix(use_sudo)}rm -f {shlex.quote(remote_upload)}", check=False)
+
+        if with_config:
+            local_cfg = Path(local_config_path)
+            remote_cfg_upload = f"{remote_tmp_dir.rstrip('/')}/{local_cfg.name}.{ts}"
+            ssh.upload_file(local_cfg, remote_cfg_upload, desc="upload(config-update)")
+            cfg_dir = shlex.quote(str(Path(remote_config_path).parent))
+            ssh.run(f"{_sudo_prefix(use_sudo)}mkdir -p {cfg_dir}")
+            ssh.run(f"{_sudo_prefix(use_sudo)}install -m 0644 {shlex.quote(remote_cfg_upload)} {shlex.quote(remote_config_path)}")
+            ssh.run(f"{_sudo_prefix(use_sudo)}rm -f {shlex.quote(remote_cfg_upload)}", check=False)
+
+        # If an environment uses a custom restart hook, honor it.
+        if restart_command:
+            ssh.run(f"{_sudo_prefix(use_sudo)}{_quote(restart_command)}", get_pty=False)
+            return
+
+        if start_mode == "systemd":
+            systemd_cfg = backend_cfg.get("systemd") or {}
+            if not isinstance(systemd_cfg, dict):
+                raise SystemExit("Config error: backend.systemd must be a mapping")
+            service_name = str(systemd_cfg.get("service_name", "fjbms-backend")).strip() or "fjbms-backend"
+            ssh.run(f"{_sudo_prefix(use_sudo)}systemctl restart {shlex.quote(service_name)}")
+            ssh.run(f"{_sudo_prefix(use_sudo)}systemctl status {shlex.quote(service_name)} --no-pager", check=False)
+            return
+
+        # temp mode
+        if not remote_config_path:
+            raise SystemExit("Config error: backend.remote_config_path is required for temp start")
+        if not remote_work_dir:
+            remote_work_dir = str(Path(remote_binary_path).parent)
+        if not remote_log_file:
+            remote_log_file = f"{remote_work_dir.rstrip('/')}/backend.log"
+        if not remote_pid_file:
+            remote_pid_file = f"{remote_work_dir.rstrip('/')}/backend.pid"
+
+        ssh.run(f"{_sudo_prefix(use_sudo)}mkdir -p {shlex.quote(remote_work_dir)}")
+        ssh.run(f"{_sudo_prefix(use_sudo)}mkdir -p {shlex.quote(str(Path(remote_log_file).parent))}")
+
+        _backend_temp_stop(ssh, use_sudo, pid_file=remote_pid_file, stop_timeout_sec=stop_timeout_sec)
+        _backend_temp_start(
+            ssh,
+            use_sudo,
+            work_dir=remote_work_dir,
+            binary_path=remote_binary_path,
+            config_flag=config_flag,
+            config_path=remote_config_path,
+            log_file=remote_log_file,
+            pid_file=remote_pid_file,
         )
-        ssh.exec(f"{_sudo_prefix(use_sudo)}bash -lc {shlex.quote(start_inner)}")
 
 
 def db_export(cfg: Dict[str, Any]) -> Path:
@@ -775,7 +1041,7 @@ def db_import(cfg: Dict[str, Any], sql_path: Path) -> None:
                 f"mysql -h {shlex.quote(host)} -P {shlex.quote(str(port))} -u {shlex.quote(user)} "
                 f"{shlex.quote(database)} < {shlex.quote(remote_sql)}"
             )
-            ssh.exec(cmd, env=env)
+            ssh.run(cmd, env=env)
         elif db_type in ("postgres", "postgresql", "pg"):
             env = {}
             if password is not None:
@@ -784,16 +1050,17 @@ def db_import(cfg: Dict[str, Any], sql_path: Path) -> None:
                 f"psql -h {shlex.quote(host)} -p {shlex.quote(str(port))} -U {shlex.quote(user)} "
                 f"-d {shlex.quote(database)} -f {shlex.quote(remote_sql)}"
             )
-            ssh.exec(cmd, env=env)
+            ssh.run(cmd, env=env)
         else:
             raise SystemExit(f"Unsupported db.type: {db_type} (use mysql or postgres)")
 
-        ssh.exec(f"rm -f {shlex.quote(remote_sql)}", check=False)
+        ssh.run(f"rm -f {shlex.quote(remote_sql)}", check=False)
 
 
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(prog="devops.py")
     parser.add_argument("--config", help="Override config path (yaml)")
+    parser.add_argument("--quiet", action="store_true", help="Reduce console output")
 
     sub = parser.add_subparsers(dest="cmd", required=True)
 
@@ -823,7 +1090,21 @@ def main(argv: list[str]) -> int:
     p_dbi = db_sub.add_parser("import")
     p_dbi.add_argument("--sql", required=True)
 
+    p_update = sub.add_parser("update", help="Lightweight update to remote via SSH")
+    p_update.add_argument("--env", choices=["test", "prod"], required=True)
+    update_sub = p_update.add_subparsers(dest="target", required=True)
+    p_uf = update_sub.add_parser("frontend")
+    p_uf.add_argument("--service-env", choices=["test", "prod"], default="test")
+    p_uf.add_argument("--skip-build", action="store_true", help="Skip local build step")
+    p_ub = update_sub.add_parser("backend")
+    p_ub.add_argument("--goos", default=os.environ.get("GOOS", "linux"))
+    p_ub.add_argument("--goarch", default=os.environ.get("GOARCH", "amd64"))
+    p_ub.add_argument("--skip-build", action="store_true", help="Skip local build step")
+    p_ub.add_argument("--with-config", action="store_true", help="Also upload backend config file")
+
     args = parser.parse_args(argv)
+    global QUIET
+    QUIET = bool(args.quiet)
 
     if args.cmd == "build":
         if args.target == "frontend":
@@ -843,6 +1124,23 @@ def main(argv: list[str]) -> int:
             deploy_backend(cfg, args.env, args.goos, args.goarch, skip_build=bool(args.skip_build))
             return 0
         raise SystemExit("unknown deploy target")
+
+    if args.cmd == "update":
+        cfg = _cfg_for_env(args.env, args.config)
+        if args.target == "frontend":
+            update_frontend(cfg, args.service_env, skip_build=bool(args.skip_build))
+            return 0
+        if args.target == "backend":
+            update_backend(
+                cfg,
+                args.env,
+                args.goos,
+                args.goarch,
+                skip_build=bool(args.skip_build),
+                with_config=bool(args.with_config),
+            )
+            return 0
+        raise SystemExit("unknown update target")
 
     if args.cmd == "db":
         cfg = _cfg_for_env(args.env, args.config)

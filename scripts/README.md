@@ -43,9 +43,26 @@ Backend deploy supports 2 modes:
 - `make deploy-frontend-prod`
 - `make deploy-backend-test`
 - `make deploy-backend-prod`
+- `make update-frontend-test`
+- `make update-frontend-prod`
+- `make update-backend-test`
+- `make update-backend-prod`
 - `make export-sql-test`
 - `make export-sql-prod`
 - `make import-sql ENV=test SQL=./some.sql`
+
+## Update (fast path)
+
+- `make update-backend-test|prod`: only updates the backend binary and restarts (temp/systemd by `backend.start_mode`), and does NOT upload `configs/sql` directories.
+- `make update-frontend-test|prod`: only updates frontend `dist` and overwrites the remote target directory.
+
+## Console feedback
+
+By default the scripts print:
+- which remote command is executed
+- remote stdout/stderr (truncated when very long)
+
+To reduce output, add `--quiet` when running `scripts/devops.py` directly.
 
 ## 导出本地 SQL
 ```shell
