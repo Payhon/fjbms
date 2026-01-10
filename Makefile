@@ -4,6 +4,7 @@
 	deploy-backend-test deploy-backend-prod \
 	update-frontend-test update-frontend-prod \
 	update-backend-test update-backend-prod \
+	restart-backend-test \
 	export-sql-test export-sql-prod \
 	import-sql
 
@@ -27,6 +28,7 @@ help:
 	@echo "  make update-frontend-prod"
 	@echo "  make update-backend-test [GOOS=linux GOARCH=amd64]"
 	@echo "  make update-backend-prod [GOOS=linux GOARCH=amd64]"
+	@echo "  make restart-backend-test"
 	@echo "  make export-sql-test"
 	@echo "  make export-sql-prod"
 	@echo "  make import-sql ENV=test SQL=path/to/file.sql"
@@ -76,6 +78,9 @@ update-backend-test: devops-venv
 update-backend-prod: devops-venv
 	@$(PY) scripts/devops.py build backend --goos "$(GOOS)" --goarch "$(GOARCH)"
 	@$(PY) scripts/devops.py update --env prod backend --goos "$(GOOS)" --goarch "$(GOARCH)" --skip-build
+
+restart-backend-test: devops-venv
+	@$(PY) scripts/devops.py restart --env test backend
 
 export-sql-test: devops-venv
 	@$(PY) scripts/devops.py db --env test export

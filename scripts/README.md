@@ -47,6 +47,7 @@ Backend deploy supports 2 modes:
 - `make update-frontend-prod`
 - `make update-backend-test`
 - `make update-backend-prod`
+- `make restart-backend-test`
 - `make export-sql-test`
 - `make export-sql-prod`
 - `make import-sql ENV=test SQL=./some.sql`

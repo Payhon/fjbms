@@ -432,7 +432,14 @@ echo "  sudo systemctl stop $SERVICE_NAME"
 """
 
 
-def _backend_temp_stop(ssh: SSHClient, use_sudo: bool, *, pid_file: str, stop_timeout_sec: int) -> None:
+def _backend_temp_stop(
+    ssh: SSHClient,
+    use_sudo: bool,
+    *,
+    pid_file: str,
+    stop_timeout_sec: int,
+    binary_name: Optional[str] = None,
+) -> None:
     stop_inner = (
         f"if [ -f {shlex.quote(pid_file)} ]; then "
         f"pid=$(cat {shlex.quote(pid_file)} || true); "
@@ -452,6 +459,32 @@ def _backend_temp_stop(ssh: SSHClient, use_sudo: bool, *, pid_file: str, stop_ti
         f"rm -f {shlex.quote(pid_file)}; "
         "else echo \"pidfile not found\"; fi"
     )
+    if binary_name:
+        # Best-effort cleanup when pidfile is stale/missing but an older temp-started
+        # backend process is still running (e.g. started outside our pidfile management).
+        # Only targets processes that look like: ./<binary_name> ... -config ...
+        stop_inner += (
+            "; "
+            f"echo \"extra stop: kill running {shlex.quote(binary_name)} (-config) processes\"; "
+            "self=$$; "
+            "pids=$(ps -eo pid=,args= | awk "
+            f"-v self=\"$self\" -v bn={shlex.quote(binary_name)} "
+            "'$1!=self && $0 ~ (\"(^|[[:space:]])(\\\\./)?\" bn \"([[:space:]]|$)\") && $0 ~ /-config/ {print $1}'"
+            "); "
+            "if [ -n \"$pids\" ]; then "
+            "echo \"found pids: $pids\"; "
+            "for pid in $pids; do "
+            "kill \"$pid\" 2>/dev/null || true; "
+            f"for i in $(seq 1 {stop_timeout_sec}); do "
+            "sleep 1; "
+            "kill -0 \"$pid\" 2>/dev/null || break; "
+            "done; "
+            "if kill -0 \"$pid\" 2>/dev/null; then "
+            "kill -9 \"$pid\" 2>/dev/null || true; "
+            "fi; "
+            "done; "
+            "else echo \"no extra processes found\"; fi"
+        )
     ssh.run(f"{_sudo_prefix(use_sudo)}bash -lc {shlex.quote(stop_inner)}", check=False)
 
 
@@ -835,7 +868,13 @@ def deploy_backend(
                 _exec_sh(ssh, use_sudo, f"bash {shlex.quote(install_script_path)}")
             return
 
-        _backend_temp_stop(ssh, use_sudo, pid_file=remote_pid_file, stop_timeout_sec=stop_timeout_sec)
+        _backend_temp_stop(
+            ssh,
+            use_sudo,
+            pid_file=remote_pid_file,
+            stop_timeout_sec=stop_timeout_sec,
+            binary_name=Path(remote_binary_path).name,
+        )
         _backend_temp_start(
             ssh,
             use_sudo,
@@ -949,7 +988,83 @@ def update_backend(
         ssh.run(f"{_sudo_prefix(use_sudo)}mkdir -p {shlex.quote(remote_work_dir)}")
         ssh.run(f"{_sudo_prefix(use_sudo)}mkdir -p {shlex.quote(str(Path(remote_log_file).parent))}")
 
-        _backend_temp_stop(ssh, use_sudo, pid_file=remote_pid_file, stop_timeout_sec=stop_timeout_sec)
+        _backend_temp_stop(
+            ssh,
+            use_sudo,
+            pid_file=remote_pid_file,
+            stop_timeout_sec=stop_timeout_sec,
+            binary_name=Path(remote_binary_path).name,
+        )
+        _backend_temp_start(
+            ssh,
+            use_sudo,
+            work_dir=remote_work_dir,
+            binary_path=remote_binary_path,
+            config_flag=config_flag,
+            config_path=remote_config_path,
+            log_file=remote_log_file,
+            pid_file=remote_pid_file,
+        )
+
+
+def restart_backend(cfg: Dict[str, Any], env_name: str) -> None:
+    backend_cfg = cfg.get("backend") or {}
+    if not isinstance(backend_cfg, dict):
+        raise SystemExit("Config error: backend must be a mapping")
+
+    remote_binary_path = str(backend_cfg.get("remote_binary_path", "")).strip()
+    remote_work_dir = str(backend_cfg.get("remote_work_dir", "")).strip()
+    remote_log_file = str(backend_cfg.get("remote_log_file", "")).strip()
+    remote_pid_file = str(backend_cfg.get("remote_pid_file", "")).strip()
+    remote_config_path = str(backend_cfg.get("remote_config_path", "")).strip()
+    config_flag = str(backend_cfg.get("config_flag", "-config")).strip() or "-config"
+    stop_timeout_sec = int(backend_cfg.get("stop_timeout_sec", 15))
+    restart_command = str(backend_cfg.get("restart_command", "")).strip()
+
+    start_mode = str(backend_cfg.get("start_mode", "")).strip().lower()
+    if not start_mode:
+        start_mode = "systemd" if env_name == "prod" else "temp"
+    if start_mode not in ("temp", "systemd"):
+        raise SystemExit("Config error: backend.start_mode must be temp | systemd")
+
+    if restart_command:
+        ssh_conn, use_sudo, known_hosts = _ssh_from_cfg(cfg)
+        with SSHClient(ssh_conn, known_hosts=known_hosts or None) as ssh:
+            ssh.run(f"{_sudo_prefix(use_sudo)}{_quote(restart_command)}", get_pty=False)
+        return
+
+    if start_mode == "systemd":
+        systemd_cfg = backend_cfg.get("systemd") or {}
+        if not isinstance(systemd_cfg, dict):
+            raise SystemExit("Config error: backend.systemd must be a mapping")
+        service_name = str(systemd_cfg.get("service_name", "fjbms-backend")).strip() or "fjbms-backend"
+        ssh_conn, use_sudo, known_hosts = _ssh_from_cfg(cfg)
+        with SSHClient(ssh_conn, known_hosts=known_hosts or None) as ssh:
+            ssh.run(f"{_sudo_prefix(use_sudo)}systemctl restart {shlex.quote(service_name)}")
+            ssh.run(f"{_sudo_prefix(use_sudo)}systemctl status {shlex.quote(service_name)} --no-pager", check=False)
+        return
+
+    # temp mode restart
+    if not remote_binary_path or not remote_config_path:
+        raise SystemExit("Config error: backend.remote_binary_path and backend.remote_config_path are required for temp restart")
+    if not remote_work_dir:
+        remote_work_dir = str(Path(remote_binary_path).parent)
+    if not remote_log_file:
+        remote_log_file = f"{remote_work_dir.rstrip('/')}/backend.log"
+    if not remote_pid_file:
+        remote_pid_file = f"{remote_work_dir.rstrip('/')}/backend.pid"
+
+    ssh_conn, use_sudo, known_hosts = _ssh_from_cfg(cfg)
+    with SSHClient(ssh_conn, known_hosts=known_hosts or None) as ssh:
+        ssh.run(f"{_sudo_prefix(use_sudo)}mkdir -p {shlex.quote(remote_work_dir)}")
+        ssh.run(f"{_sudo_prefix(use_sudo)}mkdir -p {shlex.quote(str(Path(remote_log_file).parent))}")
+        _backend_temp_stop(
+            ssh,
+            use_sudo,
+            pid_file=remote_pid_file,
+            stop_timeout_sec=stop_timeout_sec,
+            binary_name=Path(remote_binary_path).name,
+        )
         _backend_temp_start(
             ssh,
             use_sudo,
@@ -1102,6 +1217,11 @@ def main(argv: list[str]) -> int:
     p_ub.add_argument("--skip-build", action="store_true", help="Skip local build step")
     p_ub.add_argument("--with-config", action="store_true", help="Also upload backend config file")
 
+    p_restart = sub.add_parser("restart", help="Restart remote services via SSH")
+    p_restart.add_argument("--env", choices=["test", "prod"], required=True)
+    restart_sub = p_restart.add_subparsers(dest="target", required=True)
+    restart_sub.add_parser("backend")
+
     args = parser.parse_args(argv)
     global QUIET
     QUIET = bool(args.quiet)
@@ -1141,6 +1261,13 @@ def main(argv: list[str]) -> int:
             )
             return 0
         raise SystemExit("unknown update target")
+
+    if args.cmd == "restart":
+        cfg = _cfg_for_env(args.env, args.config)
+        if args.target == "backend":
+            restart_backend(cfg, args.env)
+            return 0
+        raise SystemExit("unknown restart target")
 
     if args.cmd == "db":
         cfg = _cfg_for_env(args.env, args.config)
