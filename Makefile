@@ -1,5 +1,7 @@
 .PHONY: help devops-venv \
 	build-frontend build-backend \
+	build-bms-bridge run-bms-bridge \
+	build-bms-sim run-bms-sim \
 	deploy-frontend-test deploy-frontend-prod \
 	deploy-backend-test deploy-backend-prod \
 	update-frontend-test update-frontend-prod \
@@ -15,11 +17,16 @@ PIP := $(PY_VENV)/bin/pip
 GOOS ?= linux
 GOARCH ?= amd64
 SERVICE_ENV ?= prod
+CONFIG ?= configs/conf-dev.yml
 
 help:
 	@echo "DevOps targets:"
 	@echo "  make build-frontend"
 	@echo "  make build-backend [GOOS=linux GOARCH=amd64]"
+	@echo "  make build-bms-bridge [GOOS=linux GOARCH=amd64]"
+	@echo "  make run-bms-bridge [CONFIG=configs/conf-dev.yml]"
+	@echo "  make build-bms-sim [GOOS=linux GOARCH=amd64]"
+	@echo "  make run-bms-sim [CONFIG=configs/conf-dev.yml DEVICE_ID=uuid]"
 	@echo "  make deploy-frontend-test"
 	@echo "  make deploy-frontend-prod"
 	@echo "  make deploy-backend-test [GOOS=linux GOARCH=amd64]"
@@ -46,6 +53,23 @@ build-frontend: devops-venv
 
 build-backend: devops-venv
 	@$(PY) scripts/devops.py build backend --goos "$(GOOS)" --goarch "$(GOARCH)"
+
+build-bms-bridge:
+	@cd backend && GOOS="$(GOOS)" GOARCH="$(GOARCH)" CGO_ENABLED=0 \
+		go build -trimpath -ldflags "-s -w" -o ./bin/bms-bridge ./cmd/bms-bridge
+
+run-bms-bridge:
+	@test -n "$(CONFIG)" || (echo "Missing CONFIG=configs/conf-dev.yml" && exit 2)
+	@cd backend && go run ./cmd/bms-bridge -config "./$(CONFIG)"
+
+build-bms-sim:
+	@cd backend && GOOS="$(GOOS)" GOARCH="$(GOARCH)" CGO_ENABLED=0 \
+		go build -trimpath -ldflags "-s -w" -o ./bin/bms-sim ./cmd/bms-sim
+
+run-bms-sim:
+	@test -n "$(CONFIG)" || (echo "Missing CONFIG=configs/conf-dev.yml" && exit 2)
+	@test -n "$(DEVICE_ID)" || (echo "Missing DEVICE_ID=uuid" && exit 2)
+	@cd backend && go run ./cmd/bms-sim -config "./$(CONFIG)" -device-id "$(DEVICE_ID)" -v
 
 deploy-frontend-test: devops-venv
 	@$(PY) scripts/devops.py build frontend --service-env test
