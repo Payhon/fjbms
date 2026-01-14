@@ -462,14 +462,14 @@ def _backend_temp_stop(
     if binary_name:
         # Best-effort cleanup when pidfile is stale/missing but an older temp-started
         # backend process is still running (e.g. started outside our pidfile management).
-        # Only targets processes that look like: ./<binary_name> ... -config ...
+        # Targets processes that look like: <binary_name> / ./<binary_name> / /path/<binary_name> ... -config ...
         stop_inner += (
             "; "
             f"echo \"extra stop: kill running {shlex.quote(binary_name)} (-config) processes\"; "
             "self=$$; "
             "pids=$(ps -eo pid=,args= | awk "
             f"-v self=\"$self\" -v bn={shlex.quote(binary_name)} "
-            "'$1!=self && $0 ~ (\"(^|[[:space:]])(\\\\./)?\" bn \"([[:space:]]|$)\") && $0 ~ /-config/ {print $1}'"
+            "'$1!=self && $0 ~ (\"(^|[[:space:]])([^[:space:]]*/)?\" bn \"([[:space:]]|$)\") && $0 ~ /-config/ {print $1}'"
             "); "
             "if [ -n \"$pids\" ]; then "
             "echo \"found pids: $pids\"; "
@@ -502,9 +502,9 @@ def _backend_temp_start(
     start_inner = (
         f"cd {shlex.quote(work_dir)} && "
         f"echo \"starting: {shlex.quote(binary_path)} {shlex.quote(config_flag)} {shlex.quote(config_path)}\" && "
-        f"nohup {shlex.quote(binary_path)} {shlex.quote(config_flag)} {shlex.quote(config_path)} "
+        f"nohup {shlex.quote(binary_path)} {shlex.quote(config_flag)} {shlex.quote(config_path)} </dev/null "
         f">> {shlex.quote(log_file)} 2>&1 & "
-        f"pid=$!; echo \"started pid $pid (log: {shlex.quote(log_file)})\"; "
+        f"pid=$!; disown $pid 2>/dev/null || true; echo \"started pid $pid (log: {shlex.quote(log_file)})\"; "
         f"echo $pid > {shlex.quote(pid_file)}"
     )
     ssh.run(f"{_sudo_prefix(use_sudo)}bash -lc {shlex.quote(start_inner)}")
