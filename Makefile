@@ -2,6 +2,7 @@
 	build-frontend build-backend \
 	build-bms-bridge run-bms-bridge \
 	build-bms-sim run-bms-sim \
+	bms-gui-venv run-bms-gui \
 	deploy-frontend-test deploy-frontend-prod \
 	deploy-backend-test deploy-backend-prod \
 	update-frontend-test update-frontend-prod \
@@ -13,6 +14,10 @@
 PY_VENV := scripts/.venv
 PY := $(PY_VENV)/bin/python
 PIP := $(PY_VENV)/bin/pip
+
+BMS_GUI_VENV := tools/bms_mqtt_gui/.venv
+BMS_GUI_PY := $(BMS_GUI_VENV)/bin/python
+BMS_GUI_PIP := $(BMS_GUI_VENV)/bin/pip
 
 GOOS ?= linux
 GOARCH ?= amd64
@@ -27,6 +32,7 @@ help:
 	@echo "  make run-bms-bridge [CONFIG=configs/conf-dev.yml]"
 	@echo "  make build-bms-sim [GOOS=linux GOARCH=amd64]"
 	@echo "  make run-bms-sim [CONFIG=configs/conf-dev.yml DEVICE_ID=uuid]"
+	@echo "  make run-bms-gui"
 	@echo "  make deploy-frontend-test"
 	@echo "  make deploy-frontend-prod"
 	@echo "  make deploy-backend-test [GOOS=linux GOARCH=amd64]"
@@ -47,6 +53,13 @@ help:
 devops-venv:
 	@test -x "$(PY)" || python3 -m venv "$(PY_VENV)"
 	@$(PIP) -q install -r scripts/requirements.txt
+
+bms-gui-venv:
+	@test -x "$(BMS_GUI_PY)" || python3 -m venv "$(BMS_GUI_VENV)"
+	@$(BMS_GUI_PIP) -q install -r tools/bms_mqtt_gui/requirements.txt
+
+run-bms-gui: bms-gui-venv
+	@$(BMS_GUI_PY) tools/bms_mqtt_gui/app.py
 
 build-frontend: devops-venv
 	@$(PY) scripts/devops.py build frontend --service-env "$(SERVICE_ENV)"
