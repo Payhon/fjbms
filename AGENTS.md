@@ -29,6 +29,7 @@ Frontend:
 - Go: format with `gofmt`; keep packages small; exported identifiers use `PascalCase`.
 - Frontend: 2-space indentation (see `frontend/.editorconfig`); TypeScript + Vue SFC; keep formatting/lint clean via Prettier/ESLint.
 - Follow existing naming patterns in the directory you’re editing; avoid large renames.
+- **Database inserts (PostgreSQL/GORM):** avoid `db.Table(...).Create(map[string]any{...})` — this can trigger `LastInsertId` (unsupported by the PG driver). Prefer struct-based `Create(&row)` or model-based inserts.
 
 ## Testing Guidelines
 
