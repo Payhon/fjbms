@@ -45,3 +45,8 @@ Frontend:
 
 - Don’t commit secrets (DB passwords, API keys). Prefer local-only `.env*` (frontend) and `backend/configs/*` overrides.
 - If you add new config keys, document defaults in `doc/` and keep backwards compatibility where possible.
+
+## Device Type Rules
+
+- BLE 设备类型通过 MAC 首字节区分：`0xAA` 为 BMS 仪表设备，`0xAC` 为 BMS 电池设备。
+- 涉及 OTA/协议地址选择时必须先判定设备类型；仪表设备的 OTA 目标地址使用 `0xFC`。
