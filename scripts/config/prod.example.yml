@@ -13,36 +13,36 @@ ssh:
   use_sudo: true
 
 frontend:
-  remote_target_dir: "/var/www/fjbms/frontend"
-  remote_tmp_dir: "/tmp/fjbms-deploy"
-  backup_dir: "/var/backups/fjbms/frontend"
+  remote_target_dir: "/www/fjia/fjbms/frontend"
+  remote_tmp_dir: "/www/fjia/tmp/fjbms-deploy"
+  backup_dir: "/www/fjia/backups/fjbms/frontend"
 
 backend:
-  remote_binary_path: "/opt/fjbms/backend/fjbms"
-  remote_tmp_dir: "/tmp/fjbms-deploy"
-  backup_dir: "/var/backups/fjbms/backend"
+  remote_binary_path: "/www/fjia/fjbms/backend/fjbms"
+  remote_tmp_dir: "/www/fjia/tmp/fjbms-deploy"
+  backup_dir: "/www/fjia/backups/fjbms/backend"
   # make deploy-backend-prod uses systemd start by default.
   start_mode: "systemd" # temp | systemd
   local_configs_dir: "backend/configs"
-  remote_configs_dir: "/opt/fjbms/backend/configs"
+  remote_configs_dir: "/www/fjia/fjbms/backend/configs"
   local_sql_dir: "backend/sql"
-  remote_sql_dir: "/opt/fjbms/backend/sql"
+  remote_sql_dir: "/www/fjia/fjbms/backend/sql"
   local_config_path: "backend/configs/conf.yml"
-  remote_config_path: "/opt/fjbms/backend/config.yml"
-  remote_work_dir: "/opt/fjbms/backend"
-  remote_log_file: "/var/log/fjbms/backend.log"
+  remote_config_path: "/www/fjia/fjbms/backend/config.yml"
+  remote_work_dir: "/www/fjia/fjbms/backend"
+  remote_log_file: "/www/fjia/fjbms/backend/backend.log"
   config_flag: "-config"
   systemd:
     service_name: "fjbms-backend"
     unit_path: "/etc/systemd/system/fjbms-backend.service"
-    install_script_path: "/opt/fjbms/backend/install_fjbms-backend_systemd.sh"
+    install_script_path: "/www/fjia/fjbms/backend/install_fjbms-backend_systemd.sh"
     auto_install: true
 
 db:
-  type: "mysql" # mysql | postgres
-  host: "127.0.0.1"
-  port: 3306
-  user: "root"
+  type: "postgres" # mysql | postgres
+  host: "120.78.228.241"
+  port: 5432
+  user: "fjia"
   password_env: "FJBMS_PROD_DB_PASSWORD"
-  database: "fjbms"
-  remote_tmp_dir: "/tmp/fjbms-deploy"
+  database: "fjiacloud"
+  remote_tmp_dir: "/www/fjia/tmp/fjbms-deploy"

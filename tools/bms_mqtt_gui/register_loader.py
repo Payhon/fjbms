@@ -29,26 +29,11 @@ class RegisterDef:
     desc: str
 
 
-def load_register_defs_from_basic_md(md_path: str | Path) -> list[RegisterDef]:
-    """
-    Parse register definitions from:
-      doc/oriigin/device_comm_protocol_basic.md
-
-    We only parse the "## 四、主要状态寄存器" section (markdown table).
-    - Expand simple ranges like "0x103~0x104"
-    - For dynamic ranges like "0X141~(0X141+S-1)", keep only the start address (0x141)
-    - Ignore "..." rows
-    """
-    p = Path(md_path)
-    if not p.exists():
-        return []
-
-    lines = p.read_text(encoding="utf-8", errors="ignore").splitlines()
-
+def _parse_table_defs(lines: list[str], section_title: str) -> list[RegisterDef]:
     # Find section start
     start_idx = -1
     for i, ln in enumerate(lines):
-        if ln.strip().startswith("## 四、主要状态寄存器"):
+        if ln.strip().startswith(section_title):
             start_idx = i
             break
     if start_idx < 0:
@@ -58,12 +43,11 @@ def load_register_defs_from_basic_md(md_path: str | Path) -> list[RegisterDef]:
     in_table = False
     for ln in lines[start_idx + 1 :]:
         s = ln.strip()
-        if s.startswith("## "):
+        if s.startswith("## ") or s.startswith("# "):
             break
         if s.startswith(">"):
             break
         if not s:
-            # stop once table ended and a blank line appears
             if in_table:
                 break
             continue
@@ -71,7 +55,6 @@ def load_register_defs_from_basic_md(md_path: str | Path) -> list[RegisterDef]:
         if not s.startswith("|"):
             continue
 
-        # table header separator line
         if s.startswith("| ---"):
             in_table = True
             continue
@@ -120,7 +103,29 @@ def load_register_defs_from_basic_md(md_path: str | Path) -> list[RegisterDef]:
     return [defs[k] for k in sorted(defs.keys())]
 
 
-def load_register_addresses_from_basic_md(md_path: str | Path) -> list[int]:
-    # Backward-compatible helper.
-    return [d.address for d in load_register_defs_from_basic_md(md_path)]
+def load_register_defs_from_basic_md(md_path: str | Path) -> list[RegisterDef]:
+    """
+    Parse register definitions from:
+      doc/oriigin/device_comm_protocol_basic.md
+    """
+    p = Path(md_path)
+    if not p.exists():
+        return []
+    lines = p.read_text(encoding="utf-8", errors="ignore").splitlines()
+    return _parse_table_defs(lines, "## 四、主要状态寄存器")
 
+
+def load_register_defs_from_socket_md(md_path: str | Path) -> list[RegisterDef]:
+    """
+    Parse register definitions from:
+      doc/oriigin/device_comm_protocol_socket.md
+    """
+    p = Path(md_path)
+    if not p.exists():
+        return []
+    lines = p.read_text(encoding="utf-8", errors="ignore").splitlines()
+    return _parse_table_defs(lines, "# 云平台读取寄存器")
+
+
+def load_register_addresses_from_basic_md(md_path: str | Path) -> list[int]:
+    return [d.address for d in load_register_defs_from_basic_md(md_path)]

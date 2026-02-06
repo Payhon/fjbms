@@ -79,6 +79,7 @@ class ConfigDialog(QtWidgets.QDialog):
         self.sp_slave_addr.setValue(int(proto_cfg.slave_address))
 
         self.cb_read_func = QtWidgets.QComboBox()
+        self.cb_read_func.addItem("云平台查询 0x0F", protocol.FUNC_CLOUD_SOCKET)
         self.cb_read_func.addItem("保持寄存器 0x03", protocol.FUNC_READ_HOLDING)
         self.cb_read_func.addItem("输入寄存器 0x04", protocol.FUNC_READ_INPUT)
         # set current

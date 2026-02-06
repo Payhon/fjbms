@@ -22,6 +22,7 @@ FRAME_TAIL = 0xFD
 
 FUNC_READ_HOLDING = 0x03
 FUNC_READ_INPUT = 0x04
+FUNC_CLOUD_SOCKET = 0x0F
 FUNC_WRITE_MULTIPLE = 0x10
 FUNC_ASSIGN_SLAVE_ADDR = 0x11
 FUNC_READ_UUID = 0xFF
@@ -276,4 +277,3 @@ def parse_frame(frame: bytes, crc_mode: CRCMode = "source", allow_crc_fallback: 
             )
 
     raise ProtocolError(f"unknown frame type (func=0x{func:02X}, len={len(frame)})")
-

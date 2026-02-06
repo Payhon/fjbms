@@ -9,7 +9,8 @@
 	update-backend-test update-backend-prod \
 	restart-backend-test \
 	export-sql-test export-sql-prod \
-	import-sql
+	import-sql \
+	export-db-test import-db-prod init-db-prod
 
 PY_VENV := scripts/.venv
 PY := $(PY_VENV)/bin/python
@@ -45,6 +46,9 @@ help:
 	@echo "  make export-sql-test"
 	@echo "  make export-sql-prod"
 	@echo "  make import-sql ENV=test SQL=path/to/file.sql"
+	@echo "  make export-db-test"
+	@echo "  make import-db-prod"
+	@echo "  make init-db-prod"
 	@echo ""
 	@echo "Config files:"
 	@echo "  scripts/config/test.yml (copy from scripts/config/test.example.yml)"
@@ -129,3 +133,12 @@ import-sql: devops-venv
 	@test -n "$(ENV)" || (echo "Missing ENV=test|prod" && exit 2)
 	@test -n "$(SQL)" || (echo "Missing SQL=path/to/file.sql" && exit 2)
 	@$(PY) scripts/devops.py db --env "$(ENV)" import --sql "$(SQL)"
+
+export-db-test: devops-venv
+	@$(PY) scripts/devops.py export-db-test
+
+import-db-prod: devops-venv
+	@$(PY) scripts/devops.py import-db-prod
+
+init-db-prod: devops-venv
+	@$(PY) scripts/devops.py init-db-prod

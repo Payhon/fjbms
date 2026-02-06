@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import shlex
 import subprocess
 import sys
@@ -125,19 +126,31 @@ class SSHClient:
             key_filename = _expand_path(self._conn.key_path)
             passphrase = os.environ.get("SSH_KEY_PASSPHRASE")
 
-        self._client.connect(
-            hostname=self._conn.host,
-            port=self._conn.port,
-            username=self._conn.username,
-            password=self._conn.password,
-            key_filename=key_filename,
-            passphrase=passphrase,
-            allow_agent=(False if use_password_only else self._conn.allow_agent),
-            look_for_keys=(False if use_password_only else self._conn.look_for_keys),
-            timeout=self._conn.connect_timeout_sec,
-            banner_timeout=self._conn.connect_timeout_sec,
-            auth_timeout=self._conn.connect_timeout_sec,
-        )
+        try:
+            self._client.connect(
+                hostname=self._conn.host,
+                port=self._conn.port,
+                username=self._conn.username,
+                password=self._conn.password,
+                key_filename=key_filename,
+                passphrase=passphrase,
+                allow_agent=(False if use_password_only else self._conn.allow_agent),
+                look_for_keys=(False if use_password_only else self._conn.look_for_keys),
+                timeout=self._conn.connect_timeout_sec,
+                banner_timeout=self._conn.connect_timeout_sec,
+                auth_timeout=self._conn.connect_timeout_sec,
+            )
+        except paramiko.ssh_exception.SSHException as exc:
+            raise SystemExit(
+                f"SSH connect failed: {self._conn.username}@{self._conn.host}:{self._conn.port}\n"
+                f"{exc}\n"
+                "Check ssh.host/port, SSH service availability, and network/firewall rules."
+            ) from exc
+        except Exception as exc:  # pragma: no cover - defensive for unexpected socket errors
+            raise SystemExit(
+                f"SSH connect failed: {self._conn.username}@{self._conn.host}:{self._conn.port}\n"
+                f"{type(exc).__name__}: {exc}"
+            ) from exc
         return self
 
     def __exit__(self, exc_type, exc, tb) -> None:
@@ -241,6 +254,16 @@ def _cfg_for_env(env: str, config_path: Optional[str]) -> Dict[str, Any]:
         p,
         f"Create {p} by copying {CONFIG_DIR}/{env}.example.yml and filling in values.",
     )
+    example = CONFIG_DIR / f"{env}.example.yml"
+    if example.exists():
+        try:
+            if p.read_text(encoding="utf-8") == example.read_text(encoding="utf-8"):
+                raise SystemExit(
+                    f"Config file looks like the template: {p}\n"
+                    f"Please copy {example} to {p} and fill real values (or pass --config)."
+                )
+        except OSError:
+            pass
     return _load_yaml(p)
 
 
@@ -325,6 +348,12 @@ def _exec_sh(ssh: SSHClient, use_sudo: bool, script: str, *, check: bool = True)
     """
     prefix = "sudo -n " if use_sudo else ""
     return ssh.run(f"{prefix}bash -lc {shlex.quote(script)}", check=check)
+
+
+def _require_remote_command(ssh: SSHClient, name: str, *, hint: str) -> None:
+    _out, _err, code = _exec_sh(ssh, False, f"command -v {shlex.quote(name)} >/dev/null 2>&1", check=False)
+    if code != 0:
+        raise SystemExit(hint)
 
 
 def _tar_dir(src_dir: Path, out_path: Path) -> None:
@@ -1077,7 +1106,7 @@ def restart_backend(cfg: Dict[str, Any], env_name: str) -> None:
         )
 
 
-def db_export(cfg: Dict[str, Any]) -> Path:
+def db_export(cfg: Dict[str, Any], *, label: Optional[str] = None) -> Path:
     db_cfg = cfg.get("db") or {}
     if not isinstance(db_cfg, dict):
         raise SystemExit("Config error: db must be a mapping")
@@ -1089,19 +1118,40 @@ def db_export(cfg: Dict[str, Any]) -> Path:
     database = str(db_cfg.get("database", "")).strip()
     password_env = db_cfg.get("password_env")
     password = os.environ.get(str(password_env)) if password_env else None
+    import_command = str(db_cfg.get("import_command", "")).strip()
+    dump_command = str(db_cfg.get("dump_command", "")).strip()
 
     if not user or not database:
         raise SystemExit("Config error: db.user and db.database are required")
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    out = OUTPUT_DIR / f"db_{db_type}_{_now_ts()}.sql"
+    if label:
+        safe_label = re.sub(r"[^a-zA-Z0-9_-]+", "_", label.strip())
+        prefix = f"db_{safe_label}_"
+    else:
+        prefix = "db_"
+    out = OUTPUT_DIR / f"{prefix}{db_type}_{_now_ts()}.sql"
+
+    env: Dict[str, str] = {}
+    if db_type == "mysql" and password is not None:
+        env["MYSQL_PWD"] = password
+    if db_type in ("postgres", "postgresql", "pg") and password is not None:
+        env["PGPASSWORD"] = password
 
     ssh_conn, _use_sudo, known_hosts = _ssh_from_cfg(cfg)
     with SSHClient(ssh_conn, known_hosts=known_hosts or None) as ssh:
-        if db_type == "mysql":
-            env = {}
-            if password is not None:
-                env["MYSQL_PWD"] = password
+        if dump_command:
+            cmd = dump_command.format(host=host, port=port, user=user, database=database)
+            ssh.stream_to_local_file(cmd, out, desc=f"export({db_type})", env=env)
+        elif db_type == "mysql":
+            _require_remote_command(
+                ssh,
+                "mysqldump",
+                hint=(
+                    "Remote missing mysqldump. Install mysql client tools on the server "
+                    "or set db.dump_command in scripts/config/*.yml."
+                ),
+            )
             cmd = (
                 "mysqldump --single-transaction --routines --triggers --events "
                 f"-h {shlex.quote(host)} -P {shlex.quote(str(port))} -u {shlex.quote(user)} "
@@ -1109,9 +1159,14 @@ def db_export(cfg: Dict[str, Any]) -> Path:
             )
             ssh.stream_to_local_file(cmd, out, desc="export(mysql)", env=env)
         elif db_type in ("postgres", "postgresql", "pg"):
-            env = {}
-            if password is not None:
-                env["PGPASSWORD"] = password
+            _require_remote_command(
+                ssh,
+                "pg_dump",
+                hint=(
+                    "Remote missing pg_dump. Install postgresql client tools on the server "
+                    "or set db.dump_command in scripts/config/*.yml."
+                ),
+            )
             cmd = (
                 "pg_dump --format=plain --no-owner --no-privileges "
                 f"-h {shlex.quote(host)} -p {shlex.quote(str(port))} -U {shlex.quote(user)} "
@@ -1124,7 +1179,38 @@ def db_export(cfg: Dict[str, Any]) -> Path:
     return out
 
 
-def db_import(cfg: Dict[str, Any], sql_path: Path) -> None:
+def _find_latest_export(output_dir: Path, *, label: Optional[str] = None) -> Path:
+    if not output_dir.exists():
+        raise SystemExit(f"Export directory not found: {output_dir}")
+    pattern = f"db_{label}_*.sql" if label else "db_*.sql"
+    candidates = [p for p in output_dir.glob(pattern) if p.is_file()]
+    if not candidates:
+        hint = "Run make export-db-test first." if label == "test" else "Run db export first."
+        raise SystemExit(f"No export found in {output_dir} matching {pattern}. {hint}")
+    candidates.sort(key=lambda p: p.stat().st_mtime)
+    return candidates[-1]
+
+
+def _list_sql_files(sql_dir: Path) -> list[Path]:
+    if not sql_dir.exists():
+        raise SystemExit(f"SQL directory not found: {sql_dir}")
+    files = [p for p in sql_dir.iterdir() if p.is_file() and p.suffix.lower() == ".sql"]
+    if not files:
+        raise SystemExit(f"No .sql files found in {sql_dir}")
+
+    def _key(p: Path) -> tuple[int, int, str]:
+        match = re.match(r"(\d+)", p.stem)
+        if match:
+            return (0, int(match.group(1)), p.name)
+        return (1, 0, p.name)
+
+    return sorted(files, key=_key)
+
+
+def db_import_many(cfg: Dict[str, Any], sql_paths: list[Path]) -> None:
+    if not sql_paths:
+        raise SystemExit("No SQL files to import")
+
     db_cfg = cfg.get("db") or {}
     if not isinstance(db_cfg, dict):
         raise SystemExit("Config error: db must be a mapping")
@@ -1136,40 +1222,78 @@ def db_import(cfg: Dict[str, Any], sql_path: Path) -> None:
     database = str(db_cfg.get("database", "")).strip()
     password_env = db_cfg.get("password_env")
     password = os.environ.get(str(password_env)) if password_env else None
+    import_command = str(db_cfg.get("import_command", "")).strip()
 
     if not user or not database:
         raise SystemExit("Config error: db.user and db.database are required")
-    _require_file(sql_path, "Provide --sql path/to/file.sql")
+
+    env: Dict[str, str] = {}
+    if db_type == "mysql" and password is not None:
+        env["MYSQL_PWD"] = password
+    if db_type in ("postgres", "postgresql", "pg") and password is not None:
+        env["PGPASSWORD"] = password
 
     ssh_conn, _use_sudo, known_hosts = _ssh_from_cfg(cfg)
     with SSHClient(ssh_conn, known_hosts=known_hosts or None) as ssh:
         remote_tmp_dir = str((cfg.get("db") or {}).get("remote_tmp_dir", "/tmp/fjbms-deploy")).strip()
         _remote_mkdir(ssh, False, remote_tmp_dir)
-        remote_sql = f"{remote_tmp_dir.rstrip('/')}/{sql_path.name}.{_now_ts()}"
-        ssh.upload_file(sql_path, remote_sql, desc="upload(sql)")
+        ts = _now_ts()
 
-        if db_type == "mysql":
-            env = {}
-            if password is not None:
-                env["MYSQL_PWD"] = password
-            cmd = (
-                f"mysql -h {shlex.quote(host)} -P {shlex.quote(str(port))} -u {shlex.quote(user)} "
-                f"{shlex.quote(database)} < {shlex.quote(remote_sql)}"
-            )
-            ssh.run(cmd, env=env)
-        elif db_type in ("postgres", "postgresql", "pg"):
-            env = {}
-            if password is not None:
-                env["PGPASSWORD"] = password
-            cmd = (
-                f"psql -h {shlex.quote(host)} -p {shlex.quote(str(port))} -U {shlex.quote(user)} "
-                f"-d {shlex.quote(database)} -f {shlex.quote(remote_sql)}"
-            )
-            ssh.run(cmd, env=env)
-        else:
-            raise SystemExit(f"Unsupported db.type: {db_type} (use mysql or postgres)")
+        if not import_command:
+            if db_type == "mysql":
+                _require_remote_command(
+                    ssh,
+                    "mysql",
+                    hint=(
+                        "Remote missing mysql client. Install mysql client tools on the server "
+                        "or set db.import_command in scripts/config/*.yml."
+                    ),
+                )
+            elif db_type in ("postgres", "postgresql", "pg"):
+                _require_remote_command(
+                    ssh,
+                    "psql",
+                    hint=(
+                        "Remote missing psql. Install postgresql client tools on the server "
+                        "or set db.import_command in scripts/config/*.yml."
+                    ),
+                )
 
-        ssh.run(f"rm -f {shlex.quote(remote_sql)}", check=False)
+        for idx, sql_path in enumerate(sql_paths, start=1):
+            _require_file(sql_path, f"SQL file missing: {sql_path}")
+            remote_sql = f"{remote_tmp_dir.rstrip('/')}/{sql_path.name}.{ts}.{idx}"
+            ssh.upload_file(sql_path, remote_sql, desc=f"upload({sql_path.name})")
+
+            if import_command:
+                cmd = import_command.format(
+                    host=host,
+                    port=port,
+                    user=user,
+                    database=database,
+                    sql=remote_sql,
+                )
+                ssh.run(cmd, env=env)
+            elif db_type == "mysql":
+                cmd = (
+                    f"mysql -h {shlex.quote(host)} -P {shlex.quote(str(port))} -u {shlex.quote(user)} "
+                    f"{shlex.quote(database)} < {shlex.quote(remote_sql)}"
+                )
+                ssh.run(cmd, env=env)
+            elif db_type in ("postgres", "postgresql", "pg"):
+                cmd = (
+                    f"psql -h {shlex.quote(host)} -p {shlex.quote(str(port))} -U {shlex.quote(user)} "
+                    f"-d {shlex.quote(database)} -f {shlex.quote(remote_sql)}"
+                )
+                ssh.run(cmd, env=env)
+            else:
+                raise SystemExit(f"Unsupported db.type: {db_type} (use mysql or postgres)")
+
+            ssh.run(f"rm -f {shlex.quote(remote_sql)}", check=False)
+
+
+def db_import(cfg: Dict[str, Any], sql_path: Path) -> None:
+    _require_file(sql_path, "Provide --sql path/to/file.sql")
+    db_import_many(cfg, [sql_path])
 
 
 def main(argv: list[str]) -> int:
@@ -1204,6 +1328,12 @@ def main(argv: list[str]) -> int:
     p_dbe = db_sub.add_parser("export")
     p_dbi = db_sub.add_parser("import")
     p_dbi.add_argument("--sql", required=True)
+
+    p_export_db_test = sub.add_parser("export-db-test", help="Export test DB and download to dist/devops")
+    p_import_db_prod = sub.add_parser("import-db-prod", help="Import latest test export into prod")
+    p_import_db_prod.add_argument("--sql", help="Override SQL file path (defaults to latest test export)")
+    p_init_db_prod = sub.add_parser("init-db-prod", help="Import backend/sql into prod in numeric order")
+    p_init_db_prod.add_argument("--sql-dir", default="backend/sql")
 
     p_update = sub.add_parser("update", help="Lightweight update to remote via SSH")
     p_update.add_argument("--env", choices=["test", "prod"], required=True)
@@ -1279,6 +1409,30 @@ def main(argv: list[str]) -> int:
             db_import(cfg, Path(args.sql))
             return 0
         raise SystemExit("unknown db action")
+
+    if args.cmd == "export-db-test":
+        cfg = _cfg_for_env("test", args.config)
+        out = db_export(cfg, label="test")
+        print(str(out))
+        return 0
+
+    if args.cmd == "import-db-prod":
+        cfg = _cfg_for_env("prod", args.config)
+        if args.sql:
+            sql_path = Path(args.sql)
+        else:
+            sql_path = _find_latest_export(OUTPUT_DIR, label="test")
+        db_import(cfg, sql_path)
+        return 0
+
+    if args.cmd == "init-db-prod":
+        cfg = _cfg_for_env("prod", args.config)
+        sql_dir = Path(args.sql_dir)
+        if not sql_dir.is_absolute():
+            sql_dir = REPO_ROOT / sql_dir
+        sql_files = _list_sql_files(sql_dir)
+        db_import_many(cfg, sql_files)
+        return 0
 
     raise SystemExit("unknown command")
 

@@ -10,7 +10,7 @@ from . import protocol
 from .config_dialog import ConfigDialog
 from .config_models import ProtoConfig
 from .mqtt_worker import MqttConfig, MqttWorker
-from .register_loader import load_register_defs_from_basic_md
+from .register_loader import load_register_defs_from_basic_md, load_register_defs_from_socket_md
 from .socket_payload import bytes_to_hex_upper, encode_socket_payload
 
 
@@ -504,7 +504,11 @@ class MainWindow(QtWidgets.QMainWindow):
             try:
                 if parsed.type == "read_request" and parsed.start_address is not None and parsed.quantity is not None:
                     regs = [self._get_value_as_u16(parsed.start_address + i) for i in range(int(parsed.quantity))]
-                    data = protocol.regs_to_be_bytes(regs)
+                    # 0x0F socket protocol: data starts with start+qty
+                    if parsed.function_code == protocol.FUNC_CLOUD_SOCKET:
+                        data = protocol.be_u16(int(parsed.start_address)) + protocol.be_u16(int(parsed.quantity)) + protocol.regs_to_be_bytes(regs)
+                    else:
+                        data = protocol.regs_to_be_bytes(regs)
                     resp = protocol.build_read_response(slave, host, parsed.function_code, data, crc_mode=crc_mode)
                     self._publish_frame_bytes(resp, note=f"AUTO-RESP READ qty={parsed.quantity}")
                 elif parsed.type == "write_request" and parsed.start_address is not None and parsed.data is not None:
@@ -526,7 +530,10 @@ class MainWindow(QtWidgets.QMainWindow):
             if parsed.type == "read_response" and parsed.data is not None:
                 data = parsed.data
                 # doc style report: data = start(2) + qty(2) + regs...
-                if parsed.function_code == report_func and len(data) >= 4 and str(self._proto_cfg.report_format) == "read_addr_qty":
+                if (
+                    (parsed.function_code == report_func and str(self._proto_cfg.report_format) == "read_addr_qty")
+                    or parsed.function_code == protocol.FUNC_CLOUD_SOCKET
+                ) and len(data) >= 4:
                     start = (data[0] << 8) | data[1]
                     qty = (data[2] << 8) | data[3]
                     regs = protocol.split_regs_be(data[4:])
@@ -535,6 +542,11 @@ class MainWindow(QtWidgets.QMainWindow):
                     for i, v in enumerate(regs):
                         self._set_value_u16(start + i, v)
                     self._log("PROTO", f"回填上报(read+addrQty): start=0x{start:04X} qty={len(regs)}")
+                    # clear one pending read if exists
+                    key = (parsed.source_address, parsed.function_code)
+                    pend = self._pending_reads.get(key) or []
+                    if pend:
+                        pend.pop(0)
                     return
 
                 key = (parsed.source_address, parsed.function_code)
@@ -573,21 +585,26 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.table.rowCount() > 0 and not force:
             return
         defs = load_register_defs_from_basic_md("doc/oriigin/device_comm_protocol_basic.md")
+        defs += load_register_defs_from_socket_md("doc/oriigin/device_comm_protocol_socket.md")
         if not defs:
             self._log("DOC", "未从文档解析到寄存器地址（可手动添加）")
             return
+        # de-dup by address, prefer first occurrence (basic.md)
+        uniq: dict[int, str] = {}
+        for d in defs:
+            uniq.setdefault(int(d.address), d.desc)
         self._updating_table = True
         try:
             self.table.setRowCount(0)
-            for d in defs:
+            for addr in sorted(uniq.keys()):
                 r = self.table.rowCount()
                 self.table.insertRow(r)
-                self.table.setItem(r, 0, QtWidgets.QTableWidgetItem(self._fmt_addr(int(d.address))))
+                self.table.setItem(r, 0, QtWidgets.QTableWidgetItem(self._fmt_addr(int(addr))))
                 self.table.setItem(r, 1, QtWidgets.QTableWidgetItem("0"))
-                self.table.setItem(r, 2, QtWidgets.QTableWidgetItem(d.desc))
+                self.table.setItem(r, 2, QtWidgets.QTableWidgetItem(uniq[addr]))
         finally:
             self._updating_table = False
-        self._log("DOC", f"已从文档加载寄存器: {len(defs)} 条")
+        self._log("DOC", f"已从文档加载寄存器: {len(uniq)} 条")
 
     # ---------- Cleanup ----------
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
