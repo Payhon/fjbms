@@ -1,0 +1,26 @@
+{
+  "id": "bms_battery_16s_4t",
+  "name": "BMS电池(16S/4T)",
+  "description": "典型 16 串 4 温度的电池包，含板编码/电池组编号/蓝牙MAC，以及 4G 模块基础信息。",
+  "status": {
+    "series_count_s": 16,
+    "temp_count_n": 4,
+    "hardware_model": "FJ-BMS-HW-A1",
+    "battery_group_id": "PACK-16S-0001",
+    "board_code": "BMS-BOARD-16S-0001",
+    "bluetooth_mac": "AC:12:34:56:78:9A"
+  },
+  "cloud_socket": {
+    "longitude": 113.93012,
+    "latitude": 22.54032,
+    "speed_kmh": 0.0,
+    "altitude_m": 15,
+    "rssi": -72,
+    "tac": 12345,
+    "cell_id": 987654,
+    "imei": "867530900000001",
+    "iccid": "89860000000000000001",
+    "module_sw_ver": "4G-MOD-1.0.0"
+  }
+}
+

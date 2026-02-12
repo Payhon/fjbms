@@ -1,0 +1,26 @@
+{
+  "id": "bms_meter_16s_2t",
+  "name": "BMS仪表(16S/2T)",
+  "description": "仪表类设备(示例)，较少温度点，含板编码/蓝牙MAC。",
+  "status": {
+    "series_count_s": 16,
+    "temp_count_n": 2,
+    "hardware_model": "FJ-METER-HW-M1",
+    "battery_group_id": "METER-16S-0001",
+    "board_code": "METER-BOARD-16S-0001",
+    "bluetooth_mac": "AA:01:02:03:04:05"
+  },
+  "cloud_socket": {
+    "longitude": 114.05790,
+    "latitude": 22.54310,
+    "speed_kmh": 12.3,
+    "altitude_m": 20,
+    "rssi": -60,
+    "tac": 22222,
+    "cell_id": 123456,
+    "imei": "867530900000002",
+    "iccid": "89860000000000000002",
+    "module_sw_ver": "4G-MOD-1.1.0"
+  }
+}
+

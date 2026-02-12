@@ -8,7 +8,15 @@ from .mqtt_worker import MqttConfig
 
 
 class ConfigDialog(QtWidgets.QDialog):
-    def __init__(self, parent: QtWidgets.QWidget | None, mqtt_cfg: MqttConfig, proto_cfg: ProtoConfig) -> None:
+    def __init__(
+        self,
+        parent: QtWidgets.QWidget | None,
+        mqtt_cfg: MqttConfig,
+        proto_cfg: ProtoConfig,
+        device_id: str,
+        sub_topic_tpl: str,
+        pub_topic_tpl: str,
+    ) -> None:
         super().__init__(parent)
         self.setWindowTitle("参数配置")
         self.setModal(True)
@@ -16,6 +24,9 @@ class ConfigDialog(QtWidgets.QDialog):
 
         self._mqtt_cfg = mqtt_cfg
         self._proto_cfg = proto_cfg
+        self._device_id = device_id
+        self._sub_topic_tpl = sub_topic_tpl
+        self._pub_topic_tpl = pub_topic_tpl
 
         root = QtWidgets.QVBoxLayout(self)
         root.setContentsMargins(12, 12, 12, 12)
@@ -36,15 +47,16 @@ class ConfigDialog(QtWidgets.QDialog):
         self.sp_port.setValue(int(mqtt_cfg.port))
 
         self.ed_client_id = QtWidgets.QLineEdit(mqtt_cfg.client_id)
-        self.ed_device_id = QtWidgets.QLineEdit("")
+        self.ed_device_id = QtWidgets.QLineEdit(device_id or "")
         self.ed_device_id.setPlaceholderText("用于替换 topic 中的 {device_id}（可为空）")
 
         self.ed_user = QtWidgets.QLineEdit(mqtt_cfg.username)
         self.ed_pass = QtWidgets.QLineEdit(mqtt_cfg.password)
         self.ed_pass.setEchoMode(QtWidgets.QLineEdit.Password)
 
-        self.ed_sub_topic = QtWidgets.QLineEdit(mqtt_cfg.subscribe_topic or "device/socket/tx/{device_id}")
-        self.ed_pub_topic = QtWidgets.QLineEdit(mqtt_cfg.publish_topic or "device/socket/rx/{device_id}")
+        # Device publishes to tx, and subscribes rx for commands.
+        self.ed_sub_topic = QtWidgets.QLineEdit(sub_topic_tpl or "device/socket/rx/{device_id}")
+        self.ed_pub_topic = QtWidgets.QLineEdit(pub_topic_tpl or "device/socket/tx/{device_id}")
 
         self.sp_qos = QtWidgets.QSpinBox()
         self.sp_qos.setRange(0, 2)
@@ -131,6 +143,15 @@ class ConfigDialog(QtWidgets.QDialog):
     def mqtt_config(self) -> MqttConfig:
         return self._mqtt_cfg
 
+    def device_id(self) -> str:
+        return self._device_id
+
+    def sub_topic_tpl(self) -> str:
+        return self._sub_topic_tpl
+
+    def pub_topic_tpl(self) -> str:
+        return self._pub_topic_tpl
+
     def proto_config(self) -> ProtoConfig:
         return self._proto_cfg
 
@@ -141,14 +162,14 @@ class ConfigDialog(QtWidgets.QDialog):
             return
 
         device_id = self.ed_device_id.text().strip()
-        sub_topic = self.ed_sub_topic.text().strip()
-        pub_topic = self.ed_pub_topic.text().strip()
-        if "{device_id}" in (sub_topic + pub_topic) and not device_id:
+        sub_tpl = self.ed_sub_topic.text().strip()
+        pub_tpl = self.ed_pub_topic.text().strip()
+        if "{device_id}" in (sub_tpl + pub_tpl) and not device_id:
             QtWidgets.QMessageBox.warning(self, "参数错误", "Topic 中包含 {device_id} 占位符，但设备ID为空")
             return
-        if device_id:
-            sub_topic = sub_topic.replace("{device_id}", device_id)
-            pub_topic = pub_topic.replace("{device_id}", device_id)
+
+        sub_topic = sub_tpl.replace("{device_id}", device_id) if device_id else sub_tpl
+        pub_topic = pub_tpl.replace("{device_id}", device_id) if device_id else pub_tpl
 
         if not sub_topic:
             QtWidgets.QMessageBox.warning(self, "参数错误", "订阅 Topic 不能为空")
@@ -167,6 +188,9 @@ class ConfigDialog(QtWidgets.QDialog):
             publish_topic=pub_topic,
             qos=int(self.sp_qos.value()),
         )
+        self._device_id = device_id
+        self._sub_topic_tpl = sub_tpl
+        self._pub_topic_tpl = pub_tpl
 
         crc_mode: protocol.CRCMode = "target" if self.cb_crc_mode.currentData() == "target" else "source"
         self._proto_cfg = ProtoConfig(

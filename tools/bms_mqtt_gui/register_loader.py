@@ -27,9 +27,26 @@ def _parse_hex_maybe(s: str) -> int | None:
 class RegisterDef:
     address: int
     desc: str
+    # If a row in docs represents a multi-register field, these identify the field group.
+    field_start: int
+    field_len_regs: int
+    field_index: int
 
 
-def _parse_table_defs(lines: list[str], section_title: str) -> list[RegisterDef]:
+def _parse_byte_len_to_regs(byte_len_cell: str) -> int | None:
+    s = (byte_len_cell or "").strip()
+    if not s:
+        return None
+    # Only accept a plain integer byte length (e.g. "4"). Expressions like "1+1" / "2*S" are ignored.
+    if not re.fullmatch(r"\d+", s):
+        return None
+    byte_len = int(s, 10)
+    if byte_len <= 0:
+        return None
+    return (byte_len + 1) // 2
+
+
+def _parse_table_defs(lines: list[str], section_title: str, desc_col: int, byte_len_col: int | None) -> list[RegisterDef]:
     # Find section start
     start_idx = -1
     for i, ln in enumerate(lines):
@@ -61,18 +78,32 @@ def _parse_table_defs(lines: list[str], section_title: str) -> list[RegisterDef]
 
         in_table = True
         parts = s.split("|")
-        if len(parts) < 4:
+        if len(parts) <= desc_col:
             continue
         addr_cell = parts[1].strip()
-        desc_cell = parts[2].strip()
+        desc_cell = parts[desc_col].strip()
+        byte_len_cell = ""
+        if byte_len_col is not None and len(parts) > byte_len_col:
+            byte_len_cell = parts[byte_len_col].strip()
 
         if not addr_cell or addr_cell.startswith("..."):
             continue
         if desc_cell.startswith("..."):
             desc_cell = ""
 
-        def _add(a: int) -> None:
-            defs.setdefault(a, RegisterDef(address=a, desc=desc_cell))
+        def _add_field(start: int, reg_count: int) -> None:
+            for i in range(reg_count):
+                a = start + i
+                defs.setdefault(
+                    a,
+                    RegisterDef(
+                        address=a,
+                        desc=desc_cell,
+                        field_start=start,
+                        field_len_regs=reg_count,
+                        field_index=i,
+                    ),
+                )
 
         if "~" in addr_cell:
             left, right = addr_cell.split("~", 1)
@@ -81,24 +112,27 @@ def _parse_table_defs(lines: list[str], section_title: str) -> list[RegisterDef]
                 continue
             right_s = right.strip()
             if right_s.startswith("(") or "(" in right_s:
-                _add(left_v)
+                _add_field(left_v, 1)
                 continue
             right_v = _parse_hex_maybe(right_s)
             if right_v is None:
-                _add(left_v)
+                _add_field(left_v, 1)
                 continue
             if right_v < left_v:
                 left_v, right_v = right_v, left_v
             if right_v - left_v > 4096:
-                _add(left_v)
-                _add(right_v)
+                _add_field(left_v, 1)
+                _add_field(right_v, 1)
                 continue
-            for a in range(left_v, right_v + 1):
-                _add(a)
+            _add_field(left_v, int(right_v - left_v + 1))
         else:
             v = _parse_hex_maybe(addr_cell)
             if v is not None:
-                _add(v)
+                reg_count = 1
+                regs = _parse_byte_len_to_regs(byte_len_cell) if byte_len_col is not None else None
+                if regs is not None and regs > 1:
+                    reg_count = regs
+                _add_field(v, reg_count)
 
     return [defs[k] for k in sorted(defs.keys())]
 
@@ -112,7 +146,9 @@ def load_register_defs_from_basic_md(md_path: str | Path) -> list[RegisterDef]:
     if not p.exists():
         return []
     lines = p.read_text(encoding="utf-8", errors="ignore").splitlines()
-    return _parse_table_defs(lines, "## 四、主要状态寄存器")
+    # basic.md table columns:
+    # | 地址(1) | 名称(2) | 字节描述(3) | 字节长度(4) | ...
+    return _parse_table_defs(lines, "## 四、主要状态寄存器", desc_col=2, byte_len_col=4)
 
 
 def load_register_defs_from_socket_md(md_path: str | Path) -> list[RegisterDef]:
@@ -124,7 +160,9 @@ def load_register_defs_from_socket_md(md_path: str | Path) -> list[RegisterDef]:
     if not p.exists():
         return []
     lines = p.read_text(encoding="utf-8", errors="ignore").splitlines()
-    return _parse_table_defs(lines, "# 云平台读取寄存器")
+    # socket.md table columns:
+    # | 地址(1) | 名称(2) | 长度(字节)(3) | ...
+    return _parse_table_defs(lines, "# 云平台读取寄存器", desc_col=2, byte_len_col=3)
 
 
 def load_register_addresses_from_basic_md(md_path: str | Path) -> list[int]:

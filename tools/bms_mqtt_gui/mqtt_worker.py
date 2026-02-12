@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import queue
 import threading
-import time
 from dataclasses import dataclass
 from typing import Optional
 
@@ -37,9 +35,23 @@ class MqttWorker(QtCore.QObject):
         super().__init__()
         self._client: Optional[mqtt.Client] = None
         self._stop = threading.Event()
-        self._outgoing: "queue.Queue[tuple[str, bytes, int]]" = queue.Queue()
         self._cfg: Optional[MqttConfig] = None
         self._crc_mode: protocol.CRCMode = "source"
+
+    def _disconnect_current(self) -> None:
+        if self._client is None:
+            return
+        try:
+            # Disconnect first so DISCONNECT is sent.
+            self._client.disconnect()
+        except Exception:
+            pass
+        try:
+            # Stop background loop thread.
+            self._client.loop_stop()
+        except Exception:
+            pass
+        self._client = None
 
     @QtCore.pyqtSlot(object)
     def set_crc_mode(self, mode: str) -> None:
@@ -57,6 +69,9 @@ class MqttWorker(QtCore.QObject):
         self._cfg = cfg
         self._stop.clear()
 
+        # If a previous client exists, close it first.
+        self._disconnect_current()
+
         try:
             client = mqtt.Client(client_id=cfg.client_id, clean_session=True)
             if cfg.username or cfg.password:
@@ -65,43 +80,26 @@ class MqttWorker(QtCore.QObject):
             client.on_connect = self._on_connect
             client.on_disconnect = self._on_disconnect
             client.on_message = self._on_message
+            # Backoff for reconnect attempts.
+            try:
+                client.reconnect_delay_set(min_delay=1, max_delay=30)
+            except Exception:
+                pass
 
             self._client = client
             self.sig_log.emit(f"[MQTT] connecting to {cfg.host}:{cfg.port} client_id={cfg.client_id!r}")
-            client.connect(cfg.host, int(cfg.port), keepalive=int(cfg.keepalive))
+            client.connect_async(cfg.host, int(cfg.port), keepalive=int(cfg.keepalive))
+            client.loop_start()
         except Exception as e:
             self.sig_log.emit(f"[MQTT][ERROR] connect failed: {e}")
             self._client = None
             self.sig_disconnected.emit()
             return
 
-        # Single-threaded network loop in this QThread.
-        try:
-            while not self._stop.is_set():
-                if self._client is None:
-                    break
-
-                # Pump network.
-                self._client.loop(timeout=0.2)
-
-                # Flush outgoing publishes in the same thread (paho client is not thread-safe).
-                try:
-                    while True:
-                        topic, payload, qos = self._outgoing.get_nowait()
-                        self._client.publish(topic, payload, qos=qos, retain=False)
-                except queue.Empty:
-                    pass
-        finally:
-            try:
-                if self._client is not None:
-                    self._client.disconnect()
-            except Exception:
-                pass
-            self._client = None
-
     @QtCore.pyqtSlot()
     def disconnect_mqtt(self) -> None:
         self._stop.set()
+        self._disconnect_current()
 
     @QtCore.pyqtSlot(str, object, int)
     def publish(self, topic: str, payload_obj: object, qos: int = 1) -> None:
@@ -112,7 +110,13 @@ class MqttWorker(QtCore.QObject):
             payload = bytes(payload_obj)  # type: ignore[arg-type]
         except Exception:
             payload = str(payload_obj).encode("utf-8")
-        self._outgoing.put((topic, payload, int(qos)))
+        if self._client is None:
+            self.sig_log.emit("[MQTT][ERROR] publish ignored: not connected")
+            return
+        try:
+            self._client.publish(topic, payload, qos=int(qos), retain=False)
+        except Exception as e:
+            self.sig_log.emit(f"[MQTT][ERROR] publish failed: {e}")
 
     # paho callbacks (executed in this QThread because we call loop() here)
     def _on_connect(self, client: mqtt.Client, _userdata, _flags, rc: int) -> None:
@@ -132,6 +136,14 @@ class MqttWorker(QtCore.QObject):
     def _on_disconnect(self, _client: mqtt.Client, _userdata, rc: int) -> None:
         self.sig_log.emit(f"[MQTT] disconnected rc={rc}")
         self.sig_disconnected.emit()
+
+        # Best-effort auto-reconnect for unexpected disconnects.
+        if rc != 0 and not self._stop.is_set() and self._client is not None:
+            try:
+                self.sig_log.emit("[MQTT] attempting reconnect...")
+                self._client.reconnect()
+            except Exception as e:
+                self.sig_log.emit(f"[MQTT][ERROR] reconnect failed: {e}")
 
     def _on_message(self, _client: mqtt.Client, _userdata, msg: mqtt.MQTTMessage) -> None:
         topic = msg.topic or ""

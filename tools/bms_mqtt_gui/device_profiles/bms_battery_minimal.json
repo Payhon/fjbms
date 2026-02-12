@@ -1,0 +1,26 @@
+{
+  "id": "bms_battery_minimal",
+  "name": "BMS电池(最小示例)",
+  "description": "最小可用示例：只给出 S/N、板编码、MAC，其余寄存器保留默认 0。",
+  "status": {
+    "series_count_s": 8,
+    "temp_count_n": 1,
+    "hardware_model": "FJ-BMS-HW-MINI",
+    "battery_group_id": "PACK-MINI-0001",
+    "board_code": "BMS-MINI-0001",
+    "bluetooth_mac": "AC:00:00:00:00:01"
+  },
+  "cloud_socket": {
+    "longitude": 0.0,
+    "latitude": 0.0,
+    "speed_kmh": 0.0,
+    "altitude_m": 0,
+    "rssi": -90,
+    "tac": 0,
+    "cell_id": 0,
+    "imei": "",
+    "iccid": "",
+    "module_sw_ver": ""
+  }
+}
+
