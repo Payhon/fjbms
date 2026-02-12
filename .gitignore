@@ -116,6 +116,8 @@ coverage/
 
 # python 字节缓存
 *.pyc
+.venv/
+**/.venv/
 
 # release file
 release/
