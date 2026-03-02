@@ -14,6 +14,11 @@
 ## 模块泳道看板
 
 ### Backend（`backend/`）
+- [ ] `in_progress` **FEAT-0007** 蓝牙 BMS 经 App 上云 + 后台 BMS 实时/历史可视化
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 文档：`docs/03-development/features/FEAT-0007-bms-ble-cloud-report/`
 - [ ] `draft` **FEAT-0004** 电池/MES 对接统一鉴权与审计日志
   - owner：待指派
   - 优先级：P1
