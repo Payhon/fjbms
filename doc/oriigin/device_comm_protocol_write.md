@@ -1,4 +1,6 @@
 # 云平台参数修改与OTA协议
+> ⚠️ 本文为历史副本。当前维护版本：`docs/02-architecture/system-design/protocol-source/device-comm-write.md`。
+
 ## 一、基础说明
 - 数据格式：默认大端模式
 - 通信接口：UART、485

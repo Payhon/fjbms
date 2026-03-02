@@ -1,5 +1,7 @@
 # 富嘉 BMS 查询协议开发指南（易读版）
 
+> ⚠️ 本文为历史副本。当前维护版本：`docs/02-architecture/system-design/device-comm-basic-guide.md`。
+
 本指南用于前端（uni-app）/后端在实现 **BLE/串口** 通讯时快速落地，避免“寄存器地址不固定”导致的误读。
 
 原始协议文档请参考：`doc/oriigin/device_comm_protocol_basic.md`。

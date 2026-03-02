@@ -1,5 +1,7 @@
 # APP 内容（政策/FAQ/反馈）接口文档
 
+> ⚠️ 本文为历史副本。当前维护版本：`docs/02-architecture/system-design/app-content-api.md`。
+
 本文档面向 **APP/小程序端开发**，描述 `/api/v1/app/content/*` 相关接口（单页内容、FAQ、用户反馈），并补充反馈图片上传接口。
 
 ## 约定
@@ -218,4 +220,3 @@ Header:
 - `X-TenantID` 建议必传
 
 成功响应 `data`：同“我的反馈列表”的单条结构。
-

@@ -1,5 +1,7 @@
 # BMS 设备接入 MQTT 指南
 
+> ⚠️ 本文为历史副本。当前维护版本：`docs/02-architecture/system-design/protocol-source/device-access-mqtt.md`。
+
 本文档详细说明如何将BMS设备接入 Fjia Cloud平台的 MQTT Broker，包括认证、数据上报、命令接收、数据透传等完整流程。
 
 ## 目录

@@ -1,3 +1,5 @@
+> ⚠️ 本文为历史副本。当前维护版本：`docs/02-architecture/system-design/protocol-source/device-comm-socket.md`。
+
 ## 云平台-读指令
 
 | 名称           | 偏移 | 长度 | 描述                     | 备注                 |

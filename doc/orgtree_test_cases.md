@@ -1,5 +1,7 @@
 # OrgTree 多层级组织改造 - 回归测试清单
 
+> ⚠️ 本文为历史副本。当前维护版本：`docs/03-development/test-cases/orgtree-test-cases.md`。
+
 ## 测试环境准备
 
 ### 数据库

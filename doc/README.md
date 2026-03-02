@@ -1,5 +1,12 @@
 # ThingsPanel (FJBMS) 项目文档索引
 
+> ⚠️ 本目录为历史文档目录（Legacy）。新文档与持续维护文档请优先使用 `docs/`，并按 `docs/04-project-tracking/doc-migration-checklist.md` 迁移。
+
+## 历史存档说明
+- 本目录仅保留历史副本，不再作为主维护入口。
+- 阶段性报告已归档到 `docs/04-project-tracking/archive/`。
+- 新增或更新文档请统一在 `docs/` 目录进行。
+
 本目录包含了ThingsPanel项目的完整技术文档，帮助开发者快速了解和参与项目开发。
 
 ## 📚 文档列表

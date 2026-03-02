@@ -1,4 +1,6 @@
 # 富嘉BMS查询协议2025-V251023
+> ⚠️ 本文为历史副本。当前维护版本：`docs/02-architecture/system-design/protocol-source/device-comm-basic.md`。
+
 深圳富嘉科技版权所有
 
 ## 变更履历表

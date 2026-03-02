@@ -1,5 +1,7 @@
 # APP WebSocket 认证与后端 MQTT 客户端认证说明
 
+> ⚠️ 本文为历史副本。当前维护版本：`docs/02-architecture/security/ws-mqtt-auth.md`。
+
 本文档说明 APP 端 WebSocket 认证方式，以及后端作为 MQTT 客户端连接 Broker 时使用的认证信息来源。
 
 ---

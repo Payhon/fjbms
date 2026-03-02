@@ -1,3 +1,5 @@
+> ⚠️ 本文为历史副本。当前维护版本：`docs/02-architecture/system-design/protocol-source/mqtt-pass-through.md`。
+
 ## 6. 数据透传(Socket通讯）
 
 ### 6.1 概述

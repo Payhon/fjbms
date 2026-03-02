@@ -1,5 +1,7 @@
 # 第三方 MES 电池 API 说明
 
+> ⚠️ 本文为历史副本。当前维护版本：`docs/02-architecture/system-design/mes-battery-api.md`。
+
 ## 1. API 密钥管理（后台）
 
 - 菜单位置：`系统管理 -> API密钥管理`

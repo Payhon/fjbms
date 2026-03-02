@@ -1,5 +1,7 @@
 # EMQX HTTP 认证对接（不直连 DB）
 
+> ⚠️ 本文为历史副本。当前维护版本：`docs/02-architecture/security/emqx-http-auth.md`。
+
 本文档基于本仓库实现的 **EMQX HTTP 认证接口**，用于让 EMQX 通过 HTTP 回调到后端校验设备的 MQTT 用户名/密码（凭证来源仍是 `devices.voucher`），从而避免 EMQX 直接连接数据库。
 
 > 适用范围：EMQX 4.x / 5.x（配置项名称略有差异，下面提供通用配置思路与示例）。

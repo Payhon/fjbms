@@ -1,0 +1,235 @@
+# 模块一完成报告（归档）
+
+- status: archived
+- owner: <owner>
+- last_updated: 2026-02-14
+- source: `doc/模块一完成报告.md`
+- version: v1.0.0
+
+> 本文是历史归档文档，默认只读。
+
+**完成时间**: 2025-12-02 08:45  
+**模块状态**: ✅ 已完成
+
+---
+
+## 📦 交付内容
+
+### 1. Service 层 (3个文件)
+
+#### ✅ `/backend/internal/service/dealer.go`
+经销商管理服务，包含：
+- `CreateDealer` - 创建经销商
+- `UpdateDealer` - 更新经销商
+- `DeleteDealer` - 删除经销商（含业务校验）
+- `GetDealerByID` - 获取详情
+- `GetDealerList` - 分页列表
+
+#### ✅ `/backend/internal/service/battery_model.go`
+电池型号管理服务，包含：
+- `CreateBatteryModel` - 创建型号
+- `UpdateBatteryModel` - 更新型号
+- `DeleteBatteryModel` - 删除型号（含业务校验）
+- `GetBatteryModelByID` - 获取详情
+- `GetBatteryModelList` - 分页列表
+
+#### ✅ `/backend/internal/service/device_transfer.go`
+设备转移服务，包含：
+- `TransferDevices` - 批量转移设备（含事务处理）
+- `GetTransferHistory` - 转移记录查询（含关联查询）
+
+**技术亮点**:
+- 完整的事务处理机制
+- 业务校验（删除前检查关联数据）
+- 数据权限控制（tenant_id 校验）
+- 关联查询优化
+
+---
+
+### 2. API 层 (3个文件)
+
+#### ✅ `/backend/internal/api/dealer.go`
+经销商管理 API，路由：
+- `POST /api/v1/dealer` - 创建
+- `PUT /api/v1/dealer/:id` - 更新
+- `DELETE /api/v1/dealer/:id` - 删除
+- `GET /api/v1/dealer/:id` - 详情
+- `GET /api/v1/dealer` - 列表
+
+#### ✅ `/backend/internal/api/battery_model.go`
+电池型号管理 API，路由：
+- `POST /api/v1/battery/model` - 创建
+- `PUT /api/v1/battery/model/:id` - 更新
+- `DELETE /api/v1/battery/model/:id` - 删除
+- `GET /api/v1/battery/model/:id` - 详情
+- `GET /api/v1/battery/model` - 列表
+
+#### ✅ `/backend/internal/api/device_transfer.go`
+设备转移 API，路由：
+- `POST /api/v1/device/transfer` - 批量转移
+- `GET /api/v1/device/transfer/history` - 转移记录
+
+**技术亮点**:
+- Swagger 文档注释完整
+- 统一的错误处理
+- 请求参数验证
+
+---
+
+### 3. 路由注册 (3个文件)
+
+#### ✅ `/backend/router/apps/dealer.go`
+经销商路由配置
+
+#### ✅ `/backend/router/apps/battery_model.go`
+电池型号路由配置
+
+#### ✅ `/backend/router/apps/device_transfer.go`
+设备转移路由配置
+
+#### ✅ 更新的文件
+- `/backend/router/apps/enter.go` - 添加路由模块注册
+- `/backend/router/router_init.go` - 添加路由初始化调用
+- `/backend/internal/api/enter.go` - 添加 API 控制器注册
+- `/backend/internal/service/enter.go` - 添加服务注册
+
+---
+
+## 🎯 功能验证清单
+
+### 经销商管理
+- [ ] 创建经销商
+- [ ] 更新经销商信息
+- [ ] 删除经销商（需验证无下级和设备）
+- [ ] 查询经销商详情（含设备统计）
+- [ ] 分页查询经销商列表
+
+### 电池型号管理
+- [ ] 创建电池型号
+- [ ] 更新型号信息
+- [ ] 删除型号（需验证无关联设备）
+- [ ] 查询型号详情（含设备统计）
+- [ ] 分页查询型号列表
+
+### 设备转移
+- [ ] 批量转移设备到经销商
+- [ ] 批量转移设备回厂家
+- [ ] 查询转移历史记录
+- [ ] 转移记录关联查询（设备、经销商、操作人）
+
+---
+
+## 📊 API 接口清单
+
+| 接口路径 | 方法 | 功能 | 权限 |
+|---------|------|------|------|
+| /api/v1/dealer | POST | 创建经销商 | 需认证 |
+| /api/v1/dealer/:id | PUT | 更新经销商 | 需认证 |
+| /api/v1/dealer/:id | DELETE | 删除经销商 | 需认证 |
+| /api/v1/dealer/:id | GET | 经销商详情 | 需认证 |
+| /api/v1/dealer | GET | 经销商列表 | 需认证 |
+| /api/v1/battery/model | POST | 创建型号 | 需认证 |
+| /api/v1/battery/model/:id | PUT | 更新型号 | 需认证 |
+| /api/v1/battery/model/:id | DELETE | 删除型号 | 需认证 |
+| /api/v1/battery/model/:id | GET | 型号详情 | 需认证 |
+| /api/v1/battery/model | GET | 型号列表 | 需认证 |
+| /api/v1/device/transfer | POST | 批量转移 | 需认证 |
+| /api/v1/device/transfer/history | GET | 转移记录 | 需认证 |
+
+---
+
+## 🔧 技术实现要点
+
+### 1. 事务处理
+```go
+tx := query.Use(global.DB).Begin()
+defer func() {
+    if r := recover(); r != nil {
+        tx.Rollback()
+    }
+}()
+
+// 业务操作...
+
+if err := tx.Commit(); err != nil {
+    return err
+}
+```
+
+### 2. 业务校验
+```go
+// 删除前检查关联数据
+deviceCount, _ := query.DeviceBattery.Where(
+    query.DeviceBattery.DealerID.Eq(id)
+).Count()
+
+if deviceCount > 0 {
+    return errcode.WithData(errcode.CodeParamError, map[string]interface{}{
+        "message": "dealer has devices, please transfer them first",
+    })
+}
+```
+
+### 3. 关联查询
+```go
+// 查询设备信息
+device, err := d.WithContext(ctx).Where(d.ID.Eq(transfer.DeviceID)).First()
+
+// 查询经销商名称
+dealer, err := dealer.WithContext(ctx).Where(dealer.ID.Eq(*transfer.FromDealerID)).First()
+```
+
+---
+
+## ⚠️ 注意事项
+
+### 编译前准备
+1. 需要运行 GORM Gen 生成 query 代码：
+   ```bash
+   cd backend
+   go run cmd/gen/main.go
+   ```
+
+2. 确保导入路径正确：
+   ```go
+   import (
+       "project/internal/model"
+       "project/internal/query"
+       "project/internal/service"
+   )
+   ```
+
+### 数据库准备
+1. 执行迁移脚本：
+   ```bash
+   psql -U postgres -d ThingsPanel -f backend/sql/13.sql
+   ```
+
+2. 验证表创建：
+   ```sql
+   \dt dealers
+   \dt battery_models
+   \dt device_batteries
+   \dt device_transfers
+   ```
+
+---
+
+## 📝 下一步计划
+
+### 模块二：设备绑定功能
+- [ ] Service: 设备绑定服务
+- [ ] API: APP 端设备绑定接口
+- [ ] 功能: 扫码绑定、解绑、用户设备列表
+
+### 模块三：维保管理功能
+- [ ] Service: 维保申请服务
+- [ ] API: 维保管理接口
+- [ ] 功能: 申请提交、审批、记录查询
+
+---
+
+**模块一状态**: ✅ 完成  
+**代码文件**: 13个  
+**API 接口**: 12个  
+**下一模块**: 设备绑定功能
