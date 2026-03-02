@@ -1,0 +1,1759 @@
+{
+  "meta": {
+    "name": "BMS设备模板批量导入JSON（4G遥测）",
+    "version": "1.0.0",
+    "generated_at": "2026-02-17T13:59:26Z",
+    "device_type": "BMS_BATTERY",
+    "device_type_rule": {
+      "battery_mac_prefix_hex": "0xAC",
+      "meter_mac_prefix_hex": "0xAA",
+      "note": "本模板面向BMS电池设备；仪表设备命令请使用set_meter_target_mac并按0xFC目标地址处理。"
+    },
+    "sources": [
+      "doc/oriigin/device_comm_protocol_basic.md",
+      "doc/device_comm_protocol_basic_guide.md",
+      "doc/oriigin/device_comm_protocol_socket.md",
+      "doc/oriigin/device_comm_protocol_write.md",
+      "backend接口参考: /tmp/thingspanel-backend-community-codex/router/apps/device.go",
+      "backend模型参考: /tmp/thingspanel-backend-community-codex/internal/model/device_templates.http.go",
+      "backend模型参考: /tmp/thingspanel-backend-community-codex/internal/model/device_model.http.go"
+    ],
+    "import_order": [
+      "device_templates",
+      "device_model_telemetry",
+      "device_model_attributes",
+      "device_model_events",
+      "device_model_commands"
+    ],
+    "placeholders": {
+      "tenant_id": "{{TENANT_ID}}",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e"
+    },
+    "mqtt_topics": {
+      "telemetry_up": "devices/telemetry",
+      "attributes_up": "devices/attributes/{message_id}",
+      "event_up": "devices/event/{message_id}",
+      "command_down": "devices/command/{device_number}/{message_id}",
+      "telemetry_control_down": "devices/telemetry/control/{device_number}",
+      "attribute_set_down": "devices/attributes/set/{device_number}/{message_id}"
+    }
+  },
+  "backend_api_contract": {
+    "device_template": {
+      "create": {
+        "method": "POST",
+        "path": "/api/v1/device/template",
+        "body_fields": [
+          "name",
+          "author",
+          "version",
+          "description",
+          "remark",
+          "path",
+          "label"
+        ]
+      },
+      "update": {
+        "method": "PUT",
+        "path": "/api/v1/device/template",
+        "body_fields": [
+          "id",
+          "name",
+          "author",
+          "version",
+          "description",
+          "remark",
+          "path",
+          "label",
+          "web_chart_config",
+          "app_chart_config"
+        ]
+      },
+      "list": {
+        "method": "GET",
+        "path": "/api/v1/device/template"
+      },
+      "detail": {
+        "method": "GET",
+        "path": "/api/v1/device/template/detail/{id}"
+      }
+    },
+    "device_model": {
+      "telemetry": {
+        "base_path": "/api/v1/device/model/telemetry",
+        "methods": [
+          "POST",
+          "PUT",
+          "GET",
+          "DELETE"
+        ],
+        "body_fields": [
+          "device_template_id",
+          "data_name",
+          "data_identifier",
+          "read_write_flag",
+          "data_type",
+          "unit",
+          "description",
+          "additional_info",
+          "remark"
+        ]
+      },
+      "attributes": {
+        "base_path": "/api/v1/device/model/attributes",
+        "methods": [
+          "POST",
+          "PUT",
+          "GET",
+          "DELETE"
+        ],
+        "body_fields": [
+          "device_template_id",
+          "data_name",
+          "data_identifier",
+          "read_write_flag",
+          "data_type",
+          "unit",
+          "description",
+          "additional_info",
+          "remark"
+        ]
+      },
+      "events": {
+        "base_path": "/api/v1/device/model/events",
+        "methods": [
+          "POST",
+          "PUT",
+          "GET",
+          "DELETE"
+        ],
+        "body_fields": [
+          "device_template_id",
+          "data_name",
+          "data_identifier",
+          "params",
+          "description",
+          "additional_info",
+          "remark"
+        ]
+      },
+      "commands": {
+        "base_path": "/api/v1/device/model/commands",
+        "methods": [
+          "POST",
+          "PUT",
+          "GET",
+          "DELETE"
+        ],
+        "body_fields": [
+          "device_template_id",
+          "data_name",
+          "data_identifier",
+          "params",
+          "description",
+          "additional_info",
+          "remark"
+        ]
+      }
+    }
+  },
+  "device_templates": [
+    {
+      "id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "name": "FJBMS-4G-电池设备模板",
+      "author": "FJBMS",
+      "version": "v1.0.0",
+      "label": "BMS,4G,Battery",
+      "path": "",
+      "web_chart_config": {},
+      "app_chart_config": {},
+      "description": "适配BMS电池设备(蓝牙MAC首字节0xAC)的4G遥测物模型模板",
+      "tenant_id": "{{TENANT_ID}}",
+      "flag": 1,
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    }
+  ],
+  "device_model_telemetry": [
+    {
+      "id": "0944b09e-c5a2-44f9-aaf8-6ab129fa907f",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "设计容量",
+      "data_identifier": "design_capacity_mah",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "mAh",
+      "description": "设计容量",
+      "additional_info": {
+        "register": "0x103~0x104",
+        "resolution": "1mAh/bit"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "46f06d46-fdcd-4eca-8324-45f13e15ffdc",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "剩余容量",
+      "data_identifier": "remain_capacity_mah",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "mAh",
+      "description": "剩余容量",
+      "additional_info": {
+        "register": "0x105~0x106",
+        "resolution": "1mAh/bit"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "396f3fcd-480a-40fa-8cbf-38966496cd4b",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "满充容量",
+      "data_identifier": "full_charge_capacity_mah",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "mAh",
+      "description": "满充容量",
+      "additional_info": {
+        "register": "0x107~0x108",
+        "resolution": "1mAh/bit"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "a2b4e7af-d807-43c5-9c54-4c592edd86d6",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "剩余能量",
+      "data_identifier": "remain_energy_wh",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "Wh",
+      "description": "SOE(剩余WH)",
+      "additional_info": {
+        "register": "0x10B~0x10C",
+        "resolution": "0.1Wh/bit"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "3e912d40-549d-4d2e-a8ff-557ebbb46d6e",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "SOC",
+      "data_identifier": "soc",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "%",
+      "description": "剩余容量比(H字节)",
+      "additional_info": {
+        "register": "0x10D.H",
+        "resolution": "0.5%/bit"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "1c5419c6-e617-45d5-85c1-2516a494d5ca",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "SOH",
+      "data_identifier": "soh",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "%",
+      "description": "健康度(L字节)",
+      "additional_info": {
+        "register": "0x10D.L",
+        "resolution": "1%/bit"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "9e99bfb8-2618-4668-a3b0-30a2eee40336",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "循环次数",
+      "data_identifier": "cycle_count",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "次",
+      "description": "循环次数",
+      "additional_info": {
+        "register": "0x10E"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "1237fecf-fdd3-4a10-814b-df56717b2f96",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "电池组总电压",
+      "data_identifier": "pack_total_voltage_v",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "V",
+      "description": "单节累计总压",
+      "additional_info": {
+        "register": "0x115",
+        "resolution": "0.1V/bit"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "c8688d52-fb8f-4d5b-81ab-2376f2d1242b",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "VBat电压",
+      "data_identifier": "vbat_voltage_v",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "V",
+      "description": "电池总电压",
+      "additional_info": {
+        "register": "0x116",
+        "resolution": "0.1V/bit"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "a51f98f3-fbae-4284-bf2f-50c6e5766147",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "VPack电压",
+      "data_identifier": "vpack_voltage_v",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "V",
+      "description": "Pack口电压",
+      "additional_info": {
+        "register": "0x117",
+        "resolution": "0.1V/bit"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "737576ab-80ec-464f-9f98-af6655c47a44",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "VLoad电压",
+      "data_identifier": "vload_voltage_v",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "V",
+      "description": "充电口电压",
+      "additional_info": {
+        "register": "0x118",
+        "resolution": "0.1V/bit"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "681fd413-a385-48f0-9507-cd8a5d815770",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "电池组电流",
+      "data_identifier": "pack_current_a",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "A",
+      "description": "放电为负，充电为正",
+      "additional_info": {
+        "register": "0x119~0x11A",
+        "resolution": "0.1mA/bit",
+        "signed": true
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "851c831f-9748-4d1e-87d5-875440c3c8b6",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "充电MOS温度",
+      "data_identifier": "charge_mos_temp_c",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "°C",
+      "description": "充电MOS温度(H字节)",
+      "additional_info": {
+        "register": "0x11D.H",
+        "offset": -40
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "ff8c7dcf-96e6-4ba1-a0b1-a5dddc7d8237",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "放电MOS温度",
+      "data_identifier": "discharge_mos_temp_c",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "°C",
+      "description": "放电MOS温度(L字节)",
+      "additional_info": {
+        "register": "0x11D.L",
+        "offset": -40
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "a80b93cd-2694-4e1a-9c9c-835e0f9675c6",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "预充MOS温度",
+      "data_identifier": "precharge_mos_temp_c",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "°C",
+      "description": "预充MOS温度(H字节)",
+      "additional_info": {
+        "register": "0x11E.H",
+        "offset": -40
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "02f15af9-ca64-4725-bba7-5bec98c0b5d7",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "环境温度",
+      "data_identifier": "ambient_temp_c",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "°C",
+      "description": "环境温度(L字节)",
+      "additional_info": {
+        "register": "0x11E.L",
+        "offset": -40
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "4af26500-d9fa-4ffa-84ad-1fad673d9aaf",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "加热膜温度",
+      "data_identifier": "heating_film_temp_c",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "°C",
+      "description": "加热膜温度(H字节)",
+      "additional_info": {
+        "register": "0x11F.H",
+        "offset": -40
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "1bbcd850-7143-4ac6-90e7-f6caa22d3da4",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "极柱温度",
+      "data_identifier": "pole_temp_c",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "°C",
+      "description": "极柱温度(L字节)",
+      "additional_info": {
+        "register": "0x11F.L",
+        "offset": -40
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "24cbaf53-76aa-434f-b23c-d2671b0df00f",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "BMS时间戳",
+      "data_identifier": "bms_timestamp",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "s",
+      "description": "BMS时间戳",
+      "additional_info": {
+        "register": "0x120~0x121",
+        "epoch": "unix"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "ca8230d3-b3c7-466d-be71-dd7676945f9a",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "最高电压",
+      "data_identifier": "max_cell_voltage_mv",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "mV",
+      "description": "最高单体电压",
+      "additional_info": {
+        "register": "0x122",
+        "resolution": "1mV/bit"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "00cbb828-c46c-4a7c-b0b8-764c8846d069",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "最低电压",
+      "data_identifier": "min_cell_voltage_mv",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "mV",
+      "description": "最低单体电压",
+      "additional_info": {
+        "register": "0x123",
+        "resolution": "1mV/bit"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "0be5d7ec-f71d-46c0-990a-94d4d4d7b408",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "平均电压",
+      "data_identifier": "avg_cell_voltage_mv",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "mV",
+      "description": "平均电压",
+      "additional_info": {
+        "register": "0x124",
+        "resolution": "1mV/bit"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "6f1a3bcb-76c4-4427-8bf5-7ef7d2ca62b1",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "最大压差",
+      "data_identifier": "max_cell_voltage_diff_mv",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "mV",
+      "description": "最大压差",
+      "additional_info": {
+        "register": "0x125",
+        "resolution": "1mV/bit"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "e21570c5-6f92-4f58-8621-9386c09c93ef",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "最高温度序号",
+      "data_identifier": "highest_temp_sensor_idx",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "",
+      "description": "最高温度序号(H字节)",
+      "additional_info": {
+        "register": "0x126.H"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "ec84ad31-d7de-4940-baff-4e866fd25b84",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "最高温度",
+      "data_identifier": "highest_temp_c",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "°C",
+      "description": "最高温度(L字节)",
+      "additional_info": {
+        "register": "0x126.L",
+        "offset": -40
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "7e93d7ba-ffe0-4e0e-a172-3c31a4bf7fa8",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "最低温度序号",
+      "data_identifier": "lowest_temp_sensor_idx",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "",
+      "description": "最低温度序号(H字节)",
+      "additional_info": {
+        "register": "0x127.H"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "ca7b3ca8-aaf2-4f38-a82d-4efb041819e6",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "最低温度",
+      "data_identifier": "lowest_temp_c",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "°C",
+      "description": "最低温度(L字节)",
+      "additional_info": {
+        "register": "0x127.L",
+        "offset": -40
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "609e31e6-01e4-47ad-8cf3-47846b371c1b",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "最高/最低电压电芯编号",
+      "data_identifier": "cell_extreme_index",
+      "read_write_flag": "R",
+      "data_type": "String",
+      "unit": "",
+      "description": "高字节最高编号，低字节最低编号",
+      "additional_info": {
+        "register": "0x128",
+        "encoding": "u8_pair"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "49d06d59-66d0-4023-8864-5ebb79529cbb",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "上电工作时长",
+      "data_identifier": "power_on_hours",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "h",
+      "description": "上电工作时间",
+      "additional_info": {
+        "register": "0x129~0x12A"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "1f9c393b-e273-4f99-b6dd-e63087a3fcc3",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "总充容量",
+      "data_identifier": "total_charge_capacity",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "",
+      "description": "总充容量",
+      "additional_info": {
+        "register": "0x12B~0x12C"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "b3268d40-e2c4-44cf-a2b2-0811a595883c",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "保护状态位",
+      "data_identifier": "protection_status_bits",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "",
+      "description": "保护状态bit位",
+      "additional_info": {
+        "register": "0x12D~0x12E",
+        "encoding": "u32_bitset"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "ce6aabf7-28eb-4b98-81c8-696ce18a185f",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "指示状态位",
+      "data_identifier": "indicator_status_bits",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "",
+      "description": "指示状态bit位",
+      "additional_info": {
+        "register": "0x132~0x133",
+        "encoding": "u32_bitset"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "eb609cd8-7433-40f1-98d0-4b3f0a7b7496",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "告警状态位",
+      "data_identifier": "alarm_status_bits",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "",
+      "description": "告警状态bit位",
+      "additional_info": {
+        "register": "0x134~0x135",
+        "encoding": "u32_bitset"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "01cd2e9c-54f4-4cf0-bca8-941ec6fdf7d9",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "自定义状态位",
+      "data_identifier": "custom_status_bits",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "",
+      "description": "自定义状态bit位",
+      "additional_info": {
+        "register": "0x136~0x137",
+        "encoding": "u32_bitset"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "37594f7e-2799-4054-9d1d-f9fe7d0b5b0d",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "自定义参数块",
+      "data_identifier": "custom_params_block",
+      "read_write_flag": "R",
+      "data_type": "String",
+      "unit": "",
+      "description": "自定义参数[8]，建议按16字节HEX存储",
+      "additional_info": {
+        "register": "0x139~0x140",
+        "encoding": "hex"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "a8901c34-e09b-442e-b1d1-c8ed345a6dcb",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "电芯电压数组",
+      "data_identifier": "cell_voltage_array_mv",
+      "read_write_flag": "R",
+      "data_type": "String",
+      "unit": "mV",
+      "description": "电芯电压数组，JSON字符串",
+      "additional_info": {
+        "register": "0x141~(0x141+S-1)",
+        "dynamic": true,
+        "resolution": "1mV/bit"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "7d9ba159-4078-4bb6-aa74-bbb90e2dbd3c",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "电芯温度数组",
+      "data_identifier": "cell_temp_array_k_x10",
+      "read_write_flag": "R",
+      "data_type": "String",
+      "unit": "Kx10",
+      "description": "电芯温度数组，JSON字符串",
+      "additional_info": {
+        "register": "(0x141+S)~(0x141+S+N-1)",
+        "dynamic": true,
+        "resolution": "0.1K/bit"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "29ba5669-22ca-4e67-879f-ed115fb86712",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "经度",
+      "data_identifier": "gps_longitude",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "°",
+      "description": "WGS84经度",
+      "additional_info": {
+        "register": "0x900",
+        "resolution": "0.00001"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "42327ec7-e5eb-4416-8e89-a5928e6d60d1",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "纬度",
+      "data_identifier": "gps_latitude",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "°",
+      "description": "WGS84纬度",
+      "additional_info": {
+        "register": "0x902",
+        "resolution": "0.00001"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "4181fd67-f29a-4d39-a6b6-ab5dcbc8a82c",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "速度",
+      "data_identifier": "gps_speed_kmh",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "km/h",
+      "description": "速度",
+      "additional_info": {
+        "register": "0x904",
+        "resolution": "0.001"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "5005f4b2-e871-4430-8da5-d40f72eca512",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "高度",
+      "data_identifier": "gps_altitude_m",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "m",
+      "description": "高度",
+      "additional_info": {
+        "register": "0x905"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "3f497785-8226-430e-8fd7-5529918d22ec",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "信号强度",
+      "data_identifier": "gsm_rssi",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "dBm",
+      "description": "GSM信号强度",
+      "additional_info": {
+        "register": "0x906"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "df3506c0-6d4e-4a80-8d97-cecabfa2a7c8",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "TAC",
+      "data_identifier": "tracking_area_code",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "",
+      "description": "位置区码",
+      "additional_info": {
+        "register": "0x907"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "34d218a2-1f43-4db2-9bb4-a1a6b9f65b47",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "Cell Identity",
+      "data_identifier": "cell_identity",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "",
+      "description": "小区识别码",
+      "additional_info": {
+        "register": "0x908"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    }
+  ],
+  "device_model_attributes": [
+    {
+      "id": "bf86e676-4f4e-4c77-afab-b9bad6c07adb",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "电池串数",
+      "data_identifier": "battery_series_count",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "串",
+      "description": "电池串数(S)",
+      "additional_info": {
+        "register": "0x100.H"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "4fc44167-e923-44ea-bf58-b35872434944",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "电芯温度数量",
+      "data_identifier": "temp_probe_count",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "个",
+      "description": "电芯温度数量(N)",
+      "additional_info": {
+        "register": "0x100.L"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "a50381c8-3546-4153-86d2-f3af2714eca5",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "硬件版本号",
+      "data_identifier": "hardware_version",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "",
+      "description": "硬件版本号",
+      "additional_info": {
+        "register": "0x101.H"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "132d3771-9962-4bd6-b101-03335887a996",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "软件版本号",
+      "data_identifier": "software_version",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "",
+      "description": "软件版本号",
+      "additional_info": {
+        "register": "0x101.L"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "adbc8460-f616-4e97-a207-98ccb12d4b45",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "特殊识别符",
+      "data_identifier": "special_identifier",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "",
+      "description": "特殊识别符",
+      "additional_info": {
+        "register": "0x102.H"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "70c1b859-7fcd-426b-99f0-19bafdbac2f9",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "协议版本号",
+      "data_identifier": "protocol_version",
+      "read_write_flag": "R",
+      "data_type": "Number",
+      "unit": "",
+      "description": "协议版本号",
+      "additional_info": {
+        "register": "0x102.L"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "a4a16fb3-119b-42cb-b9ca-81d1c9ca6a9a",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "生产日期",
+      "data_identifier": "production_date",
+      "read_write_flag": "R",
+      "data_type": "String",
+      "unit": "",
+      "description": "年[9:15]+月[5:8]+日[0:4]",
+      "additional_info": {
+        "register": "0x138",
+        "encoding": "bitfield_date"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "b9201f9a-97c3-4c5e-acbc-9dbc91bf86b0",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "硬件型号",
+      "data_identifier": "hardware_model",
+      "read_write_flag": "R",
+      "data_type": "String",
+      "unit": "",
+      "description": "ASCII字符串，32字节",
+      "additional_info": {
+        "register": "(0x141+S+N)~+15",
+        "dynamic": true,
+        "encoding": "ascii"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "14f90d77-0102-4e57-a45e-5f26e21c8876",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "电池组编号",
+      "data_identifier": "battery_group_id",
+      "read_write_flag": "RW",
+      "data_type": "String",
+      "unit": "",
+      "description": "ASCII字符串，32字节",
+      "additional_info": {
+        "register": "(HW_MODEL_START+16)~+15",
+        "dynamic": true,
+        "encoding": "ascii",
+        "write_range": "0x500~0x50F"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "571957c5-851a-4c43-8ebf-e5db1a58f8b1",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "BMS板编码",
+      "data_identifier": "board_code",
+      "read_write_flag": "R",
+      "data_type": "String",
+      "unit": "",
+      "description": "ASCII字符串，32字节",
+      "additional_info": {
+        "register": "(BATTERY_GROUP_ID_START+16)~+15",
+        "dynamic": true,
+        "encoding": "ascii"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "27044dac-c626-434e-a2d8-88f504ef2263",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "蓝牙MAC",
+      "data_identifier": "bluetooth_mac",
+      "read_write_flag": "R",
+      "data_type": "String",
+      "unit": "",
+      "description": "蓝牙MAC地址，通常前6字节有效",
+      "additional_info": {
+        "register": "(BOARD_CODE_START+16)~+4",
+        "dynamic": true,
+        "encoding": "mac"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "f07f2c1f-adff-40d2-9115-536cde69bee6",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "BMS UUID",
+      "data_identifier": "bms_uuid",
+      "read_write_flag": "R",
+      "data_type": "String",
+      "unit": "",
+      "description": "通过功能码0xFF读取16字节UUID",
+      "additional_info": {
+        "register": "func:0xFF@0x0000,len=0x0008",
+        "encoding": "hex16"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "acc59b8b-d892-4b85-8f4e-c322d56378da",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "4G IMEI",
+      "data_identifier": "module_imei",
+      "read_write_flag": "R",
+      "data_type": "String",
+      "unit": "",
+      "description": "IMEI，18字节ASCII",
+      "additional_info": {
+        "register": "0x90A~0x912",
+        "encoding": "ascii"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "6d14c299-3c1c-4f9b-844b-0d636321e7b6",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "4G ICCID",
+      "data_identifier": "module_iccid",
+      "read_write_flag": "R",
+      "data_type": "String",
+      "unit": "",
+      "description": "ICCID，22字节ASCII",
+      "additional_info": {
+        "register": "0x913~0x91D",
+        "encoding": "ascii"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "16235c2f-8f35-4691-b719-56f76db2aa30",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "4G软件版本",
+      "data_identifier": "module_sw_version",
+      "read_write_flag": "R",
+      "data_type": "String",
+      "unit": "",
+      "description": "4G模块软件版本，12字节ASCII",
+      "additional_info": {
+        "register": "0x91E~0x923",
+        "encoding": "ascii"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "aa2a9aa1-a15c-45cd-aa82-709225279410",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "DTU域名端口",
+      "data_identifier": "dtu_domain_port",
+      "read_write_flag": "RW",
+      "data_type": "String",
+      "unit": "",
+      "description": "DTU域名和端口地址",
+      "additional_info": {
+        "register": "0x53A~0x56F",
+        "encoding": "ascii"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "1c2bcd3b-c378-47f1-9857-a7d9da2c7267",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "低电量告警门槛",
+      "data_identifier": "low_soc_alarm_threshold_pct",
+      "read_write_flag": "RW",
+      "data_type": "Number",
+      "unit": "%",
+      "description": "SOC低电量告警门槛",
+      "additional_info": {
+        "register": "0x45D.L",
+        "resolution": "1%"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "70b0c1db-3597-4063-a681-53812164637a",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "满电判断总压阈值",
+      "data_identifier": "full_charge_voltage_threshold_v",
+      "read_write_flag": "RW",
+      "data_type": "Number",
+      "unit": "V",
+      "description": "满电判断总压阈值",
+      "additional_info": {
+        "register": "0x45E",
+        "resolution": "0.1V/bit"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "c37a21a5-dbf3-4888-802b-f309f1d92cae",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "满电判断电流阈值",
+      "data_identifier": "full_charge_current_threshold_a",
+      "read_write_flag": "RW",
+      "data_type": "Number",
+      "unit": "A",
+      "description": "满电判断电流阈值",
+      "additional_info": {
+        "register": "0x45F",
+        "resolution": "0.1A/bit"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    }
+  ],
+  "device_model_events": [
+    {
+      "id": "9de66f37-c879-4bd8-8949-7129403993a1",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "保护状态变更",
+      "data_identifier": "protection_status_changed",
+      "params": {
+        "type": "object",
+        "properties": {
+          "status_bits": {
+            "type": "number",
+            "description": "当前保护状态原始bit位"
+          },
+          "newly_set_bits": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "新置位的bit语义列表"
+          },
+          "newly_cleared_bits": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "新清除的bit语义列表"
+          }
+        }
+      },
+      "description": "保护状态bit位变化事件",
+      "additional_info": {
+        "source_register": "0x12D~0x12E",
+        "trigger": "bitset_diff"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "846ce0c4-83c6-4fbe-837b-c31d2ec251ba",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "告警状态变更",
+      "data_identifier": "alarm_status_changed",
+      "params": {
+        "type": "object",
+        "properties": {
+          "status_bits": {
+            "type": "number"
+          },
+          "active_alarms": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "description": "告警状态bit位变化事件",
+      "additional_info": {
+        "source_register": "0x134~0x135",
+        "trigger": "bitset_diff"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "5b616ff1-b951-4d40-a49a-300427cacc91",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "低电量告警",
+      "data_identifier": "soc_low_alarm",
+      "params": {
+        "type": "object",
+        "properties": {
+          "soc": {
+            "type": "number"
+          },
+          "threshold": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "SOC低于阈值时触发",
+      "additional_info": {
+        "source_register": "0x10D.H",
+        "threshold_register": "0x45D.L"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "930bb746-6892-4f3f-9f5a-abff6c4d5367",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "压差告警",
+      "data_identifier": "cell_voltage_diff_alarm",
+      "params": {
+        "type": "object",
+        "properties": {
+          "diff_mv": {
+            "type": "number"
+          },
+          "threshold_mv": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "最大压差超过门槛时触发",
+      "additional_info": {
+        "source_register": "0x125",
+        "threshold_register": "0x45B/0x45C"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "9520d582-e06a-47d0-b6c8-f289757ce28e",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "温差告警",
+      "data_identifier": "cell_temp_diff_alarm",
+      "params": {
+        "type": "object",
+        "properties": {
+          "temp_diff_c": {
+            "type": "number"
+          },
+          "threshold_c": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "温差超过门槛时触发",
+      "additional_info": {
+        "threshold_register": "0x45E~0x460"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "4babb9ce-8505-456b-938a-39f0028bc942",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "4G信号异常",
+      "data_identifier": "gsm_signal_abnormal",
+      "params": {
+        "type": "object",
+        "properties": {
+          "rssi": {
+            "type": "number"
+          },
+          "threshold": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "RSSI低于设定阈值时触发",
+      "additional_info": {
+        "source_register": "0x906"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    }
+  ],
+  "device_model_commands": [
+    {
+      "id": "97438c1c-3b29-4e46-9a94-1892d95d5147",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "同步BMS时间",
+      "data_identifier": "sync_bms_time",
+      "params": {
+        "type": "object",
+        "required": [
+          "timestamp"
+        ],
+        "properties": {
+          "timestamp": {
+            "type": "number",
+            "description": "Unix秒级时间戳"
+          }
+        }
+      },
+      "description": "向0x57C~0x57D写入Unix时间戳",
+      "additional_info": {
+        "function_code": "0x10",
+        "target_register": "0x57C~0x57D"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "4acc06dd-38fb-4ff2-bf58-c4c4df62a81f",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "读取BMS UUID",
+      "data_identifier": "read_bms_uuid",
+      "params": {
+        "type": "object",
+        "properties": {}
+      },
+      "description": "通过功能码0xFF读取16字节UUID",
+      "additional_info": {
+        "function_code": "0xFF",
+        "start_address": "0x0000",
+        "register_quantity": "0x0008"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "0c860487-e6e1-4523-8163-a11646b6e269",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "写寄存器块",
+      "data_identifier": "write_register_block",
+      "params": {
+        "type": "object",
+        "required": [
+          "start_address",
+          "register_count",
+          "values"
+        ],
+        "properties": {
+          "start_address": {
+            "type": "string",
+            "description": "十六进制起始地址，例如0x400"
+          },
+          "register_count": {
+            "type": "number"
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "description": "每个元素对应1个寄存器16位值"
+          }
+        }
+      },
+      "description": "通用寄存器写入命令（参数配置）",
+      "additional_info": {
+        "function_code": "0x10",
+        "address_ranges": [
+          "0x400~0x460",
+          "0x500~0x56F"
+        ]
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "9b772181-1363-4d98-a3a4-82865d567f1b",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "设置功能键位",
+      "data_identifier": "set_function_key_bits",
+      "params": {
+        "type": "object",
+        "required": [
+          "bitmask"
+        ],
+        "properties": {
+          "bitmask": {
+            "type": "number",
+            "description": "32位控制位"
+          }
+        }
+      },
+      "description": "写0x57A~0x57B控制位（清保护/休眠/掉电等）",
+      "additional_info": {
+        "function_code": "0x10",
+        "target_register": "0x57A~0x57B"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "879509cd-da3f-4d69-a8ca-add9b4121754",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "设置仪表目标MAC",
+      "data_identifier": "set_meter_target_mac",
+      "params": {
+        "type": "object",
+        "required": [
+          "mac"
+        ],
+        "properties": {
+          "mac": {
+            "type": "string",
+            "description": "AA:BB:CC:DD:EE:FF"
+          }
+        }
+      },
+      "description": "仪表地址配置命令（功能码0xFC，发送6字节MAC）",
+      "additional_info": {
+        "function_code": "0xFC",
+        "device_type_condition": "仅仪表设备(蓝牙MAC首字节0xAA)",
+        "ota_target_address": "0xFC"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "09710dcc-7af9-4efa-94d7-e487fb0018fa",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "设置DTU域名端口",
+      "data_identifier": "set_dtu_domain_port",
+      "params": {
+        "type": "object",
+        "required": [
+          "domain_port"
+        ],
+        "properties": {
+          "domain_port": {
+            "type": "string",
+            "description": "示例: mqtt.example.com:1883"
+          }
+        }
+      },
+      "description": "写0x53A~0x56F，配置DTU域名和端口",
+      "additional_info": {
+        "function_code": "0x10",
+        "target_register": "0x53A~0x56F",
+        "encoding": "ascii"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "70dafb08-eaef-4c78-977b-d274cb4cff25",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "查询升级版本",
+      "data_identifier": "ota_query_version",
+      "params": {
+        "type": "object",
+        "properties": {
+          "slave_address": {
+            "type": "number",
+            "description": "默认0表示广播"
+          }
+        }
+      },
+      "description": "BOOT协议版本查询",
+      "additional_info": {
+        "protocol": "boot",
+        "function_code": "0x50"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "c80d892b-59e4-4395-89f0-ae1f770dd7d9",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "进入BootLoader",
+      "data_identifier": "ota_enter_bootloader",
+      "params": {
+        "type": "object",
+        "properties": {
+          "slave_address": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "发送0x51进入BOOT",
+      "additional_info": {
+        "protocol": "boot",
+        "function_code": "0x51"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "4a1f1c81-6eae-42e7-a638-d917f5f8ee3a",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "发送OTA分包",
+      "data_identifier": "ota_send_packet",
+      "params": {
+        "type": "object",
+        "required": [
+          "packet_index",
+          "payload_hex"
+        ],
+        "properties": {
+          "packet_index": {
+            "type": "number"
+          },
+          "payload_hex": {
+            "type": "string",
+            "description": "十六进制字符串"
+          }
+        }
+      },
+      "description": "发送0x53分包数据",
+      "additional_info": {
+        "protocol": "boot",
+        "function_code": "0x53"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    },
+    {
+      "id": "d938c428-cfd8-4d70-a91a-28f91196db78",
+      "device_template_id": "f94c62bc-5ccf-4e1f-a74f-1f86689af95e",
+      "data_name": "完成OTA升级",
+      "data_identifier": "ota_finish",
+      "params": {
+        "type": "object",
+        "required": [
+          "firmware_crc32"
+        ],
+        "properties": {
+          "firmware_crc32": {
+            "type": "string",
+            "description": "8位十六进制CRC32"
+          }
+        }
+      },
+      "description": "发送0x54并附带固件CRC32",
+      "additional_info": {
+        "protocol": "boot",
+        "function_code": "0x54"
+      },
+      "tenant_id": "{{TENANT_ID}}",
+      "created_at": "2026-02-17T13:59:26Z",
+      "updated_at": "2026-02-17T13:59:26Z",
+      "remark": "bms_4g"
+    }
+  ]
+}

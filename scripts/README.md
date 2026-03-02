@@ -87,6 +87,29 @@
 
 ## 数据库导出/导入（重点）
 
+### 0) 导入 BMS 物模型 JSON（`doc/things_model.json`）
+
+如果你已经生成了 `doc/things_model.json`，可直接一键导入 PostgreSQL：
+
+```shell
+scripts/import_things_model.sh \
+  --db-url "postgresql://postgres:postgres@127.0.0.1:5432/ThingsPanel?sslmode=disable" \
+  --tenant-id "your-tenant-id"
+```
+
+可选参数：
+
+- `--json-file`：自定义 JSON 路径（默认 `doc/things_model.json`）
+- `--template-id`：覆盖模板 ID（用于多环境导入）
+
+脚本会自动调用 `scripts/import_things_model.sql`，按顺序导入：
+
+1. `device_templates`
+2. `device_model_telemetry`
+3. `device_model_attributes`
+4. `device_model_events`
+5. `device_model_commands`
+
 ### 1) 从测试环境导出完整数据库（本地下载）
 
 命令：
