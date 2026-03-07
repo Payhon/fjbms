@@ -2,9 +2,9 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-03-02
+- last_updated: 2026-03-04
 - related_feature: FEAT-0007
-- version: v0.1.0
+- version: v0.2.0
 
 ## 日志
 1. 后端新增 APP 上报 DTO 与 API：
@@ -30,3 +30,17 @@
 7. 后端补充单元测试：
    - `backend/internal/service/app_battery_report_test.go`
    - 覆盖核心 key 白名单、非法类型与快照 64KB 限制。
+8. 后端新增 BLE Relay 指令链路：
+   - `backend/internal/api/app_battery_relay.go`
+   - `backend/internal/service/app_battery.go`
+   - `backend/internal/model/app_battery.http.go`
+   - `backend/router/apps/battery.go`
+   - `backend/router/router_init.go`
+   - 支持 App Relay WS 会话注册/心跳、owner 选举、WEB 指令下发与结果查询。
+9. UniApp 新增 Relay WS 客户端：
+   - `fjbms-uniapp/pages/device-battery/useBatteryDetail.ts`
+   - BLE 连接成功后自动连 Relay WS，实时接收 WEB 指令并执行 `readParam/writeParam/writeRegisters` 回执。
+10. Web 参数面板接入 BLE Relay：
+   - `frontend/src/views/device/details/modules/bms-panel/index.vue`
+   - `frontend/src/service/api/bms.ts`
+   - BLE-only 设备参数设置不再依赖 MQTT，改走 APP 蓝牙中继通道。

@@ -2,20 +2,23 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-03-02
+- last_updated: 2026-03-04
 - related_feature: FEAT-0007
-- version: v0.1.0
+- version: v0.2.0
 
 ## 1. 发布内容
 - 新增 APP 上报接口 `POST /api/v1/app/battery/report`。
 - UniApp 新增 BLE 云上报器（双层上报 + 队列重试）。
 - 微信小程序接入 WS 桥接传输，Android/iOS 保持 MQTT-WS。
 - 管理端 BMS Tab 新增云端实时与历史可视化（曲线 + 快照时间线）。
+- 新增 BLE Relay 实时命令链路：
+  - APP WS：`GET /api/v1/app/battery/relay/ws`
+  - WEB API：`GET /api/v1/battery/relay/status/:id`、`POST /api/v1/battery/relay/command`
 
 ## 2. 影响范围
 - `backend/`：APP Battery API、遥测写入链路、WS 推送链路。
-- `fjbms-uniapp/`：设备详情连接策略与上报策略。
-- `frontend/`：设备详情 BMS 面板展示逻辑。
+- `fjbms-uniapp/`：设备详情连接策略、上报策略、Relay WS 指令执行。
+- `frontend/`：设备详情 BMS 面板展示逻辑与 BLE Relay 参数设置。
 
 ## 3. 发布步骤
 1. 发布后端并确认配置：

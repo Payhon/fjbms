@@ -2,15 +2,16 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-03-02
+- last_updated: 2026-03-04
 - related_feature: FEAT-0007
-- version: v0.1.0
+- version: v0.2.0
 
 ## 1. 方案概览
 - 数据入口：APP `readAllStatus` 轮询结果 -> `POST /api/v1/app/battery/report`。
 - 存储：复用 `telemetry_datas`（历史）+ `telemetry_current_datas`（当前）+ `device_batteries`（SOC/SOH 最新值）。
 - 实时：后端发布 `ws:device:{device_id}`，前端通过 `/telemetry/datas/current/keys/ws` 接收增量。
 - 展示：后台 BMS Tab “云端优先，直连兜底”，并保留参数直连读写能力。
+- 命令中继：新增 APP Relay WebSocket，WEB 下发命令实时推送至“当前 BLE owner 会话”执行并回执。
 
 ## 2. 后端设计
 1. 新增 DTO：
@@ -30,6 +31,14 @@
    - 同步 `device_batteries.soc/soh/ble_mac/updated_at`
 5. 实时推送：
    - 检查 `ws:sub:{device_id}`，存在时发布 `ws:device:{device_id}`。
+6. BLE Relay 指令通道：
+   - APP WS：`GET /api/v1/app/battery/relay/ws`（首包鉴权 + device_id）
+   - WEB API：`GET /api/v1/battery/relay/status/:id`、`POST /api/v1/battery/relay/command`
+   - Redis 状态：
+     - owner: `bms:relay:owner:{device_id}`（TTL）
+     - session: `bms:relay:session:{session_id}`（TTL）
+     - command: `bms:relay:cmd:{command_id}`（状态机）
+   - 指令流：WEB -> Redis Pub/Sub -> APP Relay WS -> BLE 执行 -> APP 回执 -> WEB 查询/同步返回。
 
 ## 3. UniApp 设计
 1. 上报触发：
@@ -54,6 +63,9 @@
    - 快照时间线：`/telemetry/datas/history/page`（key=`bms.snapshot`）
 3. 直连能力：
    - 参数设置继续使用现有 MQTT 透传，不受云端展示改造影响。
+4. BLE-only 参数设置：
+   - 当设备无 4G 通道时，参数读写改走 Relay API（read_param/write_param/write_registers）。
+   - 面板显示“APP 蓝牙中继”在线状态并支持手动断开 UI 通道。
 
 ## 5. 配置与兼容
 - 新增配置：

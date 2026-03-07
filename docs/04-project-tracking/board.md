@@ -18,6 +18,7 @@
   - owner：payhon
   - 优先级：P1
   - 依赖：无
+  - 进展：已完成 APP 上云与云端可视化，正在联调 BLE Relay（WEB 参数设置经 APP 蓝牙中继）
   - 文档：`docs/03-development/features/FEAT-0007-bms-ble-cloud-report/`
 - [ ] `draft` **FEAT-0004** 电池/MES 对接统一鉴权与审计日志
   - owner：待指派
@@ -31,6 +32,12 @@
   - 优先级：P1
   - 依赖：FEAT-0004
   - 文档：`docs/03-development/features/FEAT-0005-admin-device-mes-fields/`
+- [ ] `in_progress` **FEAT-0009** 管理端登录验证码与二维码配置展示
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：已完成规格/设计，正在实现前后端与数据库迁移
+  - 文档：`docs/03-development/features/FEAT-0009-admin-login-captcha-qrcode/`
 
 ### UniApp（`fjbms-uniapp/`）
 - [ ] `in_progress` **FEAT-0006** 升级检测与提示体验优化
@@ -38,6 +45,11 @@
   - 优先级：P1
   - 依赖：无
   - 文档：`docs/03-development/features/FEAT-0006-uniapp-upgrade-ux/`
+- [ ] `in_progress` **FEAT-0008** 蓝牙信号图标展示与手动断开连接
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 文档：`docs/03-development/features/FEAT-0008-uniapp-ble-disconnect-ux/`
 
 ### Docs & Ops（`docs/`, `doc/`, 部署）
 - [x] `done` **FEAT-0002** 历史文档迁移与分层重构
