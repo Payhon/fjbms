@@ -14,6 +14,12 @@
 ## 模块泳道看板
 
 ### Backend（`backend/`）
+- [ ] `in_progress` **FEAT-0010** 机构类型菜单权限生效与首页分层改造
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：已完成菜单权限生效、首页分层、权限回显修复、组织快捷菜单独立页面改造，以及首页身份展示/管理员视角切换与看板告警接口修复，待执行 SQL 补丁并完成联调验收
+  - 文档：`docs/03-development/features/FEAT-0010-org-permission-home-segmentation/`
 - [ ] `in_progress` **FEAT-0007** 蓝牙 BMS 经 App 上云 + 后台 BMS 实时/历史可视化
   - owner：payhon
   - 优先级：P1
