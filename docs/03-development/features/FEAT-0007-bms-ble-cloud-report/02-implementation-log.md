@@ -2,9 +2,9 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-03-04
+- last_updated: 2026-03-09
 - related_feature: FEAT-0007
-- version: v0.2.0
+- version: v0.2.1
 
 ## 日志
 1. 后端新增 APP 上报 DTO 与 API：
@@ -44,3 +44,22 @@
    - `frontend/src/views/device/details/modules/bms-panel/index.vue`
    - `frontend/src/service/api/bms.ts`
    - BLE-only 设备参数设置不再依赖 MQTT，改走 APP 蓝牙中继通道。
+11. 后端新增 APP 连接状态同步接口与在线态联动：
+   - `backend/internal/model/app_battery.http.go`
+   - `backend/internal/api/app_battery.go`
+   - `backend/router/apps/app_battery.go`
+   - `backend/internal/service/app_battery.go`
+   - 新增 `POST /api/v1/app/battery/connection-status`，支持蓝牙连接/断开主动同步 `devices.is_online`。
+12. 后端在线态口径联动增强：
+   - `backend/internal/service/app_battery.go`
+   - `POST /api/v1/app/battery/report` 成功后（BLE-only）同步设备在线状态；
+   - Relay 会话断开时在“无 owner”条件下主动置离线，并发布 `device:{id}:status`。
+13. 配置项补充：
+   - `backend/configs/conf.yml`
+   - `backend/configs/conf-dev.yml`
+   - `backend/configs/conf-test.yml`
+   - 新增 `sync_device_online`、`offline_on_ble_disconnect`、`online_ttl_sec`。
+14. UniApp 主动连接态上报：
+   - `fjbms-uniapp/service/app-battery.ts`
+   - `fjbms-uniapp/pages/device-battery/useBatteryDetail.ts`
+   - BLE 连接成功/断开时主动调用连接态同步接口。

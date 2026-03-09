@@ -2,15 +2,18 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-03-04
+- last_updated: 2026-03-09
 - related_feature: FEAT-0007
-- version: v0.2.0
+- version: v0.2.1
 
 ## 1. 发布内容
 - 新增 APP 上报接口 `POST /api/v1/app/battery/report`。
+- 新增 APP 连接态同步接口 `POST /api/v1/app/battery/connection-status`。
 - UniApp 新增 BLE 云上报器（双层上报 + 队列重试）。
+- UniApp 在 BLE 连接成功/断开时主动同步连接状态。
 - 微信小程序接入 WS 桥接传输，Android/iOS 保持 MQTT-WS。
 - 管理端 BMS Tab 新增云端实时与历史可视化（曲线 + 快照时间线）。
+- BLE-only 设备在线状态与在线设备数改为由 APP 上报/连接态同步驱动（含断开主动离线）。
 - 新增 BLE Relay 实时命令链路：
   - APP WS：`GET /api/v1/app/battery/relay/ws`
   - WEB API：`GET /api/v1/battery/relay/status/:id`、`POST /api/v1/battery/relay/command`
@@ -24,11 +27,15 @@
 1. 发布后端并确认配置：
    - `bms.app_report.enabled=true`
    - `bms.app_report.bluetooth_only=true`
+   - `bms.app_report.sync_device_online=true`
+   - `bms.app_report.offline_on_ble_disconnect=true`
+   - `bms.app_report.online_ttl_sec=45`
 2. 灰度发布 UniApp 版本（先 Android/iOS，再微信小程序）。
 3. 发布 Web 管理端并观察 BMS 页签云端数据与历史查询。
 
 ## 4. 回滚步骤
 - 后端快速回滚：`bms.app_report.enabled=false`。
+- 或仅回滚在线态联动：`sync_device_online=false` / `offline_on_ble_disconnect=false`。
 - 前端与 UniApp 可保留版本，功能将自动退化为原直连展示路径。
 
 ## 5. 已知问题

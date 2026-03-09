@@ -2,9 +2,9 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-03-04
+- last_updated: 2026-03-09
 - related_feature: FEAT-0007
-- version: v0.2.0
+- version: v0.2.1
 
 ## 1. 测试范围
 - 后端接口编译与基础单测回归。
@@ -16,6 +16,10 @@
   - 失败：`backend/test/pg_test.go` 依赖本地 DB 环境（`run_env=localdev`），与本次改动无直接耦合
 - [x] `cd backend && go test ./internal/service ./internal/api ./router/apps`
   - 结果：通过（含 Relay 相关编译校验）
+- [x] `cd backend && go test ./internal/service -run "TestNormalizeAppBattery" -count=1`
+  - 结果：通过（覆盖本次改动涉及的 APP 上报核心校验单测）
+- [x] `cd backend && go test ./internal/api ./router/apps -run TestDoesNotExist -count=1`
+  - 结果：通过（用于验证 API/路由包编译通过）
 - [x] `cd frontend && pnpm typecheck`
   - 结果：通过
 - [x] `cd fjbms-uniapp && pnpm exec tsc --noEmit`
@@ -27,6 +31,8 @@
 - [ ] 微信小程序：非 BLE 场景走 WS 桥接可读状态
 - [ ] BLE-only 设备：WEB 端参数读写通过 APP Relay 成功执行
 - [ ] 多用户同设备：仅当前 BLE owner 的 APP 会话收到并执行 WEB 命令
+- [ ] 多端同设备连接态：A 端断开且 B 端仍连接时，不应误置离线
+- [ ] BLE 主动断开：后台列表/看板在线数在 <5s 内更新为离线
 - [ ] 后台参数设置回归：直连读写功能不回退
 - [ ] 权限回归：未绑定/跨租户用户无法上报
 

@@ -2,23 +2,28 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-03-04
+- last_updated: 2026-03-09
 - related_feature: FEAT-0007
-- version: v0.2.0
+- version: v0.2.1
 
 ## 1. 方案概览
 - 数据入口：APP `readAllStatus` 轮询结果 -> `POST /api/v1/app/battery/report`。
+- 连接入口：APP 蓝牙连接/断开 -> `POST /api/v1/app/battery/connection-status`。
 - 存储：复用 `telemetry_datas`（历史）+ `telemetry_current_datas`（当前）+ `device_batteries`（SOC/SOH 最新值）。
 - 实时：后端发布 `ws:device:{device_id}`，前端通过 `/telemetry/datas/current/keys/ws` 接收增量。
 - 展示：后台 BMS Tab “云端优先，直连兜底”，并保留参数直连读写能力。
 - 命令中继：新增 APP Relay WebSocket，WEB 下发命令实时推送至“当前 BLE owner 会话”执行并回执。
+- 在线态联动：BLE-only 设备由 APP 上报/连接态同步驱动 `devices.is_online`（连接置在线、断开置离线）。
 
 ## 2. 后端设计
 1. 新增 DTO：
    - `AppBatteryReportReq`：`device_id/ts/conn_type/platform/core/snapshot`
    - `AppBatteryReportResp`：`accepted/ignored_reason`
+   - `AppBatteryConnectionStatusReq`：`device_id/conn_type/platform/ble_connected/ts`
+   - `AppBatteryConnectionStatusResp`：`accepted/status_changed/ignored_reason`
 2. 新增接口：
    - 路由：`POST /api/v1/app/battery/report`
+   - 路由：`POST /api/v1/app/battery/connection-status`
    - 权限：复用 `GetBatteryDetailForApp` 绑定/组织/租户校验。
 3. 数据校验：
    - `core` 仅允许白名单 key；
@@ -31,7 +36,12 @@
    - 同步 `device_batteries.soc/soh/ble_mac/updated_at`
 5. 实时推送：
    - 检查 `ws:sub:{device_id}`，存在时发布 `ws:device:{device_id}`。
-6. BLE Relay 指令通道：
+6. 在线状态同步：
+   - `report` 成功后（BLE-only）调用 `dal.UpdateDeviceStatus(device_id, 1)`。
+   - `connection-status` 在 `ble_connected=true` 时置在线；`ble_connected=false` 时若无 relay owner 则置离线。
+   - 同步发布 `device:{device_id}:status`（`is_online: 0/1`）。
+   - 维护 `device:{device_id}:heartbeat` TTL，用于异常断开场景离线兜底。
+7. BLE Relay 指令通道：
    - APP WS：`GET /api/v1/app/battery/relay/ws`（首包鉴权 + device_id）
    - WEB API：`GET /api/v1/battery/relay/status/:id`、`POST /api/v1/battery/relay/command`
    - Redis 状态：
@@ -52,6 +62,9 @@
    - BLE 优先；
    - 微信小程序非 BLE 走 `UniMqttSocketBmsTransport`（WS 桥接）；
    - Android/iOS 保持 `UniMqttWsBmsTransport`。
+4. 连接状态同步：
+   - BLE 建连成功后主动调用 `appBatteryConnectionStatus(..., ble_connected=true)`。
+   - BLE 主动断开/页面卸载时调用 `appBatteryConnectionStatus(..., ble_connected=false)`。
 
 ## 4. Web BMS Tab 设计
 1. 云端实时：
@@ -71,4 +84,7 @@
 - 新增配置：
   - `bms.app_report.enabled`
   - `bms.app_report.bluetooth_only`
+  - `bms.app_report.sync_device_online`
+  - `bms.app_report.offline_on_ble_disconnect`
+  - `bms.app_report.online_ttl_sec`
 - 保留历史保留策略 15 天，不变更 `data_policy` 清理机制。
