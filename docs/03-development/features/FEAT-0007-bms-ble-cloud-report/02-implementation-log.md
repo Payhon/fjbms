@@ -69,3 +69,6 @@
    - `backend/internal/service/app_battery.go`
    - `backend/configs/bms-bridge-rules.yml`
    - 后台 PACK 电压改为读取 `packCellSumVoltageV`（与小程序电芯页顶部总电压一致），不再使用在部分设备上会返回 `6553.5V` 哨兵值的 `vPackV` 作为总压展示/历史曲线口径。
+16. 调整后台设备详情页在 BMS 电池详情模式下的 TAB 收口：
+   - `frontend/src/views/device/details/index.vue`
+   - 当通过电池管理入口进入详情（`bms=1`）时，仅保留 `BMS面板` 与 `连接` 两个 TAB，其余通用设备 TAB 隐藏，减少无关信息干扰。
