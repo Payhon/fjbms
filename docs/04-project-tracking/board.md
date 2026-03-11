@@ -14,6 +14,24 @@
 ## 模块泳道看板
 
 ### Backend（`backend/`）
+- [ ] `review` **FEAT-0012** BMS 历史数据查询与异步导出通知
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0010
+  - 进展：已完成前后端与 SQL 实现，已完成定向编译与静态检查，待联调验收（导出任务全链路）
+  - 文档：`docs/03-development/features/FEAT-0012-bms-history-data-export/`
+- [ ] `in_progress` **FEAT-0012** 电芯品牌管理 + PACK电池型号管理（行内增删改）
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0010
+  - 进展：已完成 `battery_models -> battery_bms_models` 拆分迁移、后端关联逻辑改造（单个新增/导入/OTA 回查兼容）、前端行内增删改页面与菜单文案（新增BMS），并新增「BMS型号管理」菜单与 CRUD；待测试环境执行 SQL 并完成租户联调验收
+  - 文档：`docs/03-development/features/FEAT-0012-cell-brand-battery-model-management/`
+- [ ] `in_progress` **FEAT-0011** 电池列表详情路由与页面元素权限补齐
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0010
+  - 进展：已完成后端 `ui_codes/me` 接口、详情路由/按钮权限 SQL、前端指令显隐/禁用；已修复“电池列表误跳详情页/仅电池列表权限空白页”问题，待联调租户数据与回归验收
+  - 文档：`docs/03-development/features/FEAT-0011-battery-list-detail-element-permission/`
 - [ ] `in_progress` **FEAT-0010** 机构类型菜单权限生效与首页分层改造
   - owner：payhon
   - 优先级：P1
@@ -24,7 +42,7 @@
   - owner：payhon
   - 优先级：P1
   - 依赖：无
-  - 进展：已完成 APP 上云与云端可视化，正在联调 BLE Relay（WEB 参数设置经 APP 蓝牙中继）
+  - 进展：已完成 APP 上云、云端可视化与 BLE Relay，并新增“APP 连接态同步设备在线状态（含蓝牙断开主动离线）”，当前进行真机联调验收
   - 文档：`docs/03-development/features/FEAT-0007-bms-ble-cloud-report/`
 - [ ] `draft` **FEAT-0004** 电池/MES 对接统一鉴权与审计日志
   - owner：待指派

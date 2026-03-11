@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-03-09
+- last_updated: 2026-03-10
 - related_feature: FEAT-0007
 - version: v0.2.1
 
@@ -24,6 +24,8 @@
   - 结果：通过
 - [x] `cd fjbms-uniapp && pnpm exec tsc --noEmit`
   - 结果：通过
+- [ ] 后台设备详情 BMS 面板 PACK 电压回归
+  - 验证点：后台“PACK 电压”与小程序电芯页顶部“总电压”一致，不再出现固定 `6553.5V`
 
 ## 3. 待执行（联调阶段）
 - [ ] Android + BLE：5s 内后台显示实时值，历史曲线可查

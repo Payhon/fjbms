@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-03-09
+- last_updated: 2026-03-10
 - related_feature: FEAT-0007
 - version: v0.2.1
 
@@ -63,3 +63,9 @@
    - `fjbms-uniapp/service/app-battery.ts`
    - `fjbms-uniapp/pages/device-battery/useBatteryDetail.ts`
    - BLE 连接成功/断开时主动调用连接态同步接口。
+15. 修复后台 BMS 面板 PACK 电压取值口径：
+   - `frontend/src/views/device/details/modules/bms-panel/index.vue`
+   - `fjbms-uniapp/pages/device-battery/useBatteryDetail.ts`
+   - `backend/internal/service/app_battery.go`
+   - `backend/configs/bms-bridge-rules.yml`
+   - 后台 PACK 电压改为读取 `packCellSumVoltageV`（与小程序电芯页顶部总电压一致），不再使用在部分设备上会返回 `6553.5V` 哨兵值的 `vPackV` 作为总压展示/历史曲线口径。
