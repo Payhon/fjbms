@@ -14,6 +14,18 @@
 ## 模块泳道看板
 
 ### Backend（`backend/`）
+- [ ] `in_progress` **FEAT-0015** 后台用户体系与角色权限重构
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0010
+  - 进展：已完成规格/设计，正在实施 `users.is_main`、`user_roles`、`role_permissions`、租户识别口径统一、登录权限叠加及后台账号/角色管理改造
+  - 文档：`docs/03-development/features/FEAT-0015-backoffice-user-role-refactor/`
+- [ ] `in_progress` **FEAT-0014** 电池信息补全（电芯品牌/电池型号）
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0012
+  - 进展：已完成规格/设计，已实现 `device_batteries` 新字段、信息补全接口、电池列表筛选与展示、权限点、原地新增型号组件及运营日志接入，并补充电池详情页 `基本信息` 标签页、列表 `编辑 BMS 信息/删除` 操作、产品规格列与固定列体验优化
+  - 文档：`docs/03-development/features/FEAT-0014-battery-info-completion/`
 - [ ] `review` **FEAT-0012** BMS 历史数据查询与异步导出通知
   - owner：payhon
   - 优先级：P1
@@ -64,6 +76,12 @@
   - 文档：`docs/03-development/features/FEAT-0009-admin-login-captcha-qrcode/`
 
 ### UniApp（`fjbms-uniapp/`）
+- [ ] `in_progress` **FEAT-0013** 移动端设备添加分流、首页视图切换与筛选增强
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0010
+  - 进展：已完成数据库迁移、后端按用户类型分流、首页 `view_mode` 查询、机构移除接口，以及 UniApp 我的页切换入口和首页筛选/分页/模式菜单改造；待执行 SQL、真机联调和端到端验收
+  - 文档：`docs/03-development/features/FEAT-0013-mobile-device-view-mode-and-filter/`
 - [ ] `in_progress` **FEAT-0006** 升级检测与提示体验优化
   - owner：待指派
   - 优先级：P1
