@@ -14,6 +14,12 @@
 ## 模块泳道看板
 
 ### Backend（`backend/`）
+- [ ] `in_progress` **FEAT-0016** 遗留 BMS 设备 UUID 自动补建
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0008
+  - 进展：已完成规格/设计，正在实现 `provision/info` 可自注册返回结构、`provision/bind` 事务式懒注册，以及 UniApp 开通向导的遗留设备提示分支
+  - 文档：`docs/03-development/features/FEAT-0016-legacy-device-auto-register/`
 - [ ] `in_progress` **FEAT-0015** 后台用户体系与角色权限重构
   - owner：payhon
   - 优先级：P1
@@ -76,6 +82,12 @@
   - 文档：`docs/03-development/features/FEAT-0009-admin-login-captcha-qrcode/`
 
 ### UniApp（`fjbms-uniapp/`）
+- [ ] `in_progress` **FEAT-0016** 遗留 BMS 设备 UUID 自动补建
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0008
+  - 进展：已完成规格/设计，待接入“设备不存在但可自动注册”的提示与继续绑定分支
+  - 文档：`docs/03-development/features/FEAT-0016-legacy-device-auto-register/`
 - [ ] `in_progress` **FEAT-0013** 移动端设备添加分流、首页视图切换与筛选增强
   - owner：payhon
   - 优先级：P1
