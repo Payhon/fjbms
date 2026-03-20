@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-03-13
+- last_updated: 2026-03-18
 - related_feature: FEAT-0014
 - version: v0.1.0
 
@@ -19,3 +19,4 @@
   9) 电池列表操作菜单新增 `编辑 BMS 信息`、`删除`，前者复用新增 BMS 表单预填后更新，后者带不可恢复确认。
   10) 后端新增单个电池编辑接口与删除接口；删除操作采用事务清理主要关联业务表，并写入 `EDIT_INFO`、`DELETE` 运营日志。
   11) 电池列表 `BMS型号` 后新增 `产品规格` 列，并将第 1~2 列固定，提升宽表滚动体验。
+  12) 电池列表首个搜索条件改为“字段下拉 + 文本值”，后端列表/导出接口新增 `search_field` + `search_value` 通用文本检索，支持序列号、批号、BMS型号、产品规格、蓝牙MAC、4G卡ID模糊查询。
