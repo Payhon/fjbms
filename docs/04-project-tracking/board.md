@@ -14,6 +14,12 @@
 ## 模块泳道看板
 
 ### Backend（`backend/`）
+- [ ] `in_progress` **FEAT-0017** BMS 状态寄存器地址调整与移动端保护状态卡片
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：已确认最新协议中 `0x12D~0x135` 区间变更，正在同步后端状态解析、UniApp 协议层、移动端仪表盘保护状态卡片与主维护协议文档
+  - 文档：`docs/03-development/features/FEAT-0017-bms-status-register-shift/`
 - [ ] `in_progress` **FEAT-0016** 遗留 BMS 设备 UUID 自动补建
   - owner：payhon
   - 优先级：P1
@@ -69,6 +75,12 @@
   - 文档：`docs/03-development/features/FEAT-0004-mes-auth-audit/`
 
 ### Frontend（`frontend/`）
+- [ ] `in_progress` **FEAT-0017** BMS 状态寄存器地址调整与移动端保护状态卡片
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：已开始同步 Web 端协议寄存器地址，并改造设备详情 BMS 面板的保护状态展示
+  - 文档：`docs/03-development/features/FEAT-0017-bms-status-register-shift/`
 - [ ] `approved` **FEAT-0005** 管理端设备详情页字段对齐（MES 扩展字段）
   - owner：待指派
   - 优先级：P1
@@ -82,6 +94,18 @@
   - 文档：`docs/03-development/features/FEAT-0009-admin-login-captcha-qrcode/`
 
 ### UniApp（`fjbms-uniapp/`）
+- [ ] `in_progress` **FEAT-0018** UniApp 温度参数支持负数输入
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：已开始调整参数设置弹窗输入类型，准备验证温度类参数的负数输入与非温度参数的键盘行为
+  - 文档：`docs/03-development/features/FEAT-0018-uniapp-temperature-negative-input/`
+- [ ] `in_progress` **FEAT-0017** BMS 状态寄存器地址调整与移动端保护状态卡片
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：已开始同步 UniApp 协议寄存器地址，并将设备详情仪表盘保护状态改为独立可折叠卡片与全量状态列表
+  - 文档：`docs/03-development/features/FEAT-0017-bms-status-register-shift/`
 - [ ] `in_progress` **FEAT-0016** 遗留 BMS 设备 UUID 自动补建
   - owner：payhon
   - 优先级：P1
