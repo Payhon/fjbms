@@ -94,6 +94,18 @@
   - 文档：`docs/03-development/features/FEAT-0009-admin-login-captcha-qrcode/`
 
 ### UniApp（`fjbms-uniapp/`）
+- [ ] `review` **FEAT-0020** UniApp 设备详情页单体文案与充放电剩余时间调整
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：已完成设备详情页单体设置文案补齐、仪表盘顶部剩余时间区域移除，以及充放电剩余时间动态标题/正负值展示；待静态校验与真机验收
+  - 文档：`docs/03-development/features/FEAT-0020-uniapp-device-detail-copy-and-remaining-time/`
+- [ ] `review` **FEAT-0019** UniApp 扫码流程优化
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0016
+  - 进展：已完成扫码入口按设备类型分流、设备前缀静态配置化、BMS 绑定成功直达详情页，以及仪表临时 BLE 会话详情模式；已通过静态校验，待真机联调验收
+  - 文档：`docs/03-development/features/FEAT-0019-uniapp-scan-flow-optimization/`
 - [ ] `in_progress` **FEAT-0018** UniApp 温度参数支持负数输入
   - owner：payhon
   - 优先级：P1
