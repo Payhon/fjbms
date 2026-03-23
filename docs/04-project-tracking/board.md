@@ -14,6 +14,12 @@
 ## 模块泳道看板
 
 ### Backend（`backend/`）
+- [ ] `in_progress` **FEAT-0024** item_uuid 大小写归一化防重复注册
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0016
+  - 进展：已确认 `provision/info` 当前按大小写敏感查询导致小写 UUID 命不中已有大写设备；正在补后端归一化查询/写入与 UniApp 大写收敛
+  - 文档：`docs/03-development/features/FEAT-0024-item-uuid-case-normalization/`
 - [ ] `in_progress` **FEAT-0017** BMS 状态寄存器地址调整与移动端保护状态卡片
   - owner：payhon
   - 优先级：P1
@@ -94,6 +100,24 @@
   - 文档：`docs/03-development/features/FEAT-0009-admin-login-captcha-qrcode/`
 
 ### UniApp（`fjbms-uniapp/`）
+- [ ] `in_progress` **FEAT-0024** item_uuid 大小写归一化防重复注册
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0016
+  - 进展：已确认 BLE `readUuid()` 当前返回小写十六进制；正在统一为大写并在 `deviceProvision` 请求前归一化
+  - 文档：`docs/03-development/features/FEAT-0024-item-uuid-case-normalization/`
+- [ ] `review` **FEAT-0022** UniApp 设备详情页历史记录功能
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：已完成 `0x4C/0x4D` 协议解析、设备详情页底部“历史记录”一级菜单、保护次数/状态记录二级切换、移动端记录卡片展示、多语言映射与静态校验；待真机联调验收
+  - 文档：`docs/03-development/features/FEAT-0022-uniapp-device-detail-history-records/`
+- [ ] `review` **FEAT-0021** UniApp 电池仪表盘组件总电压与曲线进度条优化
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0020
+  - 进展：已完成仪表盘顶部总电压显示接入，并将左右 SOC/SOH 进度条从折线路径改为贴合外层容器的椭圆曲线路径；待静态校验与视觉验收
+  - 文档：`docs/03-development/features/FEAT-0021-uniapp-dashboard-gauge-optimization/`
 - [ ] `review` **FEAT-0020** UniApp 设备详情页单体文案与充放电剩余时间调整
   - owner：payhon
   - 优先级：P1
@@ -142,6 +166,12 @@
   - 文档：`docs/03-development/features/FEAT-0008-uniapp-ble-disconnect-ux/`
 
 ### Docs & Ops（`docs/`, `doc/`, 部署）
+- [ ] `in_progress` **FEAT-0023** bms-bridge 测试/生产部署脚本补充
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：已完成 `Makefile`、`scripts/devops.py`、`scripts/config/*.example.yml` 扩展，正在做本地校验与远端发布准备
+  - 文档：`docs/03-development/features/FEAT-0023-bms-bridge-devops/`
 - [x] `done` **FEAT-0002** 历史文档迁移与分层重构
   - owner：待指派
   - 优先级：P0
