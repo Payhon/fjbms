@@ -40,6 +40,22 @@ backend:
   stop_timeout_sec: 15
   # If you prefer systemd for test, set start_mode: systemd and configure backend.systemd below.
 
+bridge:
+  remote_binary_path: "/opt/fjbms/backend/bms-bridge/bms-bridge"
+  remote_tmp_dir: "/tmp/fjbms-deploy"
+  backup_dir: "/var/backups/fjbms/backend/bms-bridge"
+  start_mode: "temp" # temp | systemd
+  local_configs_dir: "backend/configs"
+  remote_configs_dir: "/opt/fjbms/backend/bms-bridge/configs"
+  local_config_path: "backend/configs/conf-test.yml"
+  remote_config_path: "/opt/fjbms/backend/bms-bridge/config.yml"
+  remote_work_dir: "/opt/fjbms/backend/bms-bridge"
+  remote_log_file: "/var/log/fjbms/bms-bridge.log"
+  remote_pid_file: "/var/run/fjbms-bms-bridge.pid"
+  config_flag: "-config"
+  stop_timeout_sec: 15
+  # If you prefer systemd for test, set start_mode: systemd and configure bridge.systemd below.
+
 db:
   # Requires mysqldump/mysql (or pg_dump/psql) installed on the remote host.
   type: "mysql" # mysql | postgres

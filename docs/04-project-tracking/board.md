@@ -14,6 +14,24 @@
 ## 模块泳道看板
 
 ### Backend（`backend/`）
+- [ ] `review` **FEAT-0027** 后台删除终端用户后账号身份残留修复
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：已确认后台删除用户仅删 `users` 主表导致 `user_identities` 等孤儿记录残留；已完成后端级联清理、自修复逻辑与 SQL 46 历史数据补丁，待环境执行补丁并回归验证重新注册/重新绑定链路
+  - 文档：`docs/03-development/features/FEAT-0027-admin-end-user-delete-cleanup/`
+- [ ] `in_progress` **FEAT-0026** UniApp 账号注销
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：已确认移动端设置页缺少账号注销入口，正在补充终端用户自助注销接口、密码校验与账号关联数据清理逻辑
+  - 文档：`docs/03-development/features/FEAT-0026-uniapp-account-deletion/`
+- [ ] `review` **FEAT-0025** APP 联系客服单页内容接入
+  - owner：payhon
+  - 优先级：P2
+  - 依赖：无
+  - 进展：已完成 `contact_service` 内容键接入、接口注释与 SQL 注释同步；已通过定向 Go 测试，待管理端/移动端联调验收
+  - 文档：`docs/03-development/features/FEAT-0025-app-contact-service-page/`
 - [ ] `in_progress` **FEAT-0024** item_uuid 大小写归一化防重复注册
   - owner：payhon
   - 优先级：P1
@@ -81,6 +99,12 @@
   - 文档：`docs/03-development/features/FEAT-0004-mes-auth-audit/`
 
 ### Frontend（`frontend/`）
+- [ ] `review` **FEAT-0025** APP 联系客服单页内容接入
+  - owner：payhon
+  - 优先级：P2
+  - 依赖：无
+  - 进展：已完成 APP 管理 > 内容管理 > 单页内容新增“联系客服”选项，并通过 `pnpm --dir frontend typecheck` 校验，待联调验收
+  - 文档：`docs/03-development/features/FEAT-0025-app-contact-service-page/`
 - [ ] `in_progress` **FEAT-0017** BMS 状态寄存器地址调整与移动端保护状态卡片
   - owner：payhon
   - 优先级：P1
@@ -100,6 +124,18 @@
   - 文档：`docs/03-development/features/FEAT-0009-admin-login-captcha-qrcode/`
 
 ### UniApp（`fjbms-uniapp/`）
+- [ ] `in_progress` **FEAT-0026** UniApp 账号注销
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：正在“我的 > 设置 > 账号绑定”下方新增账号注销入口，并补充不可恢复提示、密码输入确认与成功后清空登录态流程
+  - 文档：`docs/03-development/features/FEAT-0026-uniapp-account-deletion/`
+- [ ] `review` **FEAT-0025** APP 联系客服单页内容接入
+  - owner：payhon
+  - 优先级：P2
+  - 依赖：无
+  - 进展：已将“我的 > 联系客服”从占位页切换为单页内容展示页，待真机/小程序联调确认已发布内容显示正确
+  - 文档：`docs/03-development/features/FEAT-0025-app-contact-service-page/`
 - [ ] `in_progress` **FEAT-0024** item_uuid 大小写归一化防重复注册
   - owner：payhon
   - 优先级：P1
@@ -140,7 +176,7 @@
   - owner：payhon
   - 优先级：P1
   - 依赖：无
-  - 进展：已开始同步 UniApp 协议寄存器地址，并将设备详情仪表盘保护状态改为独立可折叠卡片与全量状态列表
+  - 进展：已同步 UniApp 协议寄存器地址，并将设备详情仪表盘保护状态改为独立可折叠卡片与全量状态列表；2026-03-25 继续补齐仪表盘温度区按电芯温度数量动态展示 `T1/T2...`，并将保护状态卡片默认态调整为收起
   - 文档：`docs/03-development/features/FEAT-0017-bms-status-register-shift/`
 - [ ] `in_progress` **FEAT-0016** 遗留 BMS 设备 UUID 自动补建
   - owner：payhon

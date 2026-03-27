@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-03-22
+- last_updated: 2026-03-25
 - related_feature: FEAT-0019
 - version: v0.1.0
 
@@ -16,6 +16,7 @@
   2. 将设备类型前缀抽离为静态配置，业务代码不得硬编码 `AA/AC`。
   3. BMS 绑定成功后直接进入设备详情页；仪表扫码进入本地 BLE 临时会话详情页。
   4. 保留现有 UUID 扫码兼容路径，不影响遗留设备自动补建流程。
+  5. 摄像头扫码命中“我的设备”列表中的已添加设备时，直接进入该设备详情页并触发自动连接，不再走添加/绑定流程。
 
 ## 2. 范围
 ### In Scope
@@ -24,6 +25,8 @@
   - `common/composables/useAddDeviceActionSheet.ts`
   - `custom-tab-bar/index.js`
   - `common/device-provision/scan-code.ts`
+  - `common/device-provision/scan-routing.js`
+  - `store/bound-devices.ts`
 - BMS 扫码流程保持现有蓝牙匹配与绑定向导，但绑定成功后直接跳转设备详情页。
 - 仪表扫码新增“本地 BLE 临时会话”详情模式，并在该模式提供“继续扫码绑定 BMS”入口。
 - 更新功能文档、实现日志、测试报告、发布说明和项目看板。
@@ -44,6 +47,7 @@
 4. BMS 扫码绑定成功后直接进入设备详情页，而不是停留首页。
 5. UUID 扫码兼容路径仍可正常绑定设备并进入设备详情页。
 6. 仪表扫码进入临时 BLE 会话详情页后，可继续扫码 BMS，并仅接受 `BMS` 类型 MAC 触发 `configureMeterMac`。
+7. 摄像头扫码结果若已命中“我的设备”中的 `ble_mac` 或 `item_uuid`，则直接跳转 `/pages/device-battery/detail?device_id=...`。
 
 ## 4. 风险与约束
 - `custom-tab-bar/index.js` 需要与 TS 页面共享同一份常量源，静态配置文件需兼容 JS `require` 与 TS `import` 使用。

@@ -38,13 +38,14 @@
 > `code != 200` 表示业务失败，`message` 为错误原因。  
 > `x-token` 无效或过期时，中间件会返回 HTTP 401，例如 `{ "code": 40102, "message": "token has expired" }`。
 
-## 2. 单页内容（用户政策 / 隐私政策）
+## 2. 单页内容（用户政策 / 隐私政策 / 联系客服）
 
 用于 APP 登录页、我的页等场景展示政策文本。
 
 ### 2.1 ContentKey 枚举
 - `user_policy`：用户政策
 - `privacy_policy`：隐私政策
+- `contact_service`：联系客服
 
 ### 2.2 获取单页内容（无需登录）
 - `GET /api/v1/app/content/pages/{content_key}`

@@ -412,6 +412,7 @@ def _render_systemd_install_script(
     exec_start: str,
     log_file: str,
     unit_path: str,
+    description: str = "fjbms backend",
 ) -> str:
     return f"""#!/usr/bin/env bash
 set -euo pipefail
@@ -434,7 +435,7 @@ $SUDO mkdir -p "$(dirname "$LOG_FILE")"
 
 $SUDO tee "$UNIT_PATH" >/dev/null <<'UNIT'
 [Unit]
-Description=fjbms backend
+Description={description}
 After=network.target
 
 [Service]
@@ -566,8 +567,124 @@ def build_backend(goos: str, goarch: str) -> Path:
     return out_path
 
 
+def build_bridge(goos: str, goarch: str) -> Path:
+    backend_dir = REPO_ROOT / "backend"
+    out_dir = backend_dir / "bin"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / "bms-bridge"
+
+    env = os.environ.copy()
+    env["GOOS"] = goos
+    env["GOARCH"] = goarch
+    env.setdefault("CGO_ENABLED", "0")
+
+    proc = subprocess.run(
+        ["go", "build", "-trimpath", "-ldflags", "-s -w", "-o", str(out_path), "./cmd/bms-bridge"],
+        cwd=str(backend_dir),
+        env=env,
+    )
+    if proc.returncode != 0:
+        raise SystemExit(proc.returncode)
+    return out_path
+
+
 def _remote_mkdir(ssh: SSHClient, use_sudo: bool, path: str) -> None:
     ssh.run(f"{_sudo_prefix(use_sudo)}mkdir -p {shlex.quote(path)}")
+
+
+def _resolve_bridge_local_config_path(
+    explicit_path: str,
+    local_configs_dir: str,
+    env_name: str,
+) -> str:
+    explicit = str(explicit_path or "").strip()
+    if explicit:
+        return explicit
+
+    base_dir = (REPO_ROOT / local_configs_dir).resolve()
+    candidates = [
+        base_dir / f"conf-{env_name}.yml",
+        base_dir / "conf.yml",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return str(candidate)
+    return ""
+
+
+def _derive_bridge_cfg(cfg: Dict[str, Any], env_name: str) -> Dict[str, Any]:
+    raw_bridge_cfg = cfg.get("bridge") or {}
+    if raw_bridge_cfg and not isinstance(raw_bridge_cfg, dict):
+        raise SystemExit("Config error: bridge must be a mapping")
+    bridge_cfg = dict(raw_bridge_cfg) if isinstance(raw_bridge_cfg, dict) else {}
+
+    backend_cfg = cfg.get("backend") or {}
+    if not isinstance(backend_cfg, dict):
+        raise SystemExit("Config error: backend must be a mapping")
+
+    backend_remote_binary_path = str(backend_cfg.get("remote_binary_path", "")).strip()
+    backend_remote_work_dir = str(backend_cfg.get("remote_work_dir", "")).strip()
+    if not backend_remote_work_dir and backend_remote_binary_path:
+        backend_remote_work_dir = str(Path(backend_remote_binary_path).parent)
+
+    bridge_remote_work_dir = str(bridge_cfg.get("remote_work_dir", "")).strip()
+    if not bridge_remote_work_dir and backend_remote_work_dir:
+        bridge_remote_work_dir = f"{backend_remote_work_dir.rstrip('/')}/bms-bridge"
+
+    defaults: Dict[str, Any] = {}
+    if backend_cfg:
+        defaults = {
+            "remote_tmp_dir": backend_cfg.get("remote_tmp_dir", "/tmp/fjbms-deploy"),
+            "start_mode": backend_cfg.get("start_mode", "systemd" if env_name == "prod" else "temp"),
+            "local_configs_dir": backend_cfg.get("local_configs_dir", "backend/configs"),
+            "config_flag": backend_cfg.get("config_flag", "-config"),
+            "stop_timeout_sec": backend_cfg.get("stop_timeout_sec", 15),
+            "restart_command": bridge_cfg.get("restart_command", ""),
+        }
+
+        if backend_remote_work_dir:
+            defaults["remote_binary_path"] = f"{backend_remote_work_dir.rstrip('/')}/bms-bridge/bms-bridge"
+            defaults["remote_config_path"] = f"{backend_remote_work_dir.rstrip('/')}/bms-bridge/config.yml"
+            defaults["remote_configs_dir"] = f"{backend_remote_work_dir.rstrip('/')}/bms-bridge/configs"
+
+        if bridge_remote_work_dir:
+            defaults["remote_work_dir"] = bridge_remote_work_dir
+            defaults["remote_log_file"] = f"{bridge_remote_work_dir.rstrip('/')}/bms-bridge.log"
+            defaults["remote_pid_file"] = f"{bridge_remote_work_dir.rstrip('/')}/bms-bridge.pid"
+
+        backend_backup_dir = str(backend_cfg.get("backup_dir", "")).strip()
+        if backend_backup_dir:
+            defaults["backup_dir"] = f"{backend_backup_dir.rstrip('/')}/bms-bridge"
+
+        backend_systemd = backend_cfg.get("systemd") or {}
+        if isinstance(backend_systemd, dict) and backend_systemd:
+            unit_path = str(backend_systemd.get("unit_path", "")).strip()
+            unit_dir = str(Path(unit_path).parent) if unit_path else "/etc/systemd/system"
+            defaults["systemd"] = {
+                "service_name": "fjbms-bms-bridge",
+                "unit_path": f"{unit_dir.rstrip('/')}/fjbms-bms-bridge.service",
+                "install_script_path": (
+                    f"{bridge_remote_work_dir.rstrip('/')}/install_fjbms-bms-bridge_systemd.sh"
+                    if bridge_remote_work_dir
+                    else ""
+                ),
+                "auto_install": backend_systemd.get("auto_install", True),
+            }
+
+    merged = defaults
+    merged.update(bridge_cfg)
+
+    default_systemd = defaults.get("systemd")
+    bridge_systemd = bridge_cfg.get("systemd")
+    if default_systemd or bridge_systemd:
+        if bridge_systemd and not isinstance(bridge_systemd, dict):
+            raise SystemExit("Config error: bridge.systemd must be a mapping")
+        merged_systemd = dict(default_systemd) if isinstance(default_systemd, dict) else {}
+        if isinstance(bridge_systemd, dict):
+            merged_systemd.update(bridge_systemd)
+        merged["systemd"] = merged_systemd
+
+    return merged
 
 
 def deploy_frontend(cfg: Dict[str, Any], service_env: str, *, skip_build: bool) -> None:
@@ -1036,6 +1153,309 @@ def update_backend(
         )
 
 
+def deploy_bridge(
+    cfg: Dict[str, Any],
+    env_name: str,
+    goos: str,
+    goarch: str,
+    *,
+    skip_build: bool,
+) -> None:
+    bridge_cfg = _derive_bridge_cfg(cfg, env_name)
+
+    remote_binary_path = str(bridge_cfg.get("remote_binary_path", "")).strip()
+    remote_tmp_dir = str(bridge_cfg.get("remote_tmp_dir", "/tmp/fjbms-deploy")).strip()
+    remote_backup_dir = str(bridge_cfg.get("backup_dir", "")).strip()
+    restart_command = str(bridge_cfg.get("restart_command", "")).strip()
+
+    local_config_path = str(bridge_cfg.get("local_config_path", "")).strip()
+    remote_config_path = str(bridge_cfg.get("remote_config_path", "")).strip()
+    remote_work_dir = str(bridge_cfg.get("remote_work_dir", "")).strip()
+    remote_log_file = str(bridge_cfg.get("remote_log_file", "")).strip()
+    remote_pid_file = str(bridge_cfg.get("remote_pid_file", "")).strip()
+    config_flag = str(bridge_cfg.get("config_flag", "-config")).strip() or "-config"
+    stop_timeout_sec = int(bridge_cfg.get("stop_timeout_sec", 15))
+    start_mode = str(bridge_cfg.get("start_mode", "")).strip().lower()
+    if not start_mode:
+        start_mode = "systemd" if env_name == "prod" else "temp"
+    if start_mode not in ("temp", "systemd"):
+        raise SystemExit("Config error: bridge.start_mode must be temp | systemd")
+
+    local_configs_dir = str(bridge_cfg.get("local_configs_dir", "backend/configs")).strip()
+    local_config_path = _resolve_bridge_local_config_path(
+        str(bridge_cfg.get("local_config_path", "")).strip(),
+        local_configs_dir,
+        env_name,
+    )
+    remote_configs_dir = str(bridge_cfg.get("remote_configs_dir", "")).strip()
+    if not remote_binary_path or not remote_backup_dir:
+        raise SystemExit("Config error: bridge.remote_binary_path and bridge.backup_dir are required")
+    if local_config_path or remote_config_path:
+        if not local_config_path or not remote_config_path:
+            raise SystemExit("Config error: bridge.local_config_path and bridge.remote_config_path must be set together")
+        _require_file(Path(local_config_path), "bridge.local_config_path points to a missing file")
+
+    ts = _now_ts()
+    if skip_build:
+        local_bin = REPO_ROOT / "backend" / "bin" / "bms-bridge"
+        _require_file(local_bin, "Bridge binary missing; run build first.")
+    else:
+        local_bin = build_bridge(goos, goarch)
+
+    ssh_conn, use_sudo, known_hosts = _ssh_from_cfg(cfg)
+    with SSHClient(ssh_conn, known_hosts=known_hosts or None) as ssh:
+        _remote_mkdir(ssh, False, remote_tmp_dir)
+        _remote_mkdir(ssh, use_sudo, remote_backup_dir)
+
+        if not remote_work_dir:
+            remote_work_dir = str(Path(remote_binary_path).parent)
+        if not remote_configs_dir:
+            remote_configs_dir = f"{remote_work_dir.rstrip('/')}/configs"
+
+        backup_file = f"{remote_backup_dir.rstrip('/')}/bms_bridge_{ts}.bin"
+        _exec_sh(
+            ssh,
+            use_sudo,
+            f"if [ -f {shlex.quote(remote_binary_path)} ]; then "
+            f"cp -a {shlex.quote(remote_binary_path)} {shlex.quote(backup_file)}; "
+            f"fi",
+            check=False,
+        )
+
+        remote_upload = f"{remote_tmp_dir.rstrip('/')}/{local_bin.name}.{ts}"
+        ssh.upload_file(local_bin, remote_upload, desc="upload(bms-bridge)")
+
+        remote_dir = shlex.quote(str(Path(remote_binary_path).parent))
+        ssh.exec(f"{_sudo_prefix(use_sudo)}mkdir -p {remote_dir}")
+        ssh.run(f"{_sudo_prefix(use_sudo)}install -m 0755 {shlex.quote(remote_upload)} {shlex.quote(remote_binary_path)}")
+        ssh.run(f"{_sudo_prefix(use_sudo)}rm -f {shlex.quote(remote_upload)}")
+
+        local_cfg_dir = (REPO_ROOT / local_configs_dir).resolve()
+        if local_cfg_dir.exists():
+            OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+            cfg_bundle = OUTPUT_DIR / f"bridge_configs_{ts}.tar.gz"
+            _tar_dir(local_cfg_dir, cfg_bundle)
+            remote_cfg_bundle = f"{remote_tmp_dir.rstrip('/')}/{cfg_bundle.name}"
+            ssh.upload_file(cfg_bundle, remote_cfg_bundle, desc="upload(bridge-configs-dir)")
+            _remote_mkdir(ssh, use_sudo, remote_configs_dir)
+            _remote_replace_dir_from_tar(
+                ssh,
+                use_sudo,
+                remote_bundle=remote_cfg_bundle,
+                remote_dest_dir=remote_configs_dir,
+                remote_tmp_dir=remote_tmp_dir,
+                remote_backup_dir=remote_backup_dir,
+                label="bridge_configs",
+                ts=ts,
+            )
+            ssh.run(f"{_sudo_prefix(use_sudo)}rm -f {shlex.quote(remote_cfg_bundle)}", check=False)
+
+        if local_config_path and remote_config_path:
+            config_backup = f"{remote_backup_dir.rstrip('/')}/bms_bridge_config_{ts}.yml"
+            _exec_sh(
+                ssh,
+                use_sudo,
+                f"if [ -f {shlex.quote(remote_config_path)} ]; then "
+                f"cp -a {shlex.quote(remote_config_path)} {shlex.quote(config_backup)}; "
+                f"fi",
+                check=False,
+            )
+
+            local_cfg = Path(local_config_path)
+            remote_cfg_upload = f"{remote_tmp_dir.rstrip('/')}/{local_cfg.name}.{ts}"
+            ssh.upload_file(local_cfg, remote_cfg_upload, desc="upload(bridge-config)")
+
+            cfg_dir = shlex.quote(str(Path(remote_config_path).parent))
+            ssh.run(f"{_sudo_prefix(use_sudo)}mkdir -p {cfg_dir}")
+            ssh.run(f"{_sudo_prefix(use_sudo)}install -m 0644 {shlex.quote(remote_cfg_upload)} {shlex.quote(remote_config_path)}")
+            ssh.run(f"{_sudo_prefix(use_sudo)}rm -f {shlex.quote(remote_cfg_upload)}")
+
+        if restart_command:
+            ssh.run(f"{_sudo_prefix(use_sudo)}{_quote(restart_command)}", get_pty=False)
+            return
+
+        if not remote_config_path:
+            raise SystemExit(
+                "Config error: bridge.remote_config_path is required when restart_command is not set "
+                "(for direct binary start)."
+            )
+        if not remote_log_file:
+            remote_log_file = f"{remote_work_dir.rstrip('/')}/bms-bridge.log"
+        if not remote_pid_file:
+            remote_pid_file = f"{remote_work_dir.rstrip('/')}/bms-bridge.pid"
+
+        ssh.run(f"{_sudo_prefix(use_sudo)}mkdir -p {shlex.quote(remote_work_dir)}")
+        ssh.run(f"{_sudo_prefix(use_sudo)}mkdir -p {shlex.quote(str(Path(remote_log_file).parent))}")
+
+        if start_mode == "systemd":
+            systemd_cfg = bridge_cfg.get("systemd") or {}
+            if not isinstance(systemd_cfg, dict):
+                raise SystemExit("Config error: bridge.systemd must be a mapping")
+            service_name = str(systemd_cfg.get("service_name", "fjbms-bms-bridge")).strip() or "fjbms-bms-bridge"
+            unit_path = str(systemd_cfg.get("unit_path", f"/etc/systemd/system/{service_name}.service")).strip()
+            install_script_path = str(
+                systemd_cfg.get("install_script_path", f"{remote_work_dir.rstrip('/')}/install_{service_name}_systemd.sh")
+            ).strip()
+            auto_install = bool(systemd_cfg.get("auto_install", True))
+
+            exec_start_inner = (
+                f"cd {shlex.quote(remote_work_dir)} && "
+                f"exec {shlex.quote(remote_binary_path)} {shlex.quote(config_flag)} {shlex.quote(remote_config_path)} "
+                f">> {shlex.quote(remote_log_file)} 2>&1"
+            )
+            OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+            local_installer = OUTPUT_DIR / f"install_systemd_{service_name}_{ts}.sh"
+            local_installer.write_text(
+                _render_systemd_install_script(
+                    service_name=service_name,
+                    work_dir=remote_work_dir,
+                    exec_start=exec_start_inner,
+                    log_file=remote_log_file,
+                    unit_path=unit_path,
+                    description="fjbms bms-bridge",
+                ),
+                encoding="utf-8",
+            )
+            remote_installer_upload = f"{remote_tmp_dir.rstrip('/')}/{local_installer.name}"
+            ssh.upload_file(local_installer, remote_installer_upload, desc="upload(bridge-systemd-installer)")
+            ssh.run(
+                f"{_sudo_prefix(use_sudo)}install -m 0755 {shlex.quote(remote_installer_upload)} {shlex.quote(install_script_path)}"
+            )
+            ssh.run(f"{_sudo_prefix(use_sudo)}rm -f {shlex.quote(remote_installer_upload)}", check=False)
+
+            if auto_install:
+                _exec_sh(ssh, use_sudo, f"bash {shlex.quote(install_script_path)}")
+            return
+
+        _backend_temp_stop(
+            ssh,
+            use_sudo,
+            pid_file=remote_pid_file,
+            stop_timeout_sec=stop_timeout_sec,
+            binary_name=Path(remote_binary_path).name,
+        )
+        _backend_temp_start(
+            ssh,
+            use_sudo,
+            work_dir=remote_work_dir,
+            binary_path=remote_binary_path,
+            config_flag=config_flag,
+            config_path=remote_config_path,
+            log_file=remote_log_file,
+            pid_file=remote_pid_file,
+        )
+
+
+def update_bridge(
+    cfg: Dict[str, Any],
+    env_name: str,
+    goos: str,
+    goarch: str,
+    *,
+    skip_build: bool,
+) -> None:
+    bridge_cfg = _derive_bridge_cfg(cfg, env_name)
+
+    remote_binary_path = str(bridge_cfg.get("remote_binary_path", "")).strip()
+    remote_tmp_dir = str(bridge_cfg.get("remote_tmp_dir", "/tmp/fjbms-deploy")).strip()
+    remote_work_dir = str(bridge_cfg.get("remote_work_dir", "")).strip()
+    remote_log_file = str(bridge_cfg.get("remote_log_file", "")).strip()
+    remote_pid_file = str(bridge_cfg.get("remote_pid_file", "")).strip()
+    config_flag = str(bridge_cfg.get("config_flag", "-config")).strip() or "-config"
+    stop_timeout_sec = int(bridge_cfg.get("stop_timeout_sec", 15))
+
+    local_configs_dir = str(bridge_cfg.get("local_configs_dir", "backend/configs")).strip()
+    local_config_path = _resolve_bridge_local_config_path(
+        str(bridge_cfg.get("local_config_path", "")).strip(),
+        local_configs_dir,
+        env_name,
+    )
+    remote_config_path = str(bridge_cfg.get("remote_config_path", "")).strip()
+    restart_command = str(bridge_cfg.get("restart_command", "")).strip()
+
+    start_mode = str(bridge_cfg.get("start_mode", "")).strip().lower()
+    if not start_mode:
+        start_mode = "systemd" if env_name == "prod" else "temp"
+    if start_mode not in ("temp", "systemd"):
+        raise SystemExit("Config error: bridge.start_mode must be temp | systemd")
+
+    if not remote_binary_path:
+        raise SystemExit("Config error: bridge.remote_binary_path is required")
+
+    ts = _now_ts()
+    if skip_build:
+        local_bin = REPO_ROOT / "backend" / "bin" / "bms-bridge"
+        _require_file(local_bin, "Bridge binary missing; run build first.")
+    else:
+        local_bin = build_bridge(goos, goarch)
+
+    if local_config_path and remote_config_path:
+        _require_file(Path(local_config_path), "bridge.local_config_path points to a missing file")
+
+    ssh_conn, use_sudo, known_hosts = _ssh_from_cfg(cfg)
+    with SSHClient(ssh_conn, known_hosts=known_hosts or None) as ssh:
+        _remote_mkdir(ssh, False, remote_tmp_dir)
+
+        remote_upload = f"{remote_tmp_dir.rstrip('/')}/{local_bin.name}.{ts}"
+        ssh.upload_file(local_bin, remote_upload, desc="upload(bms-bridge-update)")
+        remote_dir = shlex.quote(str(Path(remote_binary_path).parent))
+        ssh.run(f"{_sudo_prefix(use_sudo)}mkdir -p {remote_dir}")
+        ssh.run(f"{_sudo_prefix(use_sudo)}install -m 0755 {shlex.quote(remote_upload)} {shlex.quote(remote_binary_path)}")
+        ssh.run(f"{_sudo_prefix(use_sudo)}rm -f {shlex.quote(remote_upload)}", check=False)
+
+        if local_config_path and remote_config_path:
+            local_cfg = Path(local_config_path)
+            remote_cfg_upload = f"{remote_tmp_dir.rstrip('/')}/{local_cfg.name}.{ts}"
+            ssh.upload_file(local_cfg, remote_cfg_upload, desc="upload(bridge-config-update)")
+            cfg_dir = shlex.quote(str(Path(remote_config_path).parent))
+            ssh.run(f"{_sudo_prefix(use_sudo)}mkdir -p {cfg_dir}")
+            ssh.run(f"{_sudo_prefix(use_sudo)}install -m 0644 {shlex.quote(remote_cfg_upload)} {shlex.quote(remote_config_path)}")
+            ssh.run(f"{_sudo_prefix(use_sudo)}rm -f {shlex.quote(remote_cfg_upload)}", check=False)
+
+        if restart_command:
+            ssh.run(f"{_sudo_prefix(use_sudo)}{_quote(restart_command)}", get_pty=False)
+            return
+
+        if start_mode == "systemd":
+            systemd_cfg = bridge_cfg.get("systemd") or {}
+            if not isinstance(systemd_cfg, dict):
+                raise SystemExit("Config error: bridge.systemd must be a mapping")
+            service_name = str(systemd_cfg.get("service_name", "fjbms-bms-bridge")).strip() or "fjbms-bms-bridge"
+            ssh.run(f"{_sudo_prefix(use_sudo)}systemctl restart {shlex.quote(service_name)}")
+            ssh.run(f"{_sudo_prefix(use_sudo)}systemctl status {shlex.quote(service_name)} --no-pager", check=False)
+            return
+
+        if not remote_config_path:
+            raise SystemExit("Config error: bridge.remote_config_path is required for temp start")
+        if not remote_work_dir:
+            remote_work_dir = str(Path(remote_binary_path).parent)
+        if not remote_log_file:
+            remote_log_file = f"{remote_work_dir.rstrip('/')}/bms-bridge.log"
+        if not remote_pid_file:
+            remote_pid_file = f"{remote_work_dir.rstrip('/')}/bms-bridge.pid"
+
+        ssh.run(f"{_sudo_prefix(use_sudo)}mkdir -p {shlex.quote(remote_work_dir)}")
+        ssh.run(f"{_sudo_prefix(use_sudo)}mkdir -p {shlex.quote(str(Path(remote_log_file).parent))}")
+
+        _backend_temp_stop(
+            ssh,
+            use_sudo,
+            pid_file=remote_pid_file,
+            stop_timeout_sec=stop_timeout_sec,
+            binary_name=Path(remote_binary_path).name,
+        )
+        _backend_temp_start(
+            ssh,
+            use_sudo,
+            work_dir=remote_work_dir,
+            binary_path=remote_binary_path,
+            config_flag=config_flag,
+            config_path=remote_config_path,
+            log_file=remote_log_file,
+            pid_file=remote_pid_file,
+        )
+
+
 def restart_backend(cfg: Dict[str, Any], env_name: str) -> None:
     backend_cfg = cfg.get("backend") or {}
     if not isinstance(backend_cfg, dict):
@@ -1082,6 +1502,73 @@ def restart_backend(cfg: Dict[str, Any], env_name: str) -> None:
         remote_log_file = f"{remote_work_dir.rstrip('/')}/backend.log"
     if not remote_pid_file:
         remote_pid_file = f"{remote_work_dir.rstrip('/')}/backend.pid"
+
+    ssh_conn, use_sudo, known_hosts = _ssh_from_cfg(cfg)
+    with SSHClient(ssh_conn, known_hosts=known_hosts or None) as ssh:
+        ssh.run(f"{_sudo_prefix(use_sudo)}mkdir -p {shlex.quote(remote_work_dir)}")
+        ssh.run(f"{_sudo_prefix(use_sudo)}mkdir -p {shlex.quote(str(Path(remote_log_file).parent))}")
+        _backend_temp_stop(
+            ssh,
+            use_sudo,
+            pid_file=remote_pid_file,
+            stop_timeout_sec=stop_timeout_sec,
+            binary_name=Path(remote_binary_path).name,
+        )
+        _backend_temp_start(
+            ssh,
+            use_sudo,
+            work_dir=remote_work_dir,
+            binary_path=remote_binary_path,
+            config_flag=config_flag,
+            config_path=remote_config_path,
+            log_file=remote_log_file,
+            pid_file=remote_pid_file,
+        )
+
+
+def restart_bridge(cfg: Dict[str, Any], env_name: str) -> None:
+    bridge_cfg = _derive_bridge_cfg(cfg, env_name)
+
+    remote_binary_path = str(bridge_cfg.get("remote_binary_path", "")).strip()
+    remote_work_dir = str(bridge_cfg.get("remote_work_dir", "")).strip()
+    remote_log_file = str(bridge_cfg.get("remote_log_file", "")).strip()
+    remote_pid_file = str(bridge_cfg.get("remote_pid_file", "")).strip()
+    remote_config_path = str(bridge_cfg.get("remote_config_path", "")).strip()
+    config_flag = str(bridge_cfg.get("config_flag", "-config")).strip() or "-config"
+    stop_timeout_sec = int(bridge_cfg.get("stop_timeout_sec", 15))
+    restart_command = str(bridge_cfg.get("restart_command", "")).strip()
+
+    start_mode = str(bridge_cfg.get("start_mode", "")).strip().lower()
+    if not start_mode:
+        start_mode = "systemd" if env_name == "prod" else "temp"
+    if start_mode not in ("temp", "systemd"):
+        raise SystemExit("Config error: bridge.start_mode must be temp | systemd")
+
+    if restart_command:
+        ssh_conn, use_sudo, known_hosts = _ssh_from_cfg(cfg)
+        with SSHClient(ssh_conn, known_hosts=known_hosts or None) as ssh:
+            ssh.run(f"{_sudo_prefix(use_sudo)}{_quote(restart_command)}", get_pty=False)
+        return
+
+    if start_mode == "systemd":
+        systemd_cfg = bridge_cfg.get("systemd") or {}
+        if not isinstance(systemd_cfg, dict):
+            raise SystemExit("Config error: bridge.systemd must be a mapping")
+        service_name = str(systemd_cfg.get("service_name", "fjbms-bms-bridge")).strip() or "fjbms-bms-bridge"
+        ssh_conn, use_sudo, known_hosts = _ssh_from_cfg(cfg)
+        with SSHClient(ssh_conn, known_hosts=known_hosts or None) as ssh:
+            ssh.run(f"{_sudo_prefix(use_sudo)}systemctl restart {shlex.quote(service_name)}")
+            ssh.run(f"{_sudo_prefix(use_sudo)}systemctl status {shlex.quote(service_name)} --no-pager", check=False)
+        return
+
+    if not remote_binary_path or not remote_config_path:
+        raise SystemExit("Config error: bridge.remote_binary_path and bridge.remote_config_path are required for temp restart")
+    if not remote_work_dir:
+        remote_work_dir = str(Path(remote_binary_path).parent)
+    if not remote_log_file:
+        remote_log_file = f"{remote_work_dir.rstrip('/')}/bms-bridge.log"
+    if not remote_pid_file:
+        remote_pid_file = f"{remote_work_dir.rstrip('/')}/bms-bridge.pid"
 
     ssh_conn, use_sudo, known_hosts = _ssh_from_cfg(cfg)
     with SSHClient(ssh_conn, known_hosts=known_hosts or None) as ssh:
@@ -1310,6 +1797,9 @@ def main(argv: list[str]) -> int:
     p_bb = build_sub.add_parser("backend", help="Build backend")
     p_bb.add_argument("--goos", default=os.environ.get("GOOS", "linux"))
     p_bb.add_argument("--goarch", default=os.environ.get("GOARCH", "amd64"))
+    p_bbridge = build_sub.add_parser("bridge", help="Build bms-bridge")
+    p_bbridge.add_argument("--goos", default=os.environ.get("GOOS", "linux"))
+    p_bbridge.add_argument("--goarch", default=os.environ.get("GOARCH", "amd64"))
 
     p_deploy = sub.add_parser("deploy", help="Deploy to remote via SSH")
     p_deploy.add_argument("--env", choices=["test", "prod"], required=True)
@@ -1321,6 +1811,10 @@ def main(argv: list[str]) -> int:
     p_db.add_argument("--goos", default=os.environ.get("GOOS", "linux"))
     p_db.add_argument("--goarch", default=os.environ.get("GOARCH", "amd64"))
     p_db.add_argument("--skip-build", action="store_true", help="Skip local build step")
+    p_dbridge = deploy_sub.add_parser("bridge")
+    p_dbridge.add_argument("--goos", default=os.environ.get("GOOS", "linux"))
+    p_dbridge.add_argument("--goarch", default=os.environ.get("GOARCH", "amd64"))
+    p_dbridge.add_argument("--skip-build", action="store_true", help="Skip local build step")
 
     p_dbroot = sub.add_parser("db", help="DB export/import via SSH")
     p_dbroot.add_argument("--env", choices=["test", "prod"], required=True)
@@ -1346,11 +1840,16 @@ def main(argv: list[str]) -> int:
     p_ub.add_argument("--goarch", default=os.environ.get("GOARCH", "amd64"))
     p_ub.add_argument("--skip-build", action="store_true", help="Skip local build step")
     p_ub.add_argument("--with-config", action="store_true", help="Also upload backend config file")
+    p_ubr = update_sub.add_parser("bridge")
+    p_ubr.add_argument("--goos", default=os.environ.get("GOOS", "linux"))
+    p_ubr.add_argument("--goarch", default=os.environ.get("GOARCH", "amd64"))
+    p_ubr.add_argument("--skip-build", action="store_true", help="Skip local build step")
 
     p_restart = sub.add_parser("restart", help="Restart remote services via SSH")
     p_restart.add_argument("--env", choices=["test", "prod"], required=True)
     restart_sub = p_restart.add_subparsers(dest="target", required=True)
     restart_sub.add_parser("backend")
+    restart_sub.add_parser("bridge")
 
     args = parser.parse_args(argv)
     global QUIET
@@ -1363,6 +1862,9 @@ def main(argv: list[str]) -> int:
         if args.target == "backend":
             build_backend(args.goos, args.goarch)
             return 0
+        if args.target == "bridge":
+            build_bridge(args.goos, args.goarch)
+            return 0
         raise SystemExit("unknown build target")
 
     if args.cmd == "deploy":
@@ -1372,6 +1874,9 @@ def main(argv: list[str]) -> int:
             return 0
         if args.target == "backend":
             deploy_backend(cfg, args.env, args.goos, args.goarch, skip_build=bool(args.skip_build))
+            return 0
+        if args.target == "bridge":
+            deploy_bridge(cfg, args.env, args.goos, args.goarch, skip_build=bool(args.skip_build))
             return 0
         raise SystemExit("unknown deploy target")
 
@@ -1390,12 +1895,24 @@ def main(argv: list[str]) -> int:
                 with_config=bool(args.with_config),
             )
             return 0
+        if args.target == "bridge":
+            update_bridge(
+                cfg,
+                args.env,
+                args.goos,
+                args.goarch,
+                skip_build=bool(args.skip_build),
+            )
+            return 0
         raise SystemExit("unknown update target")
 
     if args.cmd == "restart":
         cfg = _cfg_for_env(args.env, args.config)
         if args.target == "backend":
             restart_backend(cfg, args.env)
+            return 0
+        if args.target == "bridge":
+            restart_bridge(cfg, args.env)
             return 0
         raise SystemExit("unknown restart target")
 

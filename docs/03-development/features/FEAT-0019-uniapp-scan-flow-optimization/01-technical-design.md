@@ -2,13 +2,14 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-03-22
+- last_updated: 2026-03-25
 - related_feature: FEAT-0019
 - version: v0.1.0
 
 ## 1. 方案概览
 - 新增 `fjbms-uniapp/common/device-provision/device-prefix.js` 作为设备前缀配置真源。
 - 扫码解析模块在识别到 `MAC` 后，通过 `resolveDeviceTypeByMac(mac)` 得到 `bms | meter | null`。
+- 摄像头扫码新增“已添加设备直达详情”分支：先基于绑定设备列表匹配 `ble_mac / item_uuid`，命中后直接以 `device_id` 打开详情页。
 - BMS 扫码继续复用：
   - `ble-scan.vue` 自动匹配 BLE 设备
   - `provision-wizard.vue` 完成 UUID 读取、可选 DTU 写入和绑定
@@ -40,13 +41,25 @@
 ### 3.2 入口统一
 - `common/composables/useAddDeviceActionSheet.ts`
 - `custom-tab-bar/index.js`
+- `common/device-provision/scan-routing.js`
 - 两处均按同一规则跳转：
-  - `UUID` -> `uuid-bind`
-  - `MAC + bms` -> `ble-scan?mode=qr&mac=...`
-  - `MAC + meter` -> `device-battery/detail?session_mode=instrument&ble_mac=...`
+  - `已命中绑定设备` -> `device-battery/detail?device_id=...`
+  - `UUID`（未命中） -> `uuid-bind`
+  - `MAC + bms`（未命中） -> `ble-scan?mode=qr&mac=...`
+  - `MAC + meter`（未命中） -> `device-battery/detail?session_mode=instrument&ble_mac=...`
   - `MAC + null` -> 提示无效或不支持的二维码
 
-### 3.3 BMS 成功跳转
+### 3.3 已绑定设备匹配
+- `store/bound-devices.ts` 扩展 `item_uuid` 字段和查找能力：
+  - `findByBleMac(mac12)`
+  - `findByItemUuid(uuid32)`
+- `scan-routing.js` 统一执行以下优先级：
+  - `MAC` 先匹配 `ble_mac`
+  - `UUID` 先匹配 `item_uuid`
+  - 命中后返回 `bound_detail` 决策
+  - 未命中再回落到现有添加/临时会话链路
+
+### 3.4 BMS 成功跳转
 - `provision-wizard.vue` 和 `uuid-bind.vue` 绑定成功后读取 `bind` 返回的 `device_id`，统一跳转 `/pages/device-battery/detail?device_id=...`。
 
 ## 4. 仪表临时会话模式

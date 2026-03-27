@@ -2,12 +2,13 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-03-22
+- last_updated: 2026-03-25
 - related_feature: FEAT-0019
 - version: v0.1.0
 
 ## 1. 发布内容
 - UniApp 扫码入口按设备类型统一分流：
+  - 若扫码结果已命中“我的设备”列表中的 `ble_mac` 或 `item_uuid`，则直接进入设备详情页；
   - BMS (`0xAC`) MAC 继续走 BLE 搜索与绑定向导；
   - 仪表 (`0xAA`) MAC 直接进入设备详情页临时 BLE 会话模式；
   - UUID 扫码兼容路径保留。
