@@ -14,6 +14,12 @@
 ## 模块泳道看板
 
 ### Backend（`backend/`）
+- [ ] `review` **FEAT-0029** UniApp 首页设备标识展示切换
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：已完成 APP 首页设备列表 `iccid` 返回、历史 `comm_chip_id` 兼容映射，以及首页设备副标题按通讯类型显示 MAC / ICCID；已通过定向 Go 与 TypeScript 校验，待真机联调验收
+  - 文档：`docs/03-development/features/FEAT-0029-uniapp-home-device-identifier/`
 - [ ] `review` **FEAT-0027** 后台删除终端用户后账号身份残留修复
   - owner：payhon
   - 优先级：P1
@@ -124,6 +130,12 @@
   - 文档：`docs/03-development/features/FEAT-0009-admin-login-captcha-qrcode/`
 
 ### UniApp（`fjbms-uniapp/`）
+- [ ] `review` **FEAT-0029** UniApp 首页设备标识展示切换
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：已完成首页“我的设备”卡片副标题按通讯类型显示 MAC / ICCID，并保留缺失字段回退逻辑；已通过 `pnpm exec tsc --noEmit` 校验，待真机联调验收
+  - 文档：`docs/03-development/features/FEAT-0029-uniapp-home-device-identifier/`
 - [ ] `in_progress` **FEAT-0026** UniApp 账号注销
   - owner：payhon
   - 优先级：P1
