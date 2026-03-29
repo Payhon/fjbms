@@ -2,7 +2,7 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-03-22
+- last_updated: 2026-03-29
 - related_feature: FEAT-0022
 - version: v0.1.0
 
@@ -58,3 +58,11 @@
 15. 2026-03-25 明细地址动态化
    - 将明细头部中的“当前地址”从固定显示 `0x4C` 汇总地址改为“当前已加载到的明细地址”。
    - 地址值基于 `0x4C.currentRecordAddress` 与当前列表最后一条已加载记录索引推导，随着继续上滑加载更早记录而动态变化。
+16. 2026-03-29 历史记录权限控制
+   - 后端新增 `GET /api/v1/org_type_permissions/mobile_ui_codes/me`，按当前用户类型独立返回移动端权限，不再沿用 `APP_USER + org_type` 的合并口径。
+   - 新增 SQL 47，补充 `app_mobile_permissions -> app_device_detail_history` 权限节点，作为后台“移动端权限”分组数据源。
+   - 后台“系统管理 > 权限管理”新增“移动端权限”页签，并将 `ui_codes` 在页面内拆分为“菜单权限 / 移动端权限”两组独立回显与保存。
+   - UniApp 设备详情页接入移动端权限接口，未分配 `app_device_detail_history` 时隐藏“历史记录” Tab，并在权限异步返回后自动回退非法激活态。
+17. 2026-03-29 菜单泄漏修正
+   - 修复 `app_mobile_permissions` 作为顶级权限分组节点后，被左侧动态菜单接口误当成普通目录返回的问题。
+   - 在菜单输出链路中显式排除 `app_mobile_permissions`，仅保留其在权限配置树中的可见性，不影响“移动端权限”页签配置。

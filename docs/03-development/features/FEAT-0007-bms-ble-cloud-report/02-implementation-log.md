@@ -72,3 +72,6 @@
 16. 调整后台设备详情页在 BMS 电池详情模式下的 TAB 收口：
    - `frontend/src/views/device/details/index.vue`
    - 当通过电池管理入口进入详情（`bms=1`）时，仅保留 `BMS面板` 与 `连接` 两个 TAB，其余通用设备 TAB 隐藏，减少无关信息干扰。
+17. 调整后台设备详情页 BMS 面板“电芯”区块样式：
+   - `frontend/src/views/device/details/modules/bms-panel/index.vue`
+   - 电芯页改为参考 APP 图示的横向电池柱状排版，顶部展示最大/最小/均衡摘要，底部按单体电压展示连续电芯柱，并保留最高/最低/均衡高亮。

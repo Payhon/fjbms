@@ -2,7 +2,7 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-03-22
+- last_updated: 2026-03-29
 - related_feature: FEAT-0022
 - version: v0.1.0
 
@@ -29,19 +29,30 @@
 - 若设备返回错误帧或单字节 `0xFF`，上述接口返回 `null`，由 UI 统一映射为“不支持历史记录”。
 - `readHistoryStatusRecords()` 单次限制 `1~6` 条，保持与协议文档一致。
 
-## 3. 页面与交互
+## 3. 权限设计
+- 复用 `org_type_permissions.ui_codes` 存储移动端权限，不新增独立权限表。
+- 在 `sys_ui_elements` 下新增移动端权限分组：
+  - `app_mobile_permissions`：权限配置分组节点，仅用于后台树形展示。
+  - `app_device_detail_history`：设备详情“历史记录”权限项。
+- 新增后端接口 `GET /api/v1/org_type_permissions/mobile_ui_codes/me`：
+  - `END_USER` 只读取 `APP_USER` 配置。
+  - `ORG_USER` 只读取当前 `org_type` 配置。
+  - 返回值只保留 `app_mobile_permissions` 子树下的 `ui_codes`，默认安全口径为 `allow_all=false`。
+
+## 4. 页面与交互
 - `pages/device-battery/detail.vue`
-  - `activeTab` 从 `0 | 1 | 2` 扩展到 `0 | 1 | 2 | 3`
-  - 新增底部一级菜单“历史记录”
+  - `activeTab` 语义维持 `0 | 1 | 2 | 3`，但“历史记录”底部入口改为按权限条件渲染。
+  - 页面加载时先请求移动端权限，命中 `app_device_detail_history` 后才显示“历史记录”一级菜单。
   - 在 `onReachBottom` 中转发给 `history-tab.vue` 的 `loadMoreStatusRecords()`
   - 将“参数设置 / 历史记录”统一纳入暂停轮询范围
+  - 若权限异步返回后确认无“历史记录”权限，且当前激活标签落在历史记录，则回退到“仪表盘”
 - `pages/device-battery/components/history-tab.vue`
   - 二级切换默认停留在“保护次数记录”
   - 首次进入当前分段时再发请求，避免无谓访问
   - “状态记录”先依赖 `0x4C` 的 `currentRecordCount` 得到总条数，再按尾部向前分页读取 `0x4D`
   - 页底加载更多采用页面滚动触底触发，不单独引入内部固定高度滚动容器
 
-## 4. UI 结构
+## 5. UI 结构
 - 保护次数记录：
   - 顶部 2x2 摘要卡：总记录数、当前地址、累计充电时长、累计放电时长
   - 下方按“温度类 / 压流类 / 充放电类 / 系统类”分组，每行 `名称 + 次数`
@@ -57,7 +68,15 @@
   - 空数据
   - 正常内容
 
-## 5. 多语言与映射
+## 6. 后台管理端
+- `frontend/src/views/management/permission/index.vue`
+  - 在现有“菜单权限 / 设备参数权限”之外新增“移动端权限”页签。
+  - `ui_codes` 回显时拆分为两组：
+    - 菜单权限：排除 `app_mobile_permissions` 子树
+    - 移动端权限：仅保留 `app_mobile_permissions` 子树
+  - 保存时再合并为单一 `ui_codes` 提交，保持存储模型不变。
+
+## 7. 多语言与映射
 - 在 `lang/zh-CN.ts`、`lang/en-US.ts` 的 `deviceDetail` 节点下新增：
   - `tabs.history`
   - `history.*`

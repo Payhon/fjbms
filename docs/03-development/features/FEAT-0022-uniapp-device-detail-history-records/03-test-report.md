@@ -2,16 +2,29 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-03-22
+- last_updated: 2026-03-29
 - related_feature: FEAT-0022
 - version: v0.1.0
 
 ## 1. 已执行验证
+- [x] `cd backend && go test ./internal/service/...`
+- [x] `cd backend && go test ./internal/api/...`
+- [x] `cd frontend && pnpm exec vue-tsc --noEmit --skipLibCheck`
+- [x] `cd frontend && pnpm exec vue-tsc --noEmit --skipLibCheck 2>&1 | rg "src/views/management/permission/index.vue|src/service/api/org-type-permissions.ts"`
 - [x] `cd fjbms-uniapp && pnpm exec tsc --noEmit`
 - [x] 协议样例字段解析验证
 - [ ] 真机 / HBuilderX 手工验收
 
 ## 2. 验证结果
+- `cd backend && go test ./internal/service/...`
+  - 结果：通过。
+- `cd backend && go test ./internal/api/...`
+  - 结果：通过（含 `gopsutil/disk` 的 macOS `IOMasterPort` 弃用编译告警，不影响测试通过）。
+- `cd frontend && pnpm exec vue-tsc --noEmit --skipLibCheck`
+  - 结果：失败。
+  - 备注：仓库当前存在大量与本次需求无关的历史类型错误，未在本次需求中清理。
+- `cd frontend && pnpm exec vue-tsc --noEmit --skipLibCheck 2>&1 | rg "src/views/management/permission/index.vue|src/service/api/org-type-permissions.ts"`
+  - 结果：无输出，说明本次涉及的后台权限页文件未新增类型错误。
 - `cd fjbms-uniapp && pnpm exec tsc --noEmit`
   - 结果：通过。
 - 协议样例解析：
@@ -22,6 +35,11 @@
   - 备注：文档示例整帧 CRC 与当前协议库校验口径不一致，因此本次采用“示例载荷切片”进行字段级验证；不影响实际运行时对真实设备返回帧的解析路径。
 
 ## 3. 待补充手工验收
+- [ ] 后台“系统管理 > 权限管理”出现“移动端权限”页签，且仅展示“历史记录”权限项
+- [ ] `PACK_FACTORY / DEALER / STORE / APP_USER` 四类用户分别保存“历史记录”权限后，刷新页面回显正确
+- [ ] `GET /api/v1/org_type_permissions/mobile_ui_codes/me` 对终端用户仅命中 `APP_USER`，对机构用户仅命中自身 `org_type`
+- [ ] 未分配权限时，设备详情页隐藏“历史记录” Tab，且不会挂载历史记录组件
+- [ ] 已分配权限时，设备详情页显示“历史记录” Tab，蓝牙 / MQTT / 仪表临时连接三种入口显隐一致
 - [ ] 设备详情底部 4 个一级 Tab 切换正常
 - [ ] 历史记录二级切换激活态正确，文案为“总计 / 明细”
 - [ ] 切入参数设置 / 历史记录时轮询暂停，离开后恢复
