@@ -14,6 +14,12 @@
 ## 模块泳道看板
 
 ### Backend（`backend/`）
+- [ ] `in_progress` **FEAT-0031** App 上架准备与公共页面完善
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：已补公开 App 信息接口、公开内容页 `appid` 缺省回退逻辑与公开路由挂载，正在联调公开下载页与生产内容数据
+  - 文档：`docs/03-development/features/FEAT-0031-app-store-public-pages-and-upgrade-readiness/`
 - [ ] `review` **FEAT-0029** UniApp 首页设备标识展示切换
   - owner：payhon
   - 优先级：P1
@@ -105,6 +111,30 @@
   - 文档：`docs/03-development/features/FEAT-0004-mes-auth-audit/`
 
 ### Frontend（`frontend/`）
+- [ ] `review` **FEAT-0036** 后台短信验证码调试能力
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：已在通知配置短信页新增调试弹窗，并接入完整注册验证码链路诊断结果展示；已补 `SYS_ADMIN` 租户下拉与显式 `tenant_id` 透传，避免误判租户模板；已通过 `pnpm --dir frontend typecheck`，待后台页面运行态验证真实短信发送与结果回显
+  - 文档：`docs/03-development/features/FEAT-0036-admin-sms-debug-channel-test/`
+- [ ] `review` **FEAT-0035** 后台通知设置短信配置回显修复
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：已完成短信配置页 `config` 解析与嵌套表单回填修复，兼容响应解包差异并保留默认值合并；已通过 `pnpm --dir frontend typecheck`，待页面运行态回归验证短信配置读取/保存后的回显链路
+  - 文档：`docs/03-development/features/FEAT-0035-admin-notification-sms-config-echo-fix/`
+- [ ] `review` **FEAT-0034** 后台存储设置访问域名输入修复
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：已完成存储设置页嵌套表单回填修复，避免 `aliyun/qiniu` 配置对象整对象替换导致域名输入值未写回；已通过 `pnpm --dir frontend typecheck`，待页面运行态回归验证阿里云 OSS 域名输入与保存链路
+  - 文档：`docs/03-development/features/FEAT-0034-admin-storage-setting-domain-input-fix/`
+- [ ] `in_progress` **FEAT-0031** App 上架准备与公共页面完善
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：已新增 `public/app/*` 公共页、免登录常量路由、下载页数据读取和后台 App/升级表单分流，正在做构建验证与样式回归
+  - 文档：`docs/03-development/features/FEAT-0031-app-store-public-pages-and-upgrade-readiness/`
 - [ ] `review` **FEAT-0025** APP 联系客服单页内容接入
   - owner：payhon
   - 优先级：P2
@@ -130,6 +160,30 @@
   - 文档：`docs/03-development/features/FEAT-0009-admin-login-captcha-qrcode/`
 
 ### UniApp（`fjbms-uniapp/`）
+- [ ] `in_progress` **FEAT-0033** UniApp 扫描/扫码登录前置校验
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0019
+  - 进展：已完成扫描/扫码入口、扫描页和扫码绑定页统一登录校验；已通过 `pnpm exec tsc --noEmit`，待运行态验收
+  - 文档：`docs/03-development/features/FEAT-0033-uniapp-scan-login-guard/`
+- [ ] `in_progress` **FEAT-0032** UniApp 开发者模式
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：已完成登录页 LOGO 九连击开启开发者模式、全局持久化状态，以及登录卡片底部基座版本号 / 应用版本号 / API BaseURL 展示；已通过 `pnpm exec tsc --noEmit`，待运行态验收
+  - 文档：`docs/03-development/features/FEAT-0032-uniapp-developer-mode/`
+- [ ] `in_progress` **FEAT-0031** App 上架准备与公共页面完善
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：已将登录/注册协议入口改为公网 H5，关于页保持原生内容页，并统一运行时 `tenant_id` 与 `serverAddress` 优先级；已补登录页“其他登录方式”按运行环境显隐，并为升级检测接口补定向控制台日志，待真机联调升级检测、H5 跳转与日志输出
+  - 文档：`docs/03-development/features/FEAT-0031-app-store-public-pages-and-upgrade-readiness/`
+- [ ] `in_progress` **FEAT-0030** UniApp 页面多语言文案补全
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：已完成首页、设备详情及常用页面多语言缺口盘点，正在按页面范围并行补齐硬编码文案与 `zh-CN/en-US` 字典项
+  - 文档：`docs/03-development/features/FEAT-0030-uniapp-i18n-copy-completion/`
 - [ ] `review` **FEAT-0029** UniApp 首页设备标识展示切换
   - owner：payhon
   - 优先级：P1
@@ -214,6 +268,12 @@
   - 文档：`docs/03-development/features/FEAT-0008-uniapp-ble-disconnect-ux/`
 
 ### Docs & Ops（`docs/`, `doc/`, 部署）
+- [ ] `in_progress` **FEAT-0031** App 上架准备与公共页面完善
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：已新增 FEAT-0031 五件套文档并同步看板，下一步补生产部署路径与上线验收记录
+  - 文档：`docs/03-development/features/FEAT-0031-app-store-public-pages-and-upgrade-readiness/`
 - [ ] `in_progress` **FEAT-0023** bms-bridge 测试/生产部署脚本补充
   - owner：payhon
   - 优先级：P1
