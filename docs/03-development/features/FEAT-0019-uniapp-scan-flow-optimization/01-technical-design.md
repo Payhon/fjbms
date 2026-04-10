@@ -1,8 +1,8 @@
 # FEAT-0019 UniApp 扫码流程优化 - 技术设计
 
-- status: in_progress
+- status: review
 - owner: payhon
-- last_updated: 2026-03-25
+- last_updated: 2026-04-08
 - related_feature: FEAT-0019
 - version: v0.1.0
 
@@ -13,7 +13,7 @@
 - BMS 扫码继续复用：
   - `ble-scan.vue` 自动匹配 BLE 设备
   - `provision-wizard.vue` 完成 UUID 读取、可选 DTU 写入和绑定
-- 仪表扫码不再走云端绑定链路，直接进入 `pages/device-battery/detail` 的临时 BLE 会话模式。
+- 仪表扫码以及 BLE 扫描列表点击命中仪表设备时，不再走云端绑定链路，直接进入 `pages/device-battery/detail` 的临时 BLE 会话模式。
 
 ## 2. 静态配置设计
 ### 2.1 模块位置
@@ -62,6 +62,15 @@
 ### 3.4 BMS 成功跳转
 - `provision-wizard.vue` 和 `uuid-bind.vue` 绑定成功后读取 `bind` 返回的 `device_id`，统一跳转 `/pages/device-battery/detail?device_id=...`。
 
+### 3.5 BLE 扫描列表点击分流
+- `pages/device-provision/ble-scan.vue`
+- `DeviceRow` 记录 `deviceType: SupportedDeviceType | null`。
+- `upsertDevice()` 在解析到广播 MAC 后调用 `resolveDeviceTypeByMac(advMac)` 写入行数据；若本次广播缺失 `advMac`，沿用已存在行上的 `deviceType`，避免设备类型在重复广播中闪断。
+- `selectDevice()` 的点击规则固定为：
+  - `deviceType === 'meter'` 且 `advMac` 可用 -> 跳转 `/pages/device-battery/detail?session_mode=instrument&ble_mac=...&allow_scan_handoff=1&device_name=...`
+  - 其它情况 -> 继续跳转 `/pages/device-provision/provision-wizard?deviceId=...`
+- 不调整 `onDeviceFound()` 的自动匹配逻辑；`mode=qr` 仍只服务 BMS 添加链路，仪表仅在用户点击扫描卡片时进入临时会话。
+
 ## 4. 仪表临时会话模式
 ### 4.1 路由参数
 - `session_mode=instrument`
@@ -85,4 +94,4 @@
 ## 5. 验证策略
 - `cd fjbms-uniapp && pnpm exec tsc --noEmit`
 - 搜索回归：确认 `fjbms-uniapp` 业务逻辑中不再存在裸 `AA/AC` 设备类型判断。
-- 手工验证扫码入口分流、BMS 绑定后跳转、仪表临时详情和二次扫码绑定流程。
+- 手工验证扫码入口分流、BLE 扫描卡片点击分流、BMS 绑定后跳转、仪表临时详情和二次扫码绑定流程。

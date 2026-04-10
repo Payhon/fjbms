@@ -2,7 +2,7 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-03-25
+- last_updated: 2026-04-08
 - related_feature: FEAT-0019
 - version: v0.1.0
 
@@ -12,6 +12,7 @@
   - BMS (`0xAC`) MAC 继续走 BLE 搜索与绑定向导；
   - 仪表 (`0xAA`) MAC 直接进入设备详情页临时 BLE 会话模式；
   - UUID 扫码兼容路径保留。
+- UniApp 蓝牙扫描页点击设备卡片时，若广播 MAC 判定为仪表 (`0xAA`) 设备，则直接进入临时 BLE 会话详情模式，并带上 `device_name` 作为会话展示名。
 - 设备类型前缀统一收敛到 `fjbms-uniapp/common/device-provision/device-prefix.js`，TS/JS 入口共享单一静态配置文件。
 - BMS 绑定成功后不再停留首页，改为直接进入 `/pages/device-battery/detail?device_id=...`。
 - 仪表详情页新增“继续扫码绑定 BMS”能力，调用既有 `configureMeterMac({ meterAddress: 0xFC, mac })` 写入新目标。
@@ -34,4 +35,4 @@
 - 本功能未引入数据库或接口协议变更，前端代码回滚即可恢复旧行为。
 
 ## 5. 已知问题
-- 尚未完成真机蓝牙联调，需重点验证仪表临时会话连接稳定性与二次扫码写目标地址时序。
+- 尚未完成真机蓝牙联调，需重点验证 BLE 扫描点击仪表设备后的临时会话首连体验，以及二次扫码写目标地址时序。

@@ -14,6 +14,12 @@
 ## 模块泳道看板
 
 ### Backend（`backend/`）
+- [ ] `in_progress` **FEAT-0037** 用户名字段、账号设置增强与后台用户表格展示
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：已完成方案梳理，正在同步 `users.username` 数据库迁移、APP 账号默认值/换绑联动、终端用户接口返回与后台表格展示
+  - 文档：`docs/03-development/features/FEAT-0037-user-username-and-mobile-account-settings/`
 - [ ] `in_progress` **FEAT-0031** App 上架准备与公共页面完善
   - owner：payhon
   - 优先级：P1
@@ -111,6 +117,18 @@
   - 文档：`docs/03-development/features/FEAT-0004-mes-auth-audit/`
 
 ### Frontend（`frontend/`）
+- [ ] `review` **FEAT-0038** 后台上传链路修复与云直传接入
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：已完成后端上传类型白名单补齐、共用上传器云直传接入、组件内上传进度与状态提示，以及安装包字段 `value-mode="url"` 调整；本次继续补齐 BMS OTA 升级包新增接口对云存储 CDN URL 的兼容，签名计算支持远程 URL，设备下发地址也兼容绝对 URL；已通过 `pnpm --dir frontend typecheck`、`go test ./pkg/utils ./internal/service -run TestValidateUploadBizType` 与 `go test ./internal/service -run TestSignPackageSource -count=1`，待运行态回归云存储直传与 OTA 包创建/下发链路
+  - 文档：`docs/03-development/features/FEAT-0038-admin-upload-cloud-direct-and-package-fix/`
+- [ ] `in_progress` **FEAT-0037** 用户名字段、账号设置增强与后台用户表格展示
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：正在为后台 `bms/system/user`、`app_manage/users`、`bms/end_user` 三张表格新增用户名列与搜索能力
+  - 文档：`docs/03-development/features/FEAT-0037-user-username-and-mobile-account-settings/`
 - [ ] `review` **FEAT-0036** 后台短信验证码调试能力
   - owner：payhon
   - 优先级：P1
@@ -160,6 +178,18 @@
   - 文档：`docs/03-development/features/FEAT-0009-admin-login-captcha-qrcode/`
 
 ### UniApp（`fjbms-uniapp/`）
+- [ ] `in_progress` **FEAT-0006** UniApp 升级检测与提示体验优化
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：已将设备详情 OTA 检测前置到仪表盘默认页，并同步接入底部“参数设置”Tab 与参数页 OTA 行红点提示；当前等待 `pnpm exec tsc --noEmit` 与真机 OTA 联调验收
+  - 文档：`docs/03-development/features/FEAT-0006-uniapp-upgrade-check-and-badge/`
+- [ ] `in_progress` **FEAT-0037** 用户名字段、账号设置增强与后台用户表格展示
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：正在补充“我的 / 设置”账号展示、设定账号、手机号换绑，并修复顶部手机号显示异常
+  - 文档：`docs/03-development/features/FEAT-0037-user-username-and-mobile-account-settings/`
 - [ ] `in_progress` **FEAT-0033** UniApp 扫描/扫码登录前置校验
   - owner：payhon
   - 优先级：P1
@@ -170,7 +200,7 @@
   - owner：payhon
   - 优先级：P1
   - 依赖：无
-  - 进展：已完成登录页 LOGO 九连击开启开发者模式、全局持久化状态，以及登录卡片底部基座版本号 / 应用版本号 / API BaseURL 展示；已通过 `pnpm exec tsc --noEmit`，待运行态验收
+  - 进展：已完成登录页 LOGO 九连击开启开发者模式、全局持久化状态、登录卡片底部基座版本号 / 应用版本号 / API BaseURL 展示，以及开发者模式退出按钮；已通过 `pnpm exec tsc --noEmit`，待运行态验收
   - 文档：`docs/03-development/features/FEAT-0032-uniapp-developer-mode/`
 - [ ] `in_progress` **FEAT-0031** App 上架准备与公共页面完善
   - owner：payhon
@@ -230,7 +260,7 @@
   - owner：payhon
   - 优先级：P1
   - 依赖：FEAT-0016
-  - 进展：已完成扫码入口按设备类型分流、设备前缀静态配置化、BMS 绑定成功直达详情页，以及仪表临时 BLE 会话详情模式；已通过静态校验，待真机联调验收
+  - 进展：已完成扫码入口按设备类型分流、设备前缀静态配置化、BMS 绑定成功直达详情页，以及仪表临时 BLE 会话详情模式；本次补齐蓝牙扫描列表点击 `AA` 前缀仪表设备时直达临时仪表详情页，并已通过 `pnpm exec tsc --noEmit`，待真机联调验收 BLE 扫描点击分流与仪表首连体验
   - 文档：`docs/03-development/features/FEAT-0019-uniapp-scan-flow-optimization/`
 - [ ] `in_progress` **FEAT-0018** UniApp 温度参数支持负数输入
   - owner：payhon

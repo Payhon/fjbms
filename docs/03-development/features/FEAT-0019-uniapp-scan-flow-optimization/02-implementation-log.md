@@ -2,7 +2,7 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-03-25
+- last_updated: 2026-04-08
 - related_feature: FEAT-0019
 - version: v0.1.0
 
@@ -83,3 +83,10 @@
   - 现场编译日志显示 `custom-tab-bar/index.js` 直接 `require()` 外部 `common/*.js` 模块存在运行时未定义风险；
   - 现改为在 `main.ts` 启动时把设备前缀配置写入 storage，并由 `bound-devices.ts` 在刷新后同步维护绑定设备快照；
   - `custom-tab-bar/index.js` 仅读取 storage 中的前缀配置和绑定设备快照做扫码跳转决策，避免跨目录 `require()` 导致的小程序运行时报错。
+
+## 2026-04-08
+- 补齐蓝牙扫描列表点击分流，与“扫码仪表”入口保持一致：
+  - `pages/device-provision/ble-scan.vue` 的 `DeviceRow` 新增 `deviceType` 字段；
+  - `upsertDevice()` 在广播 MAC 可用时基于 `resolveDeviceTypeByMac(advMac)` 持久化设备类型，并在广播字段抖动时沿用既有类型，避免仪表设备重复广播时点击行为闪断；
+  - `selectDevice()` 现已在点击 `AA` 前缀仪表设备卡片时，改为先停止扫描，再跳转 `/pages/device-battery/detail?session_mode=instrument&ble_mac=...&allow_scan_handoff=1&device_name=...`；
+  - `AC` 前缀 BMS 设备、缺少 `advMac` 的设备，以及二维码模式自动匹配逻辑保持原样，不改 `provision-wizard` 链路与 `onDeviceFound()` 自动跳转规则。

@@ -1,8 +1,8 @@
 # FEAT-0019 UniApp 扫码流程优化 - 功能规格
 
-- status: in_progress
+- status: review
 - owner: payhon
-- last_updated: 2026-03-25
+- last_updated: 2026-04-08
 - related_feature: FEAT-0019
 - version: v0.1.0
 
@@ -27,8 +27,10 @@
   - `common/device-provision/scan-code.ts`
   - `common/device-provision/scan-routing.js`
   - `store/bound-devices.ts`
+- 调整 UniApp 蓝牙扫描页设备卡片点击逻辑：
+  - `pages/device-provision/ble-scan.vue`
 - BMS 扫码流程保持现有蓝牙匹配与绑定向导，但绑定成功后直接跳转设备详情页。
-- 仪表扫码新增“本地 BLE 临时会话”详情模式，并在该模式提供“继续扫码绑定 BMS”入口。
+- 仪表扫码与蓝牙扫描命中仪表设备时，均进入“本地 BLE 临时会话”详情模式，并在该模式提供“继续扫码绑定 BMS”入口。
 - 更新功能文档、实现日志、测试报告、发布说明和项目看板。
 
 ### Out of Scope
@@ -48,6 +50,8 @@
 5. UUID 扫码兼容路径仍可正常绑定设备并进入设备详情页。
 6. 仪表扫码进入临时 BLE 会话详情页后，可继续扫码 BMS，并仅接受 `BMS` 类型 MAC 触发 `configureMeterMac`。
 7. 摄像头扫码结果若已命中“我的设备”中的 `ble_mac` 或 `item_uuid`，则直接跳转 `/pages/device-battery/detail?device_id=...`。
+8. 蓝牙扫描页点击设备卡片时，若扫描结果可通过广播 MAC 判定为仪表设备，则直接跳转 `/pages/device-battery/detail?session_mode=instrument&ble_mac=...&allow_scan_handoff=1`，不进入添加向导。
+9. 蓝牙扫描页点击设备卡片时，若当前扫描结果无法解析出广播 MAC，则维持现有添加向导行为，不误判进入仪表临时会话。
 
 ## 4. 风险与约束
 - `custom-tab-bar/index.js` 需要与 TS 页面共享同一份常量源，静态配置文件需兼容 JS `require` 与 TS `import` 使用。
