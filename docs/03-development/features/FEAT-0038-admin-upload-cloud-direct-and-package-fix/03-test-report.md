@@ -27,8 +27,11 @@
 - 已通过：新增 OTA 升级包接口兼容云存储 CDN URL，签名计算支持远程下载流，不再将 `https://...` 当成本地文件路径打开
 - 已通过：OTA 任务下发设备时，云存储升级包地址保持原始 CDN URL，不再额外拼接 `global.OtaAddress`
 - 已通过：`go test ./internal/service -run TestSignPackageSource -count=1`
+- 已通过：移动端头像上传优先使用 `/file/up` 返回的 `url`，不再将 `./files-cloud/<id>` 直接写入用户资料
+- 已通过：`/api/v1/app/auth/profile`、`/api/v1/app/auth/wxmp/profile` 与 `/api/v1/user/detail` 兼容云存储头像路径归一化
 - 待执行：云存储真实环境下浏览器直传回归，确认阿里云 / 七牛 CORS 配置完备
 - 待执行：后台页面运行态确认上传过程中进度条与错误提示展示正常
+- 待执行：移动端运行态回归头像上传后即时预览、刷新个人资料、重新登录后的头像显示
 
 ## 4. 缺陷与风险
 - 云直传在真实环境中仍依赖对象存储桶跨域配置；若预检失败，前端会直接报错且不会回退本地上传。

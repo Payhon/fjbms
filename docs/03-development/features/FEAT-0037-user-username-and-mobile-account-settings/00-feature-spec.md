@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-04-07
+- last_updated: 2026-04-11
 - related_feature: FEAT-0037
 - version: v0.1.0
 
@@ -26,11 +26,12 @@ In Scope:
 - APP / 小程序注册流程按账号类型自动补齐默认 `username`。
 - 历史用户数据通过 SQL 补丁补齐 `username`。
 - 移动端“我的 / 设置”新增账号展示、设定账号入口、手机号换绑能力，并修复手机号显示 bug。
+- APP / 小程序密码登录在输入纯数字账号时，优先按 `username` 查找用户，未命中时再按 `phone_number` 回退。
 - 后台 `bms/system/user`、`app_manage/users`、`bms/end_user` 三处用户相关表格新增“用户名”展示。
 - 文档、SQL、接口返回、Swagger 和前端类型同步更新。
 
 Out of Scope:
-- 不新增“用户名登录”能力，登录方式仍保持手机号 / 邮箱。
+- 不新增任意格式用户名登录能力；仅对“纯数字账号”补充 `username -> phone_number` 的解析顺序调整。
 - 不开放后台直接修改 `username`，后台仅只读展示。
 - 不改造 Web 后台的旧模板页 `manage/user*`。
 - 不引入账号合并、账号迁移、批量人工修正等运营工具。
@@ -48,6 +49,7 @@ Out of Scope:
 - 移动端“我的”页对已绑定手机号用户不再错误显示“未设置手机号”。
 - 移动端设置页在“修改密码”上方新增“账号”行；纯微信直注册且无账号时可进入“设定账号”页成功保存。
 - 已绑定手机号用户点击手机号后可完成换绑；若旧 `username` 等于旧手机号，则换绑成功后自动更新为新手机号。
+- 密码登录输入纯数字账号时，如存在同名 `username`，应优先命中该用户；仅在 `username` 未命中时才按手机号查询。
 - 后台 `bms/system/user`、`app_manage/users`、`bms/end_user` 三张表均显示“用户名”列。
 - 文档与 `docs/04-project-tracking/board.md` 已同步。
 

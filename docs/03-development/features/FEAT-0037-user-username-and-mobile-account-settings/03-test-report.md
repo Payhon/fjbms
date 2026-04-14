@@ -2,13 +2,14 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-04-07
+- last_updated: 2026-04-11
 - related_feature: FEAT-0037
 - version: v0.1.0
 
 ## 1. 测试范围
 - `users.username` 字段与历史补丁 SQL。
 - APP / 小程序账号注册、设定账号、手机号换绑。
+- APP / 小程序密码登录纯数字账号解析顺序。
 - UniApp “我的 / 设置”页面展示。
 - 后台三张用户表格用户名展示与查询。
 
@@ -22,12 +23,14 @@
 - [x] Frontend `pnpm typecheck` 通过，后台三张用户表格已补充“用户名”字段展示代码。
 - [x] UniApp `pnpm exec tsc --noEmit` 通过，`我的/设置` 页账号与手机号展示逻辑已完成调整。
 - [x] Backend `go test ./internal/...` 通过，用户相关服务包编译与测试通过。
+- [x] Backend `go test ./internal/api ./internal/dal ./internal/service -count=1` 通过，覆盖本次纯数字账号登录解析改动。
 - [ ] 手机号注册默认用户名为手机号
 - [ ] 邮箱注册默认用户名为邮箱
 - [ ] 微信直注册默认用户名为空
 - [ ] 设定账号仅首次成功
 - [ ] 手机号换绑后 `users.phone_number` 与 `user_identities` 同步更新
 - [ ] 旧 `username == 旧手机号` 时，换绑后自动切到新手机号
+- [ ] 纯数字密码登录优先命中 `username`，未命中时回退 `phone_number`
 - [ ] UniApp “我的”页不再错误显示“未设置手机号”
 - [ ] 后台三张表格可展示用户名并支持查询
 

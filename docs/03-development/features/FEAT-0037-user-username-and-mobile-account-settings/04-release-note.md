@@ -2,13 +2,14 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-04-07
+- last_updated: 2026-04-11
 - related_feature: FEAT-0037
 - version: v0.1.0
 
 ## 1. 发布内容
 - `users` 新增独立 `username` 字段，并补充历史账号名回填脚本。
 - APP / 小程序设置页新增账号展示与设定账号能力，支持手机号换绑。
+- APP / 小程序密码登录补充纯数字账号兼容：先按 `username` 命中，再回退手机号。
 - 后台用户相关表格新增用户名展示。
 
 ## 2. 影响范围

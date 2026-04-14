@@ -2,7 +2,7 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-04-10 10:42
+- last_updated: 2026-04-11 10:20
 - related_feature: FEAT-0038
 - version: v0.1.0
 
@@ -22,7 +22,12 @@
 13. 在 `backend/internal/service/ota.go` 中新增“本地路径 / HTTP(S) URL 双模式签名”能力，云存储场景改为下载文件流后计算 MD5 / SHA256。
 14. 同步修正 OTA 任务下发给设备时的升级包地址生成逻辑，云存储 URL 不再错误拼接 `global.OtaAddress`。
 15. 新增 `backend/internal/service/ota_sign_test.go`，覆盖本地文件与远程 URL 两种签名计算场景。
-16. 执行 `gofmt`、`pnpm --dir frontend typecheck` 与定向 `go test` 验证通过。
+16. 根据移动端反馈继续排查头像更新链路，确认 UniApp 设置页上传头像时仍只消费 `/file/up` 返回的 `path`，而 `AppAuth.UpdateProfile` 与 `/user/detail` 也未对 `./files-cloud/<id>` 做云存储 URL 归一化。
+17. 在 `backend/internal/service/file.go` 新增 `resolveStoredFileURL`，可将 `./files-cloud/<id>` 解析为 `files.full_url`。
+18. 在 `backend/internal/service/app_auth.go` 中将 `UpdateProfile`、`WxmpUpdateProfile` 接收到的 `avatar_url` 统一归一化后再落库，兼容旧客户端仍提交内部路径的情况。
+19. 在 `backend/internal/service/sys_user.go` 的 `GetUserDetail` 中对 `avatar_url` 做返回前归一化，兼容历史已存储为 `./files-cloud/...` 的头像数据。
+20. 在 `fjbms-uniapp/pages/my/setting/index.vue` 中将头像上传结果改为优先取后端返回的 `url`，仅在缺失时回退 `path`。
+21. 执行 `gofmt`、后端定向 `go test` 与 UniApp TypeScript 校验验证通过。
 
 ## 2. 待执行项
 - 在运行环境验证 OSS / 七牛跨域配置是否允许浏览器直传。

@@ -18,7 +18,7 @@
   - owner：payhon
   - 优先级：P1
   - 依赖：无
-  - 进展：已完成方案梳理，正在同步 `users.username` 数据库迁移、APP 账号默认值/换绑联动、终端用户接口返回与后台表格展示
+  - 进展：已完成 `users.username` 数据库迁移、APP 账号默认值/换绑联动、终端用户接口返回与后台表格展示；本次继续修复 `/api/v1/login` 纯数字账号解析，改为先按 `username` 命中、未命中再回退手机号，并补充定向单测
   - 文档：`docs/03-development/features/FEAT-0037-user-username-and-mobile-account-settings/`
 - [ ] `in_progress` **FEAT-0031** App 上架准备与公共页面完善
   - owner：payhon
@@ -121,7 +121,7 @@
   - owner：payhon
   - 优先级：P1
   - 依赖：无
-  - 进展：已完成后端上传类型白名单补齐、共用上传器云直传接入、组件内上传进度与状态提示，以及安装包字段 `value-mode="url"` 调整；本次继续补齐 BMS OTA 升级包新增接口对云存储 CDN URL 的兼容，签名计算支持远程 URL，设备下发地址也兼容绝对 URL；已通过 `pnpm --dir frontend typecheck`、`go test ./pkg/utils ./internal/service -run TestValidateUploadBizType` 与 `go test ./internal/service -run TestSignPackageSource -count=1`，待运行态回归云存储直传与 OTA 包创建/下发链路
+  - 进展：已完成后端上传类型白名单补齐、共用上传器云直传接入、组件内上传进度与状态提示，以及安装包字段 `value-mode="url"` 调整；本次继续补齐 BMS OTA 升级包新增接口对云存储 CDN URL 的兼容，并修复移动端头像上传与用户资料接口的云存储 URL 归一化；已通过 `pnpm --dir frontend typecheck`、`go test ./pkg/utils ./internal/service -run TestValidateUploadBizType`、`go test ./internal/service -run TestSignPackageSource -count=1` 与 UniApp TypeScript 校验，待运行态回归云存储直传、OTA 包创建/下发与移动端头像显示链路
   - 文档：`docs/03-development/features/FEAT-0038-admin-upload-cloud-direct-and-package-fix/`
 - [ ] `in_progress` **FEAT-0037** 用户名字段、账号设置增强与后台用户表格展示
   - owner：payhon
@@ -188,7 +188,7 @@
   - owner：payhon
   - 优先级：P1
   - 依赖：无
-  - 进展：正在补充“我的 / 设置”账号展示、设定账号、手机号换绑，并修复顶部手机号显示异常
+  - 进展：已补充“我的 / 设置”账号展示、设定账号、手机号换绑与顶部手机号显示修复；本次配套后端密码登录纯数字账号解析兼容，等待运行态回归
   - 文档：`docs/03-development/features/FEAT-0037-user-username-and-mobile-account-settings/`
 - [ ] `in_progress` **FEAT-0033** UniApp 扫描/扫码登录前置校验
   - owner：payhon
@@ -260,7 +260,7 @@
   - owner：payhon
   - 优先级：P1
   - 依赖：FEAT-0016
-  - 进展：已完成扫码入口按设备类型分流、设备前缀静态配置化、BMS 绑定成功直达详情页，以及仪表临时 BLE 会话详情模式；本次补齐蓝牙扫描列表点击 `AA` 前缀仪表设备时直达临时仪表详情页，并已通过 `pnpm exec tsc --noEmit`，待真机联调验收 BLE 扫描点击分流与仪表首连体验
+  - 进展：已完成扫码入口按设备类型分流、设备前缀静态配置化、BMS 绑定成功直达详情页，以及仪表临时 BLE 会话详情模式；本次补齐蓝牙扫描列表点击 `AA` 前缀仪表设备时直达临时仪表详情页，并连续修复 iOS App 端蓝牙扫描页/添加向导中的 BLE stop 回调挂起、服务树发现时序，以及 `readUuid()` 首包在 App iOS 端长时间无响应的问题；根据最新真机反馈，继续在 BLE transport 中加入 iOS 连接成功后的约 `820ms` 首包 warm-up、请求期内 BLE 写入/探测 API 的 soft-timeout 防卡死，以及 iOS 写入回调的自适应快速放行与日志节流；已通过 `pnpm exec tsc --noEmit`，待真机联调验收 BLE 扫描点击分流、iOS 扫描启动稳定性、向导页连接启动/服务树发现/首包读取与仪表首连体验
   - 文档：`docs/03-development/features/FEAT-0019-uniapp-scan-flow-optimization/`
 - [ ] `in_progress` **FEAT-0018** UniApp 温度参数支持负数输入
   - owner：payhon

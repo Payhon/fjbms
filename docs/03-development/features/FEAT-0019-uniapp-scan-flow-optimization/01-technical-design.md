@@ -70,6 +70,9 @@
   - `deviceType === 'meter'` 且 `advMac` 可用 -> 跳转 `/pages/device-battery/detail?session_mode=instrument&ble_mac=...&allow_scan_handoff=1&device_name=...`
   - 其它情况 -> 继续跳转 `/pages/device-provision/provision-wizard?deviceId=...`
 - 不调整 `onDeviceFound()` 的自动匹配逻辑；`mode=qr` 仍只服务 BMS 添加链路，仪表仅在用户点击扫描卡片时进入临时会话。
+- BLE 扫描页的蓝牙 API 调用需要增加超时保护：
+  - `openBluetoothAdapter` / `startBluetoothDevicesDiscovery` 超时后直接抛错，结束按钮 loading 并展示初始化失败；
+  - `stopBluetoothDevicesDiscovery` 在 iOS App 端若未处于 `discovering` 状态则不调用，若回调长时间不返回则超时放行，避免阻塞后续启动扫描。
 
 ## 4. 仪表临时会话模式
 ### 4.1 路由参数

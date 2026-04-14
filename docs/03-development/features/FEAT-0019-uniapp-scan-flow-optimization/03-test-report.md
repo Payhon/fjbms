@@ -2,7 +2,7 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-04-08
+- last_updated: 2026-04-11
 - related_feature: FEAT-0019
 - version: v0.1.0
 
@@ -28,6 +28,14 @@
 - 通过：仪表扫码已改为直接进入临时 BLE 会话详情模式，详情页支持继续扫码并写入新的 BMS 目标。
 - 通过：蓝牙扫描页已在设备行中持久化 `deviceType`，点击 `AA` 前缀且广播 MAC 可用的仪表卡片时将直接进入 `/pages/device-battery/detail?session_mode=instrument&ble_mac=...&allow_scan_handoff=1&device_name=...`。
 - 通过：蓝牙扫描页点击 `AC` 前缀 BMS 设备或广播缺少 `advMac` 的设备时，仍按原逻辑进入 `provision-wizard`，未把不确定设备误导向仪表临时会话。
+- 通过：蓝牙扫描页现已为 `openBluetoothAdapter` / `startBluetoothDevicesDiscovery` / `stopBluetoothDevicesDiscovery` 增加超时保护，避免 iOS App 端蓝牙 API 回调不返回时按钮持续 loading、扫描不启动。
+- 通过：`provision-wizard.vue` 在开始连接前改为使用带超时的 best-effort 扫描停止逻辑，避免 iOS App 端 `stopBluetoothDevicesDiscovery` 不返回时，步骤一长期停留在“待执行”。
+- 通过：`uni-ble-transport.ts` 已将连接前 / discover 结束后的 `stopBluetoothDevicesDiscovery` 与 `closeBluetoothAdapter` 改为 best-effort，降低 iOS App 端 BLE stop/close 回调挂起对连接链路的影响。
+- 通过：`uni-ble-transport.ts` 现已将 `getBLEDeviceServices / getBLEDeviceCharacteristics` 改为“空结果或 fail 都重试”，并对 iOS 提高重试窗口，避免 `getBLEDeviceCharacteristics:fail no characteristic` 在服务树尚未就绪时直接中断连接流程。
+- 通过：`uni-ble-transport.ts` 已在 iOS 端根据写特征真实 `properties` 优先选择 `write with response`，降低 `readUuid()` 首包在 App iOS 端表面写入成功但设备未响应的风险。
+- 通过：`uni-ble-transport.ts` 已在 iOS App 端连接完成后增加约 `820ms` 的 `post-connect warmup`，避免设备尚未准备好时立即发送 `readUuid()` 首包导致第二步长期执行中。
+- 通过：`uni-ble-transport.ts` 已为请求期内的 `writeBLECharacteristicValue` / `readBLECharacteristicValue` 增加 soft-timeout 保护，避免 App iOS 原生桥接层无回调时第二步无声卡死。
+- 通过：`uni-ble-transport.ts` 已将 iOS 写入 soft-timeout 改为自适应快速放行，并对重复 timeout 告警节流，降低首页进详情首连与后续轮询的额外等待时间。
 - 通过：`params-tab.vue` 已在仪表临时会话下隐藏 OTA 入口，且 OTA 设备类型判定改为统一 helper。
 - 通过：仓库搜索确认 `fjbms-uniapp/` 内不存在散落在业务逻辑里的 `AA/AC` 设备类型硬编码，检索结果仅剩 `device-prefix.js` 配置源文件本身。
 - 通过：删除 `device-prefix.ts` 后，TS 页面仍可通过 `device-prefix.js` 的 JSDoc 标注完成类型检查，未出现导入或类型退化问题。
@@ -37,6 +45,12 @@
 - 尚未完成真机蓝牙联调，以下场景仍需设备侧验证：
   - 已添加设备通过扫码直达详情页后的首连时延与页面体验；
   - BLE 扫描列表点击 `AA` 前缀仪表卡片后的路由分流与首连体验；
+  - iOS App 端首次进入蓝牙扫描页时，`stopBluetoothDevicesDiscovery` 超时放行后是否可稳定收到 `discovery started` 与设备发现回调；
+  - iOS App 端从蓝牙扫描页进入 `provision-wizard` 后，步骤一是否稳定进入 `doing` 并打印 `connect start`；
+  - iOS App 端从蓝牙扫描页进入 `provision-wizard` 后，`createBLEConnection` 成功时是否还能稳定拿到 `ffc0 / ff03 / ffc1` 服务与特征，不再报 `getBLEDeviceCharacteristics:fail no characteristic`；
+  - iOS App 端在打印 `[ble] post-connect warmup` 后执行 `readUuid()` 时，是否可稳定收到首个回复帧并进入第三步，不再长期停留在“读取设备唯一编号（执行中）”；
+  - iOS App 端若首包仍失败，是否能够继续看到 `[ble] writeBLECharacteristicValue timeout, continue waiting for notify` 或标准 `BLE request timeout` 告警，而不是完全无日志卡死；
+  - iOS App 端首页进入设备详情页时，首个 `status obj` 打印耗时是否明显收敛，且重复 timeout 日志数量是否下降；
   - 仪表临时 BLE 会话下的自动连接成功率；
   - 仪表详情页二次扫码后 `configureMeterMac` 的协议写入和设备刷新时序；
   - APP 与微信小程序扫码 API 在不同机型上的体验一致性。

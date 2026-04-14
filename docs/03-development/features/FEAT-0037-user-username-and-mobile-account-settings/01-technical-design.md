@@ -2,12 +2,12 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-04-07
+- last_updated: 2026-04-11
 - related_feature: FEAT-0037
 - version: v0.1.0
 
 ## 1. 方案概览
-本次拆分 `users.name` 与新增 `users.username` 的职责：
+本次拆分 `users.name` 与新增 `users.username` 的职责，并补充纯数字账号登录的兼容解析：
 - `name`：昵称 / 姓名，继续用于资料展示和后台人员姓名。
 - `username`：账号名，作为稳定的账号展示字段，不参与登录鉴权。
 
@@ -15,6 +15,7 @@
 1. 数据层新增 `users.username` 和唯一索引，并补充历史回填 SQL。
 2. 后端 APP 账号体系、后台用户返回结构、终端用户聚合接口统一返回 `username`。
 3. UniApp 设置页与后台用户表格新增 `username` 展示和查询能力。
+4. `/api/v1/login` 在密码登录输入纯数字时，优先按 `users.username` 命中用户，再回退 `users.phone_number`。
 
 ## 2. 接口与数据结构
 ### 2.1 数据库
@@ -35,7 +36,15 @@
 
 以上接口都补充 `username` 字段；`/api/v1/end_user` 保留 `user_name` 作为姓名/昵称，并新增独立 `username`。
 
-### 2.4 移动端设置相关接口
+### 2.4 密码登录解析
+- 输入邮箱：保持原逻辑，直接按 `users.email` 登录。
+- 输入纯数字且满足手机号格式：
+  1. 先按 `users.username = input` 精确查询；
+  2. 若命中，使用该用户 `email` 进入既有密码校验；
+  3. 若未命中，再沿用旧逻辑按 `users.phone_number` 查询。
+- 输入格式非法：继续返回现有“手机号/邮箱格式不正确”错误。
+
+### 2.5 移动端设置相关接口
 - `POST /api/v1/app/auth/username`
   - 请求体改为 `{"username": "..."}`，仅允许 `END_USER` 首次设置。
 - `POST /api/v1/app/auth/bind/phone`
@@ -66,14 +75,23 @@
 3. 同一事务内更新 `user_identities` 和 `users.phone_number`。
 4. 如果旧 `username` 与旧手机号相同，且新手机号未占用用户名，则同步改为新手机号。
 
+### 3.5 纯数字账号密码登录
+1. APP 提交 `/api/v1/login`，字段仍为 `email`，但值可能是纯数字账号。
+2. 后端先用 `ValidateInput` 判定输入类型。
+3. 若为纯数字手机号格式，则先查 `users.username`。
+4. `username` 未命中时，再执行原有手机号转邮箱逻辑。
+5. 最终仍复用 `GetUsersByEmail + bcrypt` 的既有密码校验和 token 发放流程。
+
 ## 4. 安全与权限
 - `username` 不参与登录，不影响现有密码、验证码和 JWT 逻辑。
+- 纯数字 `username` 只影响 `/api/v1/login` 的账号解析顺序，不改变 JWT、验证码或邮箱登录实现。
 - `SetUsername`、绑定 / 换绑手机号接口仅允许已登录且租户匹配的终端用户调用。
 - 后台用户表格仅展示 `username`，不开放后台编辑，避免绕过“仅首次设置”规则。
 
 ## 5. 测试策略
 - 后端定向测试 / 编译：
   - `internal/service/app_auth.go`
+  - `internal/service/sys_user.go`
   - `internal/service/end_user.go`
   - `internal/dal/users.go`
 - UniApp 运行态验证：

@@ -2,7 +2,7 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-04-08
+- last_updated: 2026-04-11
 - related_feature: FEAT-0019
 - version: v0.1.0
 
@@ -90,3 +90,40 @@
   - `upsertDevice()` 在广播 MAC 可用时基于 `resolveDeviceTypeByMac(advMac)` 持久化设备类型，并在广播字段抖动时沿用既有类型，避免仪表设备重复广播时点击行为闪断；
   - `selectDevice()` 现已在点击 `AA` 前缀仪表设备卡片时，改为先停止扫描，再跳转 `/pages/device-battery/detail?session_mode=instrument&ble_mac=...&allow_scan_handoff=1&device_name=...`；
   - `AC` 前缀 BMS 设备、缺少 `advMac` 的设备，以及二维码模式自动匹配逻辑保持原样，不改 `provision-wizard` 链路与 `onDeviceFound()` 自动跳转规则。
+
+## 2026-04-11
+- 修复 iOS App 端蓝牙扫描页偶发卡死：
+  - 现场日志显示页面反复打印 `[ble-scan] startScan`，但没有 `discovery started` 和 `onDeviceFound`，同时 UI 表现为顶部“已停止扫描”、按钮持续 loading；
+  - 根因定位为 `pages/device-provision/ble-scan.vue` 中启动扫描前的 `stopBluetoothDevicesDiscovery` 兜底调用在 iOS App 端偶发不返回，导致 `startScan()` 卡在扫描真正启动之前，`starting` 无法复位；
+  - 现已为 `openBluetoothAdapter` / `startBluetoothDevicesDiscovery` / `stopBluetoothDevicesDiscovery` 增加超时保护；
+  - `stopDiscovery()` 改为先检查 adapter `discovering` 状态，只有确实在扫描时才执行 stop；若 iOS 回调超时，则打印警告并放行后续扫描流程，避免页面假死。
+- 修复 iOS App 端进入添加向导后第一步长期停留在“待执行”：
+  - 现场复现表现为：从蓝牙扫描页点击设备进入 `provision-wizard` 后，步骤一“连接蓝牙设备”不进入 `doing`，页面无后续连接日志；
+  - 根因定位为 `pages/device-provision/provision-wizard.vue` 在 `setStep('connect', 'doing')` 之前也执行了一次 `stopBluetoothDevicesDiscovery({ complete })`，iOS App 端同样可能回调不返回，导致步骤状态一直停在 `pending`；
+  - 现已将向导页该 stop 调用改为带超时的 best-effort 停止逻辑；
+  - 同时在 `common/lib/bms-protocol/uni-ble-transport.ts` 中把连接前 / discover 结束后的 `stopBluetoothDevicesDiscovery` 与 `closeBluetoothAdapter` 改为 best-effort，避免连接链路被 BLE stop/close 回调挂死。
+- 修复 iOS App 端连接后立即发现 characteristic 失败：
+  - 现场日志显示 `createBLEConnection` 已成功，但随后报错 `getBLEDeviceCharacteristics:fail no characteristic`；
+  - 根因定位为 `uni-ble-transport.ts` 之前只对“空 characteristics 数组”做重试，而 `getBLEDeviceCharacteristics` 在 iOS 上更常直接以 fail 形式返回“no characteristic”，导致第一次失败就中断整个连接流程；
+  - 现已将服务与特征发现统一改为容错重试：无论返回空数组还是直接 fail，都会继续重试；
+  - iOS 端额外增加连接后的初始缓冲时间，并提高 `getBLEDeviceServices / getBLEDeviceCharacteristics` 的重试次数和间隔，等待服务树稳定后再继续绑定 notify。
+- 修复 iOS App 端首个 `readUuid()` 请求长期无响应：
+  - 现场日志显示连接已完成并成功进入 `readUuid start`，但第二步一直停留在“执行中”，未进入 `readIdentity`；
+  - 分析发现微信小程序环境可正常添加，而 App iOS 端更可能出现 `writeBLECharacteristicValue` 在携带 `writeType: 'writeNoResponse'` 时表面成功、实际首包未稳定送达设备的情况；
+  - 现已在 `uni-ble-transport.ts` 中记录写特征真实 `properties`，并在 iOS 端优先使用 `write with response` 模式发送请求帧；
+  - 同时增加写特征属性日志，便于继续确认目标设备在 App iOS 端暴露的是 `write`、`writeNoResponse` 还是两者都支持。
+- 进一步修复 iOS App 端连接成功后首包发送时序过早：
+  - 最新真机日志显示连接、服务发现、特征发现均已完成，并稳定进入 `readUuid start`，但第二步仍可能长期停留在“执行中”；
+  - 结合设备侧时序经验，确认该设备在连接成功后需要约 `800ms` 的稳定窗口，再发送第一帧协议请求；
+  - 现已在 `uni-ble-transport.ts` 的 `connect()` 成功路径上增加 iOS 专用 `post-connect warmup`，在 notify 打开和回调注册完成后额外等待约 `820ms`，再开始首包读取；
+  - 同时输出 `[ble] post-connect warmup` 调试日志，用于继续核对连接成功到首包发送之间的缓冲时间是否生效。
+- 继续修复 iOS App 端首包发送阶段 API 无回调导致的无声卡死：
+  - 最新日志显示 `post-connect warmup` 已执行完毕，页面进入 `readUuid start` 后仍无任何超时或失败日志，说明问题不再是设备回包缺失，而是请求链路内部 BLE API 自身未回调；
+  - 根因进一步收敛为 App iOS 原生桥接层上的 `writeBLECharacteristicValue` / `readBLECharacteristicValue` 偶发既不 success 也不 fail，导致 transport 一直卡在发送阶段，连标准的 `BLE request timeout` 都无法触发；
+  - 现已为请求期内的 `writeBLECharacteristicValue` 与探测 notify 的 `readBLECharacteristicValue` 增加 soft-timeout 保护；
+  - 若写入或探测读取在设定时间内无回调，transport 会打印告警并继续等待 notify 或标准请求超时，从“无声卡死”降级为可观察的超时/重试路径。
+- 优化 iOS App 端首页进详情首连与后续轮询时延：
+  - 最新联调结果显示设备已经可以稳定返回数据，但 iOS App 端 `writeBLECharacteristicValue` 经常要等到 soft-timeout 才放行，导致首连进入详情后的首包与后续轮询都比 Android 明显更慢；
+  - 根因是当前 iOS 写入 soft-timeout 统一使用 `1200ms`，在该机型上会把每一帧请求都额外拖慢约 1 秒；
+  - 现已将 iOS 写入软超时改为自适应快速放行：首次观察窗口收敛到约 `320ms`，一旦确认当前连接上的 write callback 不可靠，就切换到约 `180ms` 的快速 soft-timeout；
+  - 同时增加一次性状态日志 `[ble] ios write callback unreliable, switch to fast soft-timeout`，并节流重复 timeout 告警，减少控制台刷屏。
