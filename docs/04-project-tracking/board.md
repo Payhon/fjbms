@@ -14,6 +14,12 @@
 ## 模块泳道看板
 
 ### Backend（`backend/`）
+- [ ] `in_progress` **FEAT-0040** 设备参数权限 Key 归一化与移动端参数显隐修复
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：已排查出设备参数权限树存在一批历史遗留的非标准 key（如 `403:feedback_delay`、`410:alarm_release`），与移动端按纯寄存器地址判断权限的逻辑不一致，导致部分参数在后台取消勾选后仍可见；当前已统一权限树 key、补充旧 key 兼容归一化，并补单测验证
+  - 文档：`docs/03-development/features/FEAT-0040-device-param-permission-key-normalization/`
 - [ ] `in_progress` **FEAT-0037** 用户名字段、账号设置增强与后台用户表格展示
   - owner：payhon
   - 优先级：P1
@@ -24,7 +30,7 @@
   - owner：payhon
   - 优先级：P1
   - 依赖：无
-  - 进展：已补公开 App 信息接口、公开内容页 `appid` 缺省回退逻辑与公开路由挂载，正在联调公开下载页与生产内容数据
+  - 进展：已补公开 App 信息接口、公开内容页 `appid` 缺省回退逻辑与公开路由挂载；根据最新 App Store 审核反馈，已在 UniApp 侧补 iOS 相机/蓝牙权限文案、统一扫码入口为仅摄像头、新增 `ipa` 送审前自检脚本，并补上 App 名称国际化配置，待重新打包验证权限文案、图标资源与 App 名称
   - 文档：`docs/03-development/features/FEAT-0031-app-store-public-pages-and-upgrade-readiness/`
 - [ ] `review` **FEAT-0029** UniApp 首页设备标识展示切换
   - owner：payhon
@@ -151,7 +157,7 @@
   - owner：payhon
   - 优先级：P1
   - 依赖：无
-  - 进展：已新增 `public/app/*` 公共页、免登录常量路由、下载页数据读取和后台 App/升级表单分流，正在做构建验证与样式回归
+  - 进展：已新增 `public/app/*` 公共页、免登录常量路由、下载页数据读取和后台 App/升级表单分流；当前配合 App Store 驳回整改，继续跟进送审包权限文案、图标资源、App 名称国际化与下载地址回归
   - 文档：`docs/03-development/features/FEAT-0031-app-store-public-pages-and-upgrade-readiness/`
 - [ ] `review` **FEAT-0025** APP 联系客服单页内容接入
   - owner：payhon
@@ -178,6 +184,12 @@
   - 文档：`docs/03-development/features/FEAT-0009-admin-login-captcha-qrcode/`
 
 ### UniApp（`fjbms-uniapp/`）
+- [ ] `in_progress` **FEAT-0039** UniApp 设备详情高级参数出厂命令补齐与底部遮挡修复
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：已按 `doc/oriigin/device_comm_protocol_write_v2.md` 补齐“擦除当前参数 / 擦除历史记录 / 擦除循环次数 / 清除保护状态 / 复位保护板”工厂命令，并同步补上高级参数弹层底部滚动留白，避免末尾菜单被设备详情底部 Tab 挡住；同时补齐后台设备参数权限树中的新增工厂命令节点
+  - 文档：`docs/03-development/features/FEAT-0039-uniapp-advanced-factory-actions-and-scroll-spacing/`
 - [ ] `in_progress` **FEAT-0006** UniApp 升级检测与提示体验优化
   - owner：payhon
   - 优先级：P1
@@ -206,7 +218,7 @@
   - owner：payhon
   - 优先级：P1
   - 依赖：无
-  - 进展：已将登录/注册协议入口改为公网 H5，关于页保持原生内容页，并统一运行时 `tenant_id` 与 `serverAddress` 优先级；已补登录页“其他登录方式”按运行环境显隐，并为升级检测接口补定向控制台日志，待真机联调升级检测、H5 跳转与日志输出
+  - 进展：已将登录/注册协议入口改为公网 H5，关于页保持原生内容页，并统一运行时 `tenant_id` 与 `serverAddress` 优先级；本次按 App Store 审核要求补齐 iOS 相机/蓝牙权限文案、收敛主扫码入口为仅摄像头、新增 `ipa` 自检脚本，并将 App 名称改为国际化配置，待重新打包验证权限文案、图标资源、App 名称与 iPad 扫码链路
   - 文档：`docs/03-development/features/FEAT-0031-app-store-public-pages-and-upgrade-readiness/`
 - [ ] `in_progress` **FEAT-0030** UniApp 页面多语言文案补全
   - owner：payhon
@@ -302,7 +314,7 @@
   - owner：payhon
   - 优先级：P1
   - 依赖：无
-  - 进展：已新增 FEAT-0031 五件套文档并同步看板，下一步补生产部署路径与上线验收记录
+  - 进展：已新增 FEAT-0031 五件套文档并同步看板，并持续回写 App Store 审核整改记录；当前已补上 App 名称国际化配置，下一步补重新打包验证结果与上线验收记录
   - 文档：`docs/03-development/features/FEAT-0031-app-store-public-pages-and-upgrade-readiness/`
 - [ ] `in_progress` **FEAT-0023** bms-bridge 测试/生产部署脚本补充
   - owner：payhon
