@@ -184,6 +184,12 @@
   - 文档：`docs/03-development/features/FEAT-0009-admin-login-captcha-qrcode/`
 
 ### UniApp（`fjbms-uniapp/`）
+- [ ] `in_progress` **FEAT-0041** UniApp OTA 地址口径统一与仪表会话升级支持
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：已确认当前 OTA 主升级流程已区分仪表/ BMS，但 Boot 查询地址未严格统一，且仪表临时会话 OTA 入口被禁用；当前正在统一 Boot 地址口径并补齐仪表会话 OTA 检查/升级链路
+  - 文档：`docs/03-development/features/FEAT-0041-uniapp-ota-addressing-and-instrument-session/`
 - [ ] `in_progress` **FEAT-0039** UniApp 设备详情高级参数出厂命令补齐与底部遮挡修复
   - owner：payhon
   - 优先级：P1
