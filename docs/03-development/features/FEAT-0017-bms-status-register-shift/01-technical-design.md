@@ -1,8 +1,8 @@
-# FEAT-0017 BMS 状态寄存器地址调整与移动端保护状态卡片 - 技术设计
+# FEAT-0017 BMS 状态寄存器地址调整、移动端保护状态卡片与旧板兼容读取 - 技术设计
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-03-25
+- last_updated: 2026-04-15
 - related_feature: FEAT-0017
 - version: v0.1.0
 
@@ -13,6 +13,10 @@
 - UniApp `status-parser.ts` 与 `types.ts`、`param-registry.ts` 同步新增总放容量字段，并将保护状态读取地址后移。
 - 仪表盘页面将保护状态从“激活标签集合”重构为“可折叠卡片 + 全量状态列表”，列表状态由布尔值映射为文本。
 - 仪表盘温度区复用 `status.temperature.cellTempsC`，按 `meta.cellTempCount` 对应的数组长度动态渲染 `T1...Tn` 电芯温度行。
+- UniApp `BmsClient.readAllStatus()` 不再依赖一次性连续读取整个状态区，而是按协议感知拆成两段：
+  - 第一段固定读取 `0x100~0x135`；
+  - 第二段固定从 `0x141` 读取到动态状态区末尾；
+  - 中间 `0x136~0x140` 缺口以零值回填，供 `parseStatusRegisters()` 继续按连续地址视图解析。
 
 ## 2. 数据结构调整
 - 后端：
@@ -21,12 +25,25 @@
 - UniApp：
   - `fjbms-uniapp/common/lib/bms-protocol/types.ts`
   - `fjbms-uniapp/common/lib/bms-protocol/param-registry.ts`
+  - `fjbms-uniapp/common/lib/bms-protocol/client.ts`
 - Frontend：
   - `frontend/src/common/lib/bms-protocol/types.ts`
   - `frontend/src/common/lib/bms-protocol/param-registry.ts`
   - `frontend/src/views/device/details/modules/bms-panel/index.vue`
 
-## 3. UI 方案
+## 3. 读取链路方案
+- `readAllStatus()` 先读取 `0x100` 获取 `S/N`，用于计算动态区末尾地址。
+- 状态区动态末尾地址仍按现有协议推导：
+  - `0x141` 起为电芯电压区；
+  - 后续依次为电芯温度、硬件型号、电池组编号、板码、蓝牙 MAC。
+- 组包方式：
+  - 第一次读取 `0x100~0x135` 共 `54` 个寄存器；
+  - 第二次读取 `0x141~lastAddr`；
+  - 在内存中构造从 `0x100` 开始的连续 `Uint16Array`；
+  - `0x136~0x140` 使用默认 `0x0000` 占位，不对外暴露新的兼容类型。
+- 这样可以保留 `0x134~0x135` 告警状态完整性，同时绕过旧板未实现的中间寄存器。
+
+## 4. UI 方案
 - 保留仪表盘顶部故障/告警/保护提示入口，用于快速查看当前激活项。
 - 移除开关网格中的“保护状态”开关，避免与独立保护卡片重复。
 - 新增保护状态卡片：
@@ -39,12 +56,17 @@
   - 从 `cellTempsC[0]` 开始依次渲染为 `T1：电芯温度`、`T2：电芯温度` 等。
   - 不再回退为单一电芯温度文案，避免与实际电芯温度数量不一致。
 
-## 4. 验证策略
+## 5. 验证策略
 - 后端执行定向 `go test`，确保本次修改未破坏编译。
 - UniApp 执行 `tsc --noEmit` 进行类型验证。
+- UniApp 协议层重点验证：
+  - `0x134~0x135` 告警位在两段读取后仍可正常解析；
+  - `0x136~0x140` 回填后 `parseStatusRegisters()` 不抛地址越界异常；
+  - `0x141` 之后的动态区身份信息、电芯电压与温度解析保持不变。
 - Frontend 执行 `pnpm typecheck`，确保 Web 端面板和协议类型改动可编译。
 - 手工验收关注：
   - 有保护项激活时的摘要数量和列表状态；
   - 无保护项激活时卡片仍显示且列表状态为关闭；
   - 顶部保护提示入口与卡片展示口径一致。
   - 电芯温度数量为 `0/1/多路` 时温度区行数和标题序号正确。
+  - 旧款 BMS 板蓝牙设备详情不会因跨过 `0x136~0x139` 而出现轮询失败或整屏空状态。

@@ -1,8 +1,8 @@
-# FEAT-0017 BMS 状态寄存器地址调整与移动端保护状态卡片 - 实施日志
+# FEAT-0017 BMS 状态寄存器地址调整、移动端保护状态卡片与旧板兼容读取 - 实施日志
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-03-25
+- last_updated: 2026-04-15
 - related_feature: FEAT-0017
 - version: v0.1.0
 
@@ -40,3 +40,10 @@
 9. 2026-03-25 UniApp 仪表盘温度项文案与对齐调整
    - 温度网格项的标题和值已改为水平居中展示。
    - 电芯温度标题由 `T{n}：电芯温度` 简化为仅显示 `T{n}`，例如 `T1`、`T2`。
+10. 2026-04-15 UniApp 蓝牙状态读取兼容旧款 BMS
+   - 已确认设备详情轮询当前通过 `useBatteryDetail.ts -> BmsClient.readAllStatus()` 读取全量状态，并依赖 `maxReadRegisters=60` 自动连续切片。
+   - 已将 `fjbms-uniapp/common/lib/bms-protocol/client.ts` 中的 `readAllStatus()` 改为两段读取：
+     - 第一段固定读取 `0x100~0x135` 共 `54` 个寄存器；
+     - 第二段从 `0x141` 读取到动态状态区末尾。
+   - 两段结果会在内存中重新拼装为从 `0x100` 开始的连续寄存器视图，`0x136~0x140` 保持零值占位，以便继续复用现有 `parseStatusRegisters()`。
+   - 该实现用于兼容旧款 BMS 板未实现 `0x136~0x139` 的情况，同时保留 `0x134~0x135` 的完整告警状态解析，不修改 `BLE_MAX_READ_REGS = 60`。
