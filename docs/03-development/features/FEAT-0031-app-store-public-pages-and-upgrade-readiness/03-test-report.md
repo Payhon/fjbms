@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-04-15 09:40
+- last_updated: 2026-04-18 16:20
 - related_feature: FEAT-0031
 - version: v0.1.0
 
@@ -48,6 +48,10 @@
   - 升级检测日志校验：
     - `call-check-version.ts` 已在请求前打印 payload，请求后打印 response，异常时打印 error。
     - 结果：静态代码检查通过，待 APP 运行态查看控制台输出。
+  - 自动升级弹窗路由注册校验：
+    - `fjbms-uniapp/pages.json` 已注册 `uni_modules/fjbms-upgrade/pages/upgrade-popup`。
+    - 既有编译产物 `unpackage/dist/dev/app-plus/app-config-service.js` 可复现旧问题：页面清单缺少 `uni_modules/fjbms-upgrade/pages/upgrade-popup`，与运行态报错一致。
+    - 结果：已修正源码层的静态根因，待重新打包 / 运行后验证弹窗实际展示。
   - `cd frontend && pnpm build`
     - 结果：通过；生产构建产物已用于后续发布。
   - `make update-frontend-prod`
@@ -84,6 +88,7 @@
   - 升级中心下载地址输入与文件选择器联动的后台人工验收。
   - UniApp 协议 H5 跳转参数透传真机检查。
   - UniApp 真机升级检测与 iOS / Android 下载跳转。
+  - 升级检测命中可升级版本时的弹窗展示、关闭、下载 / 跳商店路径真机验证。
   - UniApp 登录页“其他登录方式”区域在微信小程序与非微信环境下的运行态显示确认。
   - UniApp 升级检测接口控制台日志在 APP 运行态的实际输出确认。
 
@@ -101,6 +106,7 @@
   - 源码已按官方 `%app.name%` 方案配置，但仍需通过新 `ipa` 在不同系统语言下安装验证。
 - 生产环境当前未发布 `stable_publish=true` 的真实升级记录。
   - 自动升级接口已联通，但在后台升级中心发布真实版本前，APP 侧只会得到 `no update`。
+- 若后续升级弹窗页面路径再次调整而未同步 `pages.json`，APP 仍会在运行态出现 `navigateTo:fail page ... is not found` 一类错误。
 - 若 UniApp 运行时租户头未正确回退，公共内容页可能读取到错误租户的数据。
 
 ## 5. 结论

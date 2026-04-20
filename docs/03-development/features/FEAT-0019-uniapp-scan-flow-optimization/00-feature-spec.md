@@ -2,7 +2,7 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-04-08
+- last_updated: 2026-04-18
 - related_feature: FEAT-0019
 - version: v0.1.0
 
@@ -17,6 +17,8 @@
   3. BMS 绑定成功后直接进入设备详情页；仪表扫码进入本地 BLE 临时会话详情页。
   4. 保留现有 UUID 扫码兼容路径，不影响遗留设备自动补建流程。
   5. 摄像头扫码命中“我的设备”列表中的已添加设备时，直接进入该设备详情页并触发自动连接，不再走添加/绑定流程。
+  6. BMS 蓝牙绑定成功后进入设备详情页时，优先复用绑定向导阶段已经建立的 BLE 会话，减少再次连接和首包等待。
+  7. iPhone 进入设备详情页时，若设备已知 BLE `deviceId`，优先走直连而不是固定长时间扫描，缩短“进入详情 -> 蓝牙连接成功”的等待。
 
 ## 2. 范围
 ### In Scope
@@ -30,6 +32,7 @@
 - 调整 UniApp 蓝牙扫描页设备卡片点击逻辑：
   - `pages/device-provision/ble-scan.vue`
 - BMS 扫码流程保持现有蓝牙匹配与绑定向导，但绑定成功后直接跳转设备详情页。
+- BMS 绑定成功后增加 `provision -> detail` 临时 handoff，上送已知设备基础信息并复用当前 BLE 会话。
 - 仪表扫码与蓝牙扫描命中仪表设备时，均进入“本地 BLE 临时会话”详情模式，并在该模式提供“继续扫码绑定 BMS”入口。
 - 更新功能文档、实现日志、测试报告、发布说明和项目看板。
 
@@ -52,6 +55,9 @@
 7. 摄像头扫码结果若已命中“我的设备”中的 `ble_mac` 或 `item_uuid`，则直接跳转 `/pages/device-battery/detail?device_id=...`。
 8. 蓝牙扫描页点击设备卡片时，若扫描结果可通过广播 MAC 判定为仪表设备，则直接跳转 `/pages/device-battery/detail?session_mode=instrument&ble_mac=...&allow_scan_handoff=1`，不进入添加向导。
 9. 蓝牙扫描页点击设备卡片时，若当前扫描结果无法解析出广播 MAC，则维持现有添加向导行为，不误判进入仪表临时会话。
+10. BMS 绑定成功跳转设备详情页时，不再必然发生第二次 BLE discover/connect；若 handoff 失效，前端自动回退到原有重连路径。
+11. 蓝牙扫描页 `mode=qr&mac=...` 时，“正在匹配：{mac}”占位文案需正确显示真实 MAC，而不是字面量 `{mac}`。
+12. iPhone 已绑定设备进入设备详情页时，若本地已记住该设备的 BLE `deviceId`，日志应优先出现 `ios direct connect try`，且不再固定等待约 5 秒后才开始建连。
 
 ## 4. 风险与约束
 - `custom-tab-bar/index.js` 需要与 TS 页面共享同一份常量源，静态配置文件需兼容 JS `require` 与 TS `import` 使用。

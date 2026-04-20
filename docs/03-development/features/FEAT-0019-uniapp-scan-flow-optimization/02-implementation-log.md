@@ -2,7 +2,7 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-04-11
+- last_updated: 2026-04-18
 - related_feature: FEAT-0019
 - version: v0.1.0
 
@@ -127,3 +127,37 @@
   - 根因是当前 iOS 写入 soft-timeout 统一使用 `1200ms`，在该机型上会把每一帧请求都额外拖慢约 1 秒；
   - 现已将 iOS 写入软超时改为自适应快速放行：首次观察窗口收敛到约 `320ms`，一旦确认当前连接上的 write callback 不可靠，就切换到约 `180ms` 的快速 soft-timeout；
   - 同时增加一次性状态日志 `[ble] ios write callback unreliable, switch to fast soft-timeout`，并节流重复 timeout 告警，减少控制台刷屏。
+
+## 2026-04-18
+- 落地 BMS 绑定成功后的 BLE 会话复用：
+  - `common/ble/ble-client-cache.ts` 新增已连接会话接管能力，允许把 `provision-wizard.vue` 当前已建立的 `transport/client/deviceId/mac` 注册进 BLE 缓存；
+  - 向导页在绑定成功、拿到最终 `ble_mac` 后，不再直接销毁当前 BLE 会话，而是先接管到缓存，再跳转设备详情。
+- 新增 `common/device-provision/detail-handoff.ts` 作为轻量 handoff 存储：
+  - 保存 `deviceId/bleMac/deviceName/itemUuid/bmsCommType/source/createdAt`；
+  - 详情页按 `device_id` 消费 handoff，超时自动丢弃，避免旧会话误命中。
+- 调整设备详情页加载时序：
+  - `pages/device-battery/detail.vue` 进入云端详情模式时先消费 handoff 并传给 `useBatteryDetail.loadById(...)`；
+  - `pages/device-battery/useBatteryDetail.ts` 命中 handoff 时先用本地基础信息起页面，再优先 attach 已接管的 BLE 会话或立即按 handoff 的 `ble_mac` 重连；
+  - `appBatteryDetail` 现在改为后台刷新，不再阻塞 handoff 场景下的 BLE 首连与首包读取。
+- 收敛详情页重连策略：
+  - `connectAuto()` / `connectBleFirst()` 新增保留当前 BLE 会话的选项，只有切换目标设备或显式断开时才执行 `disconnectAll()`；
+  - handoff 命中且同一 MAC 的已连会话仍在时，详情页不再做 `probe: true` 的 `readUuid()` 复探。
+- 修复扫码页匹配 MAC 占位显示：
+  - `pages/device-provision/ble-scan.vue` 的“正在匹配”提示改为与同页其他占位文案一致，统一走本地 `format(t(...), { mac })` 兜底，避免 `{mac}` 原样透出。
+- 继续优化“已在我的设备列表保持连接”的扫码直达详情体验：
+  - `pages/device-battery/useBatteryDetail.ts` 在普通 `loadById(device_id)` 成功拿到云端详情后，新增对 `ble-client-cache.ts` 的 warm-entry 复用；
+  - 若首页或列表侧已存在相同 `ble_mac` 的活跃 BLE 会话，详情页直接 attach 该会话并立即开始轮询，不再额外触发一次 `disconnectAll() + connectBleClient(force)`；
+  - 该优化覆盖未命中 provision handoff 的“已绑定设备扫码直达详情”路径，重点缩短 iOS 上的重复建连时长。
+- 收敛 iOS 写入软超时日志噪声：
+  - `common/lib/bms-protocol/uni-ble-transport.ts` 继续保留 iOS 写入 soft-timeout 快速放行策略；
+  - 但当链路已确认属于“write 回调不可靠、设备仍通过 notify 正常回包”的场景时，改为每次连接只打印一次 info 级诊断，不再在后续轮询中持续输出 `writeBLECharacteristicValue timeout` 告警；
+  - fallback 重试场景仍保留告警，便于区分真实写入属性不兼容与单纯的 iOS 回调噪声。
+- 继续优化 iPhone 进入设备详情页的 BLE 首连时延：
+  - 新增 `common/ble/ble-device-id-memory.ts`，在客户端本地持久化 `mac -> ios deviceId` 映射；
+  - `common/ble/ble-client-cache.ts` 现已为 iOS 增加 direct-connect candidates，优先尝试当前缓存中的 `deviceId` 与本地记忆的 `deviceId`，不再默认跳过直连；
+  - 当 iOS direct connect 失败时，回退扫描不再固定一次扫满 `5s`，而是先走约 `1.5s` 的短扫，再按需补扫到累计 `5s`；
+  - 扫描一旦命中目标设备，立即停止并进入建连，同时把最新 `deviceId` 反写回本地记忆；
+  - `pages/device-battery/useBatteryDetail.ts` 的普通详情页首连路径也进一步调整为“优先 warm attach，再决定是否 disconnectAll”，避免存在可复用 BLE entry 时先被页面自己断开。
+- 调整 iOS 写入诊断文案：
+  - `uni-ble-transport.ts` 现将一次性写入 soft-timeout 日志明确标注为 `callback latency diagnostic`；
+  - 用于与真正的 `BLE request timeout` 区分，避免把原生桥接层 write callback 延迟误判为主故障。

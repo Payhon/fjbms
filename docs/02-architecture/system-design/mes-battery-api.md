@@ -67,7 +67,7 @@
 ## 5. 新增电池
 - 方法与路径：`POST /api/v1/openapi/mes/battery`
 - 鉴权：`x-app-id` + `x-secret-key`
-- 说明：请求体参数与后台“单个电池新增”保持一致。
+- 说明：请求体参数与后台“单个电池新增”保持一致；可选字段 `pack_factory_name` 用于按租户内 `PACK_FACTORY` 机构名称自动出厂。
 
 请求体示例：
 
@@ -79,6 +79,7 @@
   "order_number": "MES-PO-20260213",
   "bms_comm_type": 1,
   "battery_model_name": "FJBMS-100A",
+  "pack_factory_name": "示例PACK厂家",
   "production_date": "2026-02-13",
   "warranty_expire_date": "2027-02-13"
 }

@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-04-15
+- last_updated: 2026-04-17
 - related_feature: FEAT-0039
 - version: v0.1.0
 
@@ -22,6 +22,14 @@
 - `eraseCycleCount` -> `BIT18` -> `0x00040000`
 - `clearProtectionStatus` -> `BIT19` -> `0x00080000`
 - `resetProtectionBoard` -> `BIT21` -> `0x00200000`
+
+### 2.1 复位保护板协议确认
+- `resetProtectionBoard` 的正确示例帧为：
+  - `7F 55 FE 00 10 05 7A 00 02 04 00 20 00 00 4E 92 FD`
+- 该帧对应向 `0x057A~0x057B` 写入两个寄存器：
+  - `0x057A = 0x0020`
+  - `0x057B = 0x0000`
+- 按现有 32 位位掩码语义折算后，仍对应 `BIT21 -> 0x00200000`，因此前后端现有代码实现无需调整，只需统一文档口径。
 
 ## 3. 关键流程
 1. 用户在“设置 > 高级参数 > 出厂配置”点击工厂命令。

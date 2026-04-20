@@ -14,6 +14,12 @@
 ## 模块泳道看板
 
 ### Backend（`backend/`）
+- [ ] `in_progress` **FEAT-0042** 电池出厂增强与跨页批量选择
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：已开始实现 OpenAPI `pack_factory_name` 自动出厂、后台批量出厂接口，以及电池列表跨分页勾选缓存与批量操作联动
+  - 文档：`docs/03-development/features/FEAT-0042-battery-factory-out-enhancement-and-cross-page-selection/`
 - [ ] `in_progress` **FEAT-0040** 设备参数权限 Key 归一化与移动端参数显隐修复
   - owner：payhon
   - 优先级：P1
@@ -184,6 +190,12 @@
   - 文档：`docs/03-development/features/FEAT-0009-admin-login-captcha-qrcode/`
 
 ### UniApp（`fjbms-uniapp/`）
+- [ ] `in_progress` **FEAT-0043** UniApp 头像展示与裁切优化
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0038
+  - 进展：已开始统一“我的 / 设置”头像展示口径，抽取共用头像组件与 URL 解析逻辑，并将设置页头像修改流程改为“选图/拍照 -> 裁切 -> 上传保存”；待执行 `pnpm exec tsc --noEmit` 与运行态回归
+  - 文档：`docs/03-development/features/FEAT-0043-uniapp-avatar-display-and-crop/`
 - [ ] `in_progress` **FEAT-0041** UniApp OTA 地址口径统一与仪表会话升级支持
   - owner：payhon
   - 优先级：P1
@@ -278,7 +290,7 @@
   - owner：payhon
   - 优先级：P1
   - 依赖：FEAT-0016
-  - 进展：已完成扫码入口按设备类型分流、设备前缀静态配置化、BMS 绑定成功直达详情页，以及仪表临时 BLE 会话详情模式；本次补齐蓝牙扫描列表点击 `AA` 前缀仪表设备时直达临时仪表详情页，并连续修复 iOS App 端蓝牙扫描页/添加向导中的 BLE stop 回调挂起、服务树发现时序，以及 `readUuid()` 首包在 App iOS 端长时间无响应的问题；根据最新真机反馈，继续在 BLE transport 中加入 iOS 连接成功后的约 `820ms` 首包 warm-up、请求期内 BLE 写入/探测 API 的 soft-timeout 防卡死，以及 iOS 写入回调的自适应快速放行与日志节流；已通过 `pnpm exec tsc --noEmit`，待真机联调验收 BLE 扫描点击分流、iOS 扫描启动稳定性、向导页连接启动/服务树发现/首包读取与仪表首连体验
+  - 进展：已完成扫码入口按设备类型分流、设备前缀静态配置化、BMS 绑定成功直达详情页，以及仪表临时 BLE 会话详情模式；本次继续补齐 BMS 绑定成功后的 BLE 会话复用与 `provision -> detail` handoff，详情页已改为优先接管已连 BLE 会话并后台刷新云端详情，同时修复蓝牙扫描页“正在匹配：{mac}”占位显示；已通过 `pnpm exec tsc --noEmit`，待真机联调验收绑定成功后进入详情页的首连时延、BLE 会话复用命中率、BLE 扫描点击分流，以及 iOS 扫描启动稳定性、向导页连接启动/服务树发现/首包读取与仪表首连体验
   - 文档：`docs/03-development/features/FEAT-0019-uniapp-scan-flow-optimization/`
 - [ ] `in_progress` **FEAT-0018** UniApp 温度参数支持负数输入
   - owner：payhon

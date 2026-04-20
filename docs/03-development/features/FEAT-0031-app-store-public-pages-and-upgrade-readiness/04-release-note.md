@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-04-15
+- last_updated: 2026-04-18
 - related_feature: FEAT-0031
 - version: v0.1.0
 
@@ -14,6 +14,7 @@
 - UniApp 登录页底部“其他登录方式”按运行环境动态显示，非微信环境不再展示空标题。
 - UniApp 升级检测接口新增定向控制台日志，便于排查版本检查请求与响应。
 - 升级检测继续沿用现有自动检查与弹窗流程。
+- 修复 UniApp 自动升级弹窗页面未注册导致的 `navigateTo` 失败，接口命中可升级版本后可进入升级提示页。
 - UniApp iOS 权限文案补齐为明确用途描述，满足 App Store 审核对相机 / 蓝牙权限说明的要求。
 - UniApp 主扫码入口统一收敛为仅摄像头扫码，规避 iPad 审核点击“相册”时的 H5+ 异常。
 - 新增 `fjbms-uniapp/scripts/check_ios_ipa.sh`，用于送审前校验 `ipa` 的权限文案、追踪声明、图标资源与版本号。

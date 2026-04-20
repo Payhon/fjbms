@@ -2,7 +2,7 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-04-08
+- last_updated: 2026-04-18
 - related_feature: FEAT-0019
 - version: v0.1.0
 
@@ -13,6 +13,7 @@
 - BMS 扫码继续复用：
   - `ble-scan.vue` 自动匹配 BLE 设备
   - `provision-wizard.vue` 完成 UUID 读取、可选 DTU 写入和绑定
+- BMS 绑定成功后，向导页将当前 BLE 会话接管进缓存，并写入一次 `provision -> detail` handoff；详情页优先消费该 handoff，先展示基础信息并直接接管已连 BLE，再后台刷新云端详情。
 - 仪表扫码以及 BLE 扫描列表点击命中仪表设备时，不再走云端绑定链路，直接进入 `pages/device-battery/detail` 的临时 BLE 会话模式。
 
 ## 2. 静态配置设计
@@ -61,6 +62,23 @@
 
 ### 3.4 BMS 成功跳转
 - `provision-wizard.vue` 和 `uuid-bind.vue` 绑定成功后读取 `bind` 返回的 `device_id`，统一跳转 `/pages/device-battery/detail?device_id=...`。
+- `provision-wizard.vue` 在 BLE 绑定成功后：
+  - 若当前会话已拿到 `ble_mac`，先将 `transport/client/deviceId/mac` 接管进 `ble-client-cache.ts`；
+  - 再写入轻量 handoff（`deviceId/bleMac/deviceName/itemUuid/bmsCommType/source/createdAt`）；
+  - 最后跳转详情页。
+- `detail.vue` 进入云端详情模式时先按 `device_id` 消费 handoff：
+  - 命中 handoff 且缓存中存在同 MAC 的已连接 BLE 会话时，直接 attach，不再重新探测 `readUuid()`；
+  - 若缓存 miss，则基于 handoff 中的 `ble_mac` 立即发起 BLE 自动连接，不等待 `appBatteryDetail`；
+  - `appBatteryDetail` 改为后台刷新，成功后只更新视图模型，不再强制打断现有 BLE 会话。
+- `detail.vue` 进入普通云端详情模式且未命中 handoff 时：
+  - 先完成一次 `appBatteryDetail(device_id)` 获取准确 `ble_mac`；
+  - 若 `ble-client-cache.ts` 中已存在同 MAC 的活跃连接，则直接 attach 该会话并启动轮询，不再强制 `disconnectAll() + reconnect`；
+  - 这样首页或“我的设备”列表已连通的 BLE 连接可被扫码直达详情页直接复用，尤其避免 iOS 二次建连带来的额外时延。
+- `ble-client-cache.ts` 额外承担 iOS 直连加速：
+  - 新增轻量 `ble-device-id-memory.ts`，将标准化 `MAC` 对应的 iOS `deviceId` 持久化到本地；
+  - iOS 新建 BLE 连接时，先尝试当前缓存 entry 的 `deviceId`，再尝试本地记忆的 `deviceId`，均失败后才回退到扫描；
+  - 扫描回退改为两段式短扫，先约 `1.5s`，未命中再补扫到累计约 `5s`，命中后立即停止并建连；
+  - 每次 iOS 直连或扫描建连成功后，都用最新 `deviceId` 覆盖本地记忆。
 
 ### 3.5 BLE 扫描列表点击分流
 - `pages/device-provision/ble-scan.vue`
@@ -73,6 +91,10 @@
 - BLE 扫描页的蓝牙 API 调用需要增加超时保护：
   - `openBluetoothAdapter` / `startBluetoothDevicesDiscovery` 超时后直接抛错，结束按钮 loading 并展示初始化失败；
   - `stopBluetoothDevicesDiscovery` 在 iOS App 端若未处于 `discovering` 状态则不调用，若回调长时间不返回则超时放行，避免阻塞后续启动扫描。
+- `uni-ble-transport.ts` 对 iOS 写入回调噪声做单次诊断收敛：
+  - `writeBLECharacteristicValue` 在部分 iPhone + uni runtime 组合下会出现底层已发出、设备也正常 notify 回复，但 write API 的 success/fail 回调迟迟不返回；
+  - transport 继续保留 soft-timeout 快速放行，避免请求队列被原生桥接层卡死；
+  - 同时将“继续等待 notify”的日志改为每次连接仅记录一次 info 级 callback latency diagnostic，避免轮询期间持续刷出 timeout 告警干扰问题判断。
 
 ## 4. 仪表临时会话模式
 ### 4.1 路由参数
@@ -97,4 +119,4 @@
 ## 5. 验证策略
 - `cd fjbms-uniapp && pnpm exec tsc --noEmit`
 - 搜索回归：确认 `fjbms-uniapp` 业务逻辑中不再存在裸 `AA/AC` 设备类型判断。
-- 手工验证扫码入口分流、BLE 扫描卡片点击分流、BMS 绑定后跳转、仪表临时详情和二次扫码绑定流程。
+- 手工验证扫码入口分流、BLE 扫描卡片点击分流、BMS 绑定后跳转、绑定成功后详情页首连时延、仪表临时详情和二次扫码绑定流程。

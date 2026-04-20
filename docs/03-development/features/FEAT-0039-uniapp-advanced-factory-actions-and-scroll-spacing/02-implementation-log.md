@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-04-15
+- last_updated: 2026-04-17
 - related_feature: FEAT-0039
 - version: v0.1.0
 
@@ -19,6 +19,10 @@
 5. 已在高级参数弹层 `scroll-view` 底部增加动态留白占位，避免末尾菜单被设备详情底部 Tab 遮挡。
 6. 已同步更新 `backend/internal/service/device_param_permission_tree.go`，补充新增工厂命令权限节点。
 7. 已新增 FEAT-0039 文档目录并更新项目看板。
+8. 2026-04-17 已重新核对“复位保护板”协议命令：
+   - 正确示例帧为 `7F 55 FE 00 10 05 7A 00 02 04 00 20 00 00 4E 92 FD`。
+   - 当前 UniApp `FACTORY_ACTIONS` 与 Web 端工厂命令映射均已使用 `0x00200000`，与新命令一致，无需改代码。
+   - 已同步修正文档中“示例帧存在疑点”的旧说明，并补齐主维护协议文档中的 `BIT21` 与示例帧。
 
 ## 2. 待执行项
 - 完成 UniApp TypeScript 校验和后端测试结果回写。

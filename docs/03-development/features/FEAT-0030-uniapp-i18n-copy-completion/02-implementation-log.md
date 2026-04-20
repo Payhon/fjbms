@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-04-02
+- last_updated: 2026-04-18
 - related_feature: FEAT-0030
 - version: v0.1.0
 
@@ -16,9 +16,13 @@
 7. 通用请求层与升级检测提示改造为通过 `i18n.global.t(...)` 读取字典，移除运行时中文硬编码。
 8. 同步补充 `common.*` 与 `deviceDetail.params.*` 新增词条，覆盖网络异常、升级提示、电池类型和参数页提示文案。
 9. 继续补齐设备添加流程的蓝牙异常提示，将 `ble-scan.vue` 中的适配器不可用报错收口到 `pages.deviceProvision.bluetoothAdapterUnavailable`。
+10. 补齐 `uni_modules/fjbms-upgrade` 升级弹窗与备用 `updateUseModal()` 分支的多语言接入：
+   - 将升级弹窗按钮、下载进度、安装提示、失败提示、重启提示等用户可见文案迁移到 `appUpgrade.*` 字典。
+   - 新增 `common.yes` / `common.no` 与 `appUpgrade.*` 中英文词条，统一供升级弹窗和升级确认逻辑复用。
+   - 同步移除升级弹窗流程中的运行时中文硬编码，避免语言切换后仍出现中文按钮或提示。
 
 ## 2. 当前状态
 - 文档已建档。
 - 代码改造已完成本轮范围收口。
 - 已执行 `pnpm exec tsc --noEmit --pretty false`，通过。
-- 待真机/小程序语言切换抽样验收。
+- 待真机/小程序语言切换抽样验收，重点补看升级弹窗与升级确认链路。

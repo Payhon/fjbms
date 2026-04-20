@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-04-15
+- last_updated: 2026-04-17
 - related_feature: FEAT-0039
 - version: v0.1.0
 
@@ -12,6 +12,9 @@
 - [ ] 真机 / HBuilderX 手工验收
 
 ## 2. 验证结果
+- 协议命令复核：
+  - “复位保护板”正确示例帧已确认为 `7F 55 FE 00 10 05 7A 00 02 04 00 20 00 00 4E 92 FD`。
+  - UniApp `params-tab.vue` 与 Web `bms-panel/index.vue` 当前均使用 `raw: 0x00200000`，与该示例帧一致，本次无需调整业务代码。
 - `cd backend && go test ./...`
   - 结果：失败。
   - 备注：存在与本次需求无关的仓库既有测试失败，主要包括：

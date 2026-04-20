@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-04-15 09:40
+- last_updated: 2026-04-18 16:20
 - related_feature: FEAT-0031
 - version: v0.1.0
 
@@ -56,6 +56,10 @@
 18. App 名称国际化已补齐：
    - `fjbms-uniapp/manifest.json` 的 `name` 改为 `%app.name%`，交由 `locale/*.json` 提供打包时的国际化名称。
    - 在 `locale/zh-Hans.json`、`locale/zh-Hant.json`、`locale/en.json` 新增 `app.name`，确保简体中文 / 繁体中文显示 `富嘉BMS`，其他已覆盖语言显示 `FUJIA BMS`。
+19. 自动升级弹窗路由缺失已修正：
+   - 根据 APP 运行态日志，确认 `/api/v1/app/upgrade/check` 已返回可升级版本，但 `uni.navigateTo('/uni_modules/fjbms-upgrade/pages/upgrade-popup?...')` 失败。
+   - 复查编译产物 `unpackage/dist/dev/app-plus/app-config-service.js` 后，确认页面清单缺少 `uni_modules/fjbms-upgrade/pages/upgrade-popup`。
+   - 已在 `fjbms-uniapp/pages.json` 注册 `uni_modules/fjbms-upgrade/pages/upgrade-popup`，恢复升级检测后的弹窗跳转能力。
 
 ## 2. 待执行项
 - UniApp 真机回归与升级包下载验证。
@@ -63,9 +67,10 @@
 - 使用新脚本校验下一版 `ipa` 中权限文案、追踪声明与图标资源。
 - 在简体中文、繁体中文、英文系统语言下验证 App 名称分别显示为 `富嘉BMS`、`富嘉BMS`、`FUJIA BMS`。
 - 在后台 `APP 升级中心` 发布真实稳定版安装包 / 商店地址，用于触发生产自动升级提示。
+- Android / iOS 真机回归确认升级弹窗可正常弹出、关闭、下载或跳转商店。
 - 根据最终验收结果确认是否切换文档状态到 `review` / `done`。
 
 ## 3. 当前状态
 - 文档已进入 `in_progress` 阶段。
-- 代码实现与生产发布已完成，生产公开数据和英文协议内容已补齐；本次已补齐 App Review 所需的 iOS 权限文案、收敛扫码路径，并补上 App 名称国际化配置。
-- 当前剩余事项主要是真机验收、重新打包核验新 `ipa` 的权限文案 / 图标资源 / App 名称，以及将占位下载地址替换为正式地址并在升级中心发布真实版本。
+- 代码实现与生产发布已完成，生产公开数据和英文协议内容已补齐；本次已补齐 App Review 所需的 iOS 权限文案、收敛扫码路径、App 名称国际化配置，并修正自动升级弹窗页面未注册导致的跳转失败。
+- 当前剩余事项主要是真机验收、重新打包核验新 `ipa` 的权限文案 / 图标资源 / App 名称，以及将占位下载地址替换为正式地址并在升级中心发布真实版本后验证实际升级弹窗链路。
