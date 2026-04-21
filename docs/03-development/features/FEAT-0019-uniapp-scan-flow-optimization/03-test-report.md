@@ -2,7 +2,7 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-04-18
+- last_updated: 2026-04-20
 - related_feature: FEAT-0019
 - version: v0.1.0
 
@@ -41,6 +41,8 @@
 - 通过：`useBatteryDetail.ts` 在普通 `loadById(device_id)` 成功拉取详情后，也会优先尝试复用 `ble-client-cache.ts` 中相同 `ble_mac` 的活跃会话；因此“我的设备列表已连接 -> 扫码直达详情”不再必然重连。
 - 通过：`ble-client-cache.ts` 已为 iOS 新增 `deviceId` 持久化直连候选和两段式扫描回退；理论上已可避免“进入详情后固定先等待 5 秒扫描”的连接模式。
 - 通过：`ble-scan.vue` 的“正在匹配”提示已改为本地格式化插值，`mode=qr&mac=...` 不再显示字面量 `{mac}`。
+- 通过：`ble-scan.vue` 不再过滤已存在于“我的设备”的扫描结果；命中已绑定 `ble_mac` 的卡片会继续显示，并带有“该设备已添加到我的设备”备注。
+- 通过：`useBatteryDetail.ts` 已将设备详情页常规 BLE 状态轮询间隔从 `5_000ms` 调整为 `2_000ms`，仪表临时会话的 `1_200ms` 首包 warmup 轮询未被破坏。
 - 通过：`params-tab.vue` 已在仪表临时会话下隐藏 OTA 入口，且 OTA 设备类型判定改为统一 helper。
 - 通过：仓库搜索确认 `fjbms-uniapp/` 内不存在散落在业务逻辑里的 `AA/AC` 设备类型硬编码，检索结果仅剩 `device-prefix.js` 配置源文件本身。
 - 通过：删除 `device-prefix.ts` 后，TS 页面仍可通过 `device-prefix.js` 的 JSDoc 标注完成类型检查，未出现导入或类型退化问题。
@@ -52,6 +54,7 @@
 - 尚未完成真机蓝牙联调，以下场景仍需设备侧验证：
   - 已添加设备通过扫码直达详情页后的首连时延与页面体验；
   - iPhone 上“我的设备列表已连接 -> 扫码直达详情”是否稳定直接接管已有 BLE 会话，而不是再次重连；
+  - 蓝牙扫描页显示“已添加”备注的设备卡片后，用户点击该卡片时的后续引导是否符合业务预期；
   - iPhone 冷启动后首次进入某已绑定设备详情时，若本地已有 remembered `deviceId`，是否会优先出现 `ios direct connect try` 并明显缩短等待；
   - iPhone 若 remembered `deviceId` 失效，是否会先走短扫回退，而不是再次固定等待满 `5s`；
   - BMS 绑定成功后跳转详情页时，是否稳定复用原 BLE 会话，且不再出现第二次 discover/connect；

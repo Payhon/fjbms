@@ -1,10 +1,12 @@
 # FEAT-0028 电池调拨路径扩展 - 功能规格
 
-- status: review
+- status: archived
 - owner: payhon
-- last_updated: 2026-03-27
+- last_updated: 2026-04-21
 - related_feature: FEAT-0028
 - version: v0.1.0
+
+> 历史说明：本规格中的“经销商可回 PACK、门店可回经销商”矩阵已在 FEAT-0045 中被收口替代。当前生效口径请以 `FEAT-0045` 为准。
 
 ## 1. 背景与目标
 当前后台管理 `BMS 管理 > 电池列表` 的调拨权限矩阵过窄，后端只允许 `PACK -> 经销商/门店`，并误将经销商限制成“只能门店间调拨”。结果是经销商无法调拨回 PACK、无法调拨至门店，门店也无法调拨回经销商。

@@ -1,10 +1,12 @@
 # FEAT-0028 电池调拨路径扩展 - 技术设计
 
-- status: review
+- status: archived
 - owner: payhon
-- last_updated: 2026-03-27
+- last_updated: 2026-04-21
 - related_feature: FEAT-0028
 - version: v0.1.0
+
+> 历史说明：本设计中的调拨矩阵已被 FEAT-0045 收口替代，保留该文档仅用于历史追溯。
 
 ## 1. 方案概览
 本次调整分前后端两部分：

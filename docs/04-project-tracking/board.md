@@ -14,6 +14,18 @@
 ## 模块泳道看板
 
 ### Backend（`backend/`）
+- [ ] `in_progress` **FEAT-0045** 调拨目标收敛与门店上级组织防泄露
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0028
+  - 进展：已完成前后端收口（经销商仅可调拨门店、门店禁调拨、经销商新增门店上级组织只读+后端 parent_id 强校验），并完成定向 Go/ESLint 校验；前端整包构建结果待补确认，后续继续做经销商/门店账号运行态回归
+  - 文档：`docs/03-development/features/FEAT-0045-transfer-target-tightening-and-store-parent-privacy/`
+- [ ] `in_progress` **FEAT-0044** 电池列表回退操作
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0028
+  - 进展：已开始实现电池列表“回退”独立接口与预览接口，按最近一次入库来源自动反推回退目标；同步补前端确认弹窗、操作日志 `ROLLBACK` 类型与按钮权限 SQL，待定向 Go/ESLint/前端构建校验和经销商/门店账号回归
+  - 文档：`docs/03-development/features/FEAT-0044-battery-rollback-action/`
 - [ ] `in_progress` **FEAT-0042** 电池出厂增强与跨页批量选择
   - owner：payhon
   - 优先级：P1

@@ -2,7 +2,7 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-04-18
+- last_updated: 2026-04-20
 - related_feature: FEAT-0019
 - version: v0.1.0
 
@@ -161,3 +161,11 @@
 - 调整 iOS 写入诊断文案：
   - `uni-ble-transport.ts` 现将一次性写入 soft-timeout 日志明确标注为 `callback latency diagnostic`；
   - 用于与真正的 `BLE request timeout` 区分，避免把原生桥接层 write callback 延迟误判为主故障。
+
+## 2026-04-20
+- 调整蓝牙扫描页对“已添加设备”的展示策略：
+  - `pages/device-provision/ble-scan.vue` 不再按 `boundBleMacSet` 过滤已添加到“我的设备”的 BLE 设备；
+  - 扫描列表卡片命中已绑定 `ble_mac` 时，改为保留卡片并显示“该设备已添加到我的设备”备注，方便用户识别现场设备而不是直接消失。
+- 调整设备详情页 BLE 轮询频率：
+  - `pages/device-battery/useBatteryDetail.ts` 将常规状态轮询间隔由 `5s` 下调为 `2s`；
+  - 仪表临时会话“首包前 1.2s 快速重试”逻辑保持不变，仅缩短首包后的常规刷新周期。
