@@ -14,6 +14,30 @@
 ## 模块泳道看板
 
 ### Backend（`backend/`）
+- [ ] `in_progress` **FEAT-0049** BMS 4G 移动端云端详情链路
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0048
+  - 进展：已新增 APP 当前遥测接口与 UniApp 4G-only 云端只读详情链路；本次继续修复 `0x0141` 动态电芯帧在 `bms-bridge` 中只落原始寄存器、不发布 `cell.voltagesMv` 的链路问题，并补齐后台 BMS 面板当前遥测回退展示；待生产发布 bridge 后用下一条 4G 上报验证电芯 Tab 展示
+  - 文档：`docs/03-development/features/FEAT-0049-bms-4g-mobile-cloud-detail/`
+- [ ] `in_progress` **FEAT-0048** BMS 4G 通讯调试管理
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0023
+  - 进展：已完成 `bms-bridge` 侧 4G BMS 通讯日志采集、7 天保留清理、后端分页/SSE 接口与后台通讯调试管理页面；2026-04-27 已修复生产环境 4G BMS Topic 标识映射、`0xFF` 主动上报与短帧状态解析兼容，并补充“有业务数据上报即在线”的默认保活兜底；待继续执行前端整包构建与后台菜单回归
+  - 文档：`docs/03-development/features/FEAT-0048-bms-4g-comm-debug/`
+- [ ] `in_progress` **FEAT-0047** BMS 分页修复与电池详情操作记录 Tab
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0011、FEAT-0014
+  - 进展：已开始修复 BMS 运营管理与同类页面的服务端分页模式，并扩展电池运营日志接口 `device_id` 过滤；同步新增电池详情 BMS 模式“操作记录”Tab、页面元素权限 SQL 与文档，待执行 Go / TypeScript 校验和后台账号回归
+  - 文档：`docs/03-development/features/FEAT-0047-bms-pagination-and-battery-operation-log-tab/`
+- [ ] `in_progress` **FEAT-0046** 仪表 OTA 升级包与 UniApp 独立升级链路
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0041
+  - 进展：已完成 OTA 升级包 `device_kind` 模型、后台升级包管理双 TAB、APP 仪表升级包列表接口，以及 UniApp 蓝牙仪表详情页独立“选包后升级”卡片；本次继续根据 Android 10%/13%/95% 与 iOS 95% 日志加固仪表 OTA 写包节奏、4KB 边界等待与 finalize 成功收敛逻辑，并优化蓝牙扫描停止/超时状态复位、iOS 扫描进详情直连候选与取消旧连接后的锁等待；2026-04-27 新增开发者模式下仪表 OTA 端上调试日志与复制能力，并优化微信小程序主包体积，待继续真机 OTA 回归
+  - 文档：`docs/03-development/features/FEAT-0046-meter-ota-packages-and-uniapp-flow/`
 - [ ] `in_progress` **FEAT-0045** 调拨目标收敛与门店上级组织防泄露
   - owner：payhon
   - 优先级：P1
@@ -24,7 +48,7 @@
   - owner：payhon
   - 优先级：P1
   - 依赖：FEAT-0028
-  - 进展：已开始实现电池列表“回退”独立接口与预览接口，按最近一次入库来源自动反推回退目标；同步补前端确认弹窗、操作日志 `ROLLBACK` 类型与按钮权限 SQL，待定向 Go/ESLint/前端构建校验和经销商/门店账号回归
+  - 进展：已完成回退独立接口、预览弹窗、`ROLLBACK` 日志与权限 SQL；本次修正回退目标口径为“直系上级（parent_id）+ 来自上级的最近入库记录”，并支持门店上级为经销商或 PACK，待定向 Go/ESLint/前端构建校验和账号回归
   - 文档：`docs/03-development/features/FEAT-0044-battery-rollback-action/`
 - [ ] `in_progress` **FEAT-0042** 电池出厂增强与跨页批量选择
   - owner：payhon
@@ -314,7 +338,7 @@
   - owner：payhon
   - 优先级：P1
   - 依赖：无
-  - 进展：已同步 UniApp 协议寄存器地址，并将设备详情仪表盘保护状态改为独立可折叠卡片与全量状态列表；2026-03-25 继续补齐仪表盘温度区按电芯温度数量动态展示 `T1/T2...`，并将保护状态卡片默认态调整为收起；2026-04-15 已将蓝牙设备详情 `readAllStatus()` 改为 `0x100~0x135` + `0x141~动态尾地址` 的两段读取，兼容旧款 BMS 板未实现 `0x136~0x139` 的情况，同时保留 `0x134~0x135` 告警状态完整读取
+  - 进展：已同步 UniApp 协议寄存器地址，并将设备详情仪表盘保护状态改为独立可折叠卡片与全量状态列表；2026-03-25 继续补齐仪表盘温度区按电芯温度数量动态展示 `T1/T2...`，并将保护状态卡片默认态调整为收起；2026-04-24 已将蓝牙设备详情 `readAllStatus()` 修正为 `0x100~0x134`（`0x35`/53 个寄存器）+ `0x141~动态尾地址` 的两段读取，兼容旧款 BMS 板未实现 `0x135~0x139` 的情况
   - 文档：`docs/03-development/features/FEAT-0017-bms-status-register-shift/`
 - [ ] `in_progress` **FEAT-0016** 遗留 BMS 设备 UUID 自动补建
   - owner：payhon

@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-04-15
+- last_updated: 2026-04-24
 - related_feature: FEAT-0017
 - version: v0.1.0
 
@@ -43,7 +43,11 @@
 10. 2026-04-15 UniApp 蓝牙状态读取兼容旧款 BMS
    - 已确认设备详情轮询当前通过 `useBatteryDetail.ts -> BmsClient.readAllStatus()` 读取全量状态，并依赖 `maxReadRegisters=60` 自动连续切片。
    - 已将 `fjbms-uniapp/common/lib/bms-protocol/client.ts` 中的 `readAllStatus()` 改为两段读取：
-     - 第一段固定读取 `0x100~0x135` 共 `54` 个寄存器；
+     - 第一段固定读取 `0x100~0x134` 共 `0x35`（53）个寄存器；
      - 第二段从 `0x141` 读取到动态状态区末尾。
-   - 两段结果会在内存中重新拼装为从 `0x100` 开始的连续寄存器视图，`0x136~0x140` 保持零值占位，以便继续复用现有 `parseStatusRegisters()`。
-   - 该实现用于兼容旧款 BMS 板未实现 `0x136~0x139` 的情况，同时保留 `0x134~0x135` 的完整告警状态解析，不修改 `BLE_MAX_READ_REGS = 60`。
+   - 两段结果会在内存中重新拼装为从 `0x100` 开始的连续寄存器视图，`0x135~0x140` 保持零值占位，以便继续复用现有 `parseStatusRegisters()`。
+   - 该实现用于兼容旧款 BMS 板未实现 `0x135~0x139` 的情况，不修改 `BLE_MAX_READ_REGS = 60`。
+11. 2026-04-24 UniApp 蓝牙状态首段读取范围修正
+   - 已根据旧版本 BMS 实际兼容要求确认 `0x135` 也不存在，首段读取必须改为 `0x100~0x134`。
+   - 已将 `readAllStatus()` 首段数量改为 `0x35`（53）个寄存器，第二段仍从 `0x141` 读取。
+   - 拼装连续视图时，`0x135~0x140` 保持零值占位；`alarmStatus` 中依赖 `0x135` 的高位部分在旧板兼容读取下按默认值处理。

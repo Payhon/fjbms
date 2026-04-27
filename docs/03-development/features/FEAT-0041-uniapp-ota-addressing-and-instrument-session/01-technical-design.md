@@ -17,6 +17,8 @@
   - `device_id` 改为可选。
   - 有 `device_id` 时继续走现有绑定校验和设备配置映射。
   - 无 `device_id` 时直接按 `model` 反查 `battery_models -> device_config_id`，再匹配 OTA 包。
+- 补充：
+  - FEAT-0046 已将“仪表升级包管理 + UniApp 手动选包升级”从本功能中拆出，当前文档主要描述地址口径与仪表会话 OTA 能力基础。
 
 ## 2. 关键流程
 1. 设备详情页进入仪表临时会话。

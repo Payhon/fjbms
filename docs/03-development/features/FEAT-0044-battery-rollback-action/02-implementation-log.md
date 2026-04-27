@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-04-21
+- last_updated: 2026-04-23
 - related_feature: FEAT-0044
 - version: v0.1.0
 
@@ -25,3 +25,11 @@
    - `frontend/src/locales/langs/zh-cn/route.json`
    - `frontend/src/locales/langs/en-us/route.json`
 8. 新增 FEAT-0044 文档目录并更新项目看板。
+
+## 2026-04-23
+1. 修正回退目标解析逻辑：由“最近来源”改为“直系上级（parent_id）+ 来自该上级的最近入库记录”。
+2. 放开门店上级类型校验：门店回退目标上级支持 `DEALER` 或 `PACK_FACTORY`。
+3. 更新回退失败提示文案：
+   - `未配置上级机构，无法回退`
+   - `未找到来自上级机构的可回退记录`
+   - `门店仅支持回退到上级经销商或PACK厂`

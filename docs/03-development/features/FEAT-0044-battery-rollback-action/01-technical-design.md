@@ -2,15 +2,18 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-04-21
+- last_updated: 2026-04-23
 - related_feature: FEAT-0044
 - version: v0.1.0
 
 ## 1. 方案概览
 - 在 `backend/internal/service/battery_lifecycle.go` 新增一套共享的回退解析逻辑：
-  - 读取当前设备、电池归属、当前机构、最近一次入库来源机构。
+  - 读取当前设备、电池归属、当前机构、直系上级机构（`parent_id`）。
   - 校验操作者必须是当前持有机构，且机构类型仅允许 `DEALER/STORE`。
-  - 校验来源机构类型与组织树关系合法。
+  - 校验上级机构类型与组织树关系合法：
+    - 经销商上级必须是 `PACK_FACTORY`
+    - 门店上级允许 `DEALER/PACK_FACTORY`
+  - 校验存在最近一条“来自该上级”的入库记录（`to_org_id=currentOrg` 且 `from_org_id=parentOrg`）。
 - 基于同一套解析逻辑提供两个接口：
   - `GET /api/v1/battery/rollback/preview`
   - `POST /api/v1/battery/rollback`
@@ -60,10 +63,10 @@
 
 ## 5. 测试策略
 - 后端：
-  - 经销商回退到 PACK。
-  - 门店回退到经销商。
+  - 经销商回退到上级 PACK。
+  - 门店回退到上级经销商或上级 PACK。
   - 非当前持有机构回退。
-  - 无来源记录、来源机构缺失、链路非法。
+  - 无上级、无来自上级的入库记录、上级类型非法、链路非法。
 - 前端：
   - 符合条件的经销商/门店库存显示入口。
   - 预览失败提示正确。

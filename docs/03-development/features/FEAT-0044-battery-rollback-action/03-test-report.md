@@ -2,25 +2,31 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-04-21
+- last_updated: 2026-04-23
 - related_feature: FEAT-0044
 - version: v0.1.0
 
 ## 1. 已执行
-- 待补充本次定向命令执行结果：
+- 已执行：
   - `cd backend && go test ./internal/api ./internal/service`
+    - 结果：通过（`internal/api` 无测试文件；`internal/service` 通过）
   - `cd frontend && pnpm exec eslint src/views/bms/battery/list/index.vue src/views/bms/ops/operation_log/index.vue`
+    - 结果：通过
   - `cd frontend && pnpm build`
+    - 结果：通过（构建成功，输出 `dist`）
 
 ## 2. 需重点回归
 - 经销商账号：
-  - 自有库存来源为 PACK 时，能否正确显示并回退。
+  - 经历 `PACK -> DEALER -> STORE -> DEALER` 后，经销商回退是否仍命中上级 PACK。
+  - 即使最近一次入库来自门店，只要存在“来自上级 PACK”的历史入库记录，是否可正确回退到 PACK。
 - 门店账号：
-  - 自有库存来源为经销商时，能否正确显示并回退。
+  - 上级为经销商时，能否正确回退到该经销商。
+  - 上级为 PACK 时，能否正确回退到该 PACK。
 - 非法场景：
   - 当前账号不是持有机构。
-  - 历史记录中找不到最近一次入库来源。
-  - 来源机构已删除或不在合法上级链路。
+  - 当前机构无 `parent_id`。
+  - 找不到“来自 parent_id 上级”的入库记录。
+  - 上级类型非法或不在合法上级链路。
 - 日志：
   - 回退成功后运营日志是否新增 `ROLLBACK`。
 
