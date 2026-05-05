@@ -14,17 +14,23 @@
 ## 模块泳道看板
 
 ### Backend（`backend/`）
+- [ ] `in_progress` **FEAT-0050** 电池列表恢复出厂操作
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0044、FEAT-0045
+  - 进展：已开始实现厂家“恢复出厂”单台操作，新增独立接口、生命周期入口、操作日志 `FACTORY_RESTORE` 与权限 SQL，待定向 Go/ESLint/前端构建校验及账号回归
+  - 文档：`docs/03-development/features/FEAT-0050-battery-factory-restore-action/`
 - [ ] `in_progress` **FEAT-0049** BMS 4G 移动端云端详情链路
   - owner：payhon
   - 优先级：P1
   - 依赖：FEAT-0048
-  - 进展：已新增 APP 当前遥测接口与 UniApp 4G-only 云端只读详情链路；本次继续修复 `0x0141` 动态电芯帧在 `bms-bridge` 中只落原始寄存器、不发布 `cell.voltagesMv` 的链路问题，并补齐后台 BMS 面板当前遥测回退展示；待生产发布 bridge 后用下一条 4G 上报验证电芯 Tab 展示
+  - 进展：已新增 APP 当前遥测接口与 UniApp 4G-only 云端只读详情链路；已修复 `0x0141` 动态电芯帧结构化发布和后台 BMS 面板当前遥测回退展示；2026-04-29 修复 UniApp 扫码添加已绑定设备误报失败，并为移动端 4G 详情当前遥测增加生产通用接口 fallback；本次将 UniApp/Web 4G 详情切换为 MQTT Socket 透传实时读取，后端桥接使用数据库 UUID 鉴权并以 `devices.device_number` 拼接 `device/socket/tx|rx/{device_number}`，主动上报仅作为兜底；生产实测已收到目标设备 `0x0F` 透传响应，并修复前端将 `0x0F byteCount` 误按寄存器数翻倍导致丢帧、2500ms 超时过短、`0x0100` 整段响应未缓存复用的问题；参数配置寄存器无响应发生时设备已离线，已撤回“不支持”结论并修复 `0x0F` 响应按寄存器区间匹配，避免主动上报帧误唤醒参数读取请求；2026-04-30 根据协议确认修正 4G MQTT 透传功能码，普通 BMS 寄存器保持 BLE 同款 `0x03`，仅 `0x0900~0x0923` 4G 模块专有寄存器使用云平台 `0x0F`；参数设置面板已改为按连续寄存器范围批量读取，减少 BLE/4G 展开分组时的串行请求；已补充移动端首帧实时数据等待卡片和参数分组首次展开加载图标；待移动端新包和 Web 页面确认详情页指标展示
   - 文档：`docs/03-development/features/FEAT-0049-bms-4g-mobile-cloud-detail/`
 - [ ] `in_progress` **FEAT-0048** BMS 4G 通讯调试管理
   - owner：payhon
   - 优先级：P1
   - 依赖：FEAT-0023
-  - 进展：已完成 `bms-bridge` 侧 4G BMS 通讯日志采集、7 天保留清理、后端分页/SSE 接口与后台通讯调试管理页面；2026-04-27 已修复生产环境 4G BMS Topic 标识映射、`0xFF` 主动上报与短帧状态解析兼容，并补充“有业务数据上报即在线”的默认保活兜底；待继续执行前端整包构建与后台菜单回归
+  - 进展：已完成 `bms-bridge` 侧 4G BMS 通讯日志采集、7 天保留清理、后端分页/SSE 接口与后台通讯调试管理页面；2026-04-27 已修复生产环境 4G BMS Topic 标识映射、`0xFF` 主动上报与短帧状态解析兼容，并补充“有业务数据上报即在线”的默认保活兜底；2026-04-29 已修复 `identity.boardCode` 误写 `device_batteries.item_uuid` 的 DB 同步规则；待继续执行前端整包构建与后台菜单回归
   - 文档：`docs/03-development/features/FEAT-0048-bms-4g-comm-debug/`
 - [ ] `in_progress` **FEAT-0047** BMS 分页修复与电池详情操作记录 Tab
   - owner：payhon
@@ -36,7 +42,7 @@
   - owner：payhon
   - 优先级：P1
   - 依赖：FEAT-0041
-  - 进展：已完成 OTA 升级包 `device_kind` 模型、后台升级包管理双 TAB、APP 仪表升级包列表接口，以及 UniApp 蓝牙仪表详情页独立“选包后升级”卡片；本次继续根据 Android 10%/13%/95% 与 iOS 95% 日志加固仪表 OTA 写包节奏、4KB 边界等待与 finalize 成功收敛逻辑，并优化蓝牙扫描停止/超时状态复位、iOS 扫描进详情直连候选与取消旧连接后的锁等待；2026-04-27 新增开发者模式下仪表 OTA 端上调试日志与复制能力，并优化微信小程序主包体积，待继续真机 OTA 回归
+  - 进展：已完成 OTA 升级包 `device_kind` 模型、后台升级包管理双 TAB、APP 仪表升级包列表接口，以及 UniApp 蓝牙仪表详情页独立“选包后升级”卡片；本次继续根据 Android 10%/13%/95% 与 iOS 95% 日志加固仪表 OTA 写包节奏、4KB 边界等待与 finalize 成功收敛逻辑，并优化蓝牙扫描停止/超时状态复位、iOS 扫描进详情直连候选与取消旧连接后的锁等待；2026-04-27 新增开发者模式下仪表 OTA 端上调试日志与复制能力，并优化微信小程序主包体积；2026-04-28 根据微信小程序 95% 失败与误报成功日志，将仪表 OTA 收紧为全部 `0x53` ACK 后延迟 2s 再发 `0x54`，且必须收到 `0x54 status=0` 才显示成功；随后对齐旧版小程序经验，蓝牙 BMS 与仪表 `0x54` 均增加 300ms/600ms/900ms 补发，且都必须收到 `0x54 status=0` 才判定成功，仪表额外兼容 `0xFD` Boot 回包源地址；Android 仪表 `0x53` 改为 ACK 驱动低延迟传输并在超时后自动降速保护，待继续真机 OTA 回归
   - 文档：`docs/03-development/features/FEAT-0046-meter-ota-packages-and-uniapp-flow/`
 - [ ] `in_progress` **FEAT-0045** 调拨目标收敛与门店上级组织防泄露
   - owner：payhon
@@ -338,7 +344,7 @@
   - owner：payhon
   - 优先级：P1
   - 依赖：无
-  - 进展：已同步 UniApp 协议寄存器地址，并将设备详情仪表盘保护状态改为独立可折叠卡片与全量状态列表；2026-03-25 继续补齐仪表盘温度区按电芯温度数量动态展示 `T1/T2...`，并将保护状态卡片默认态调整为收起；2026-04-24 已将蓝牙设备详情 `readAllStatus()` 修正为 `0x100~0x134`（`0x35`/53 个寄存器）+ `0x141~动态尾地址` 的两段读取，兼容旧款 BMS 板未实现 `0x135~0x139` 的情况
+  - 进展：已同步 UniApp 协议寄存器地址，并将设备详情仪表盘保护状态改为独立可折叠卡片与全量状态列表；2026-03-25 继续补齐仪表盘温度区按电芯温度数量动态展示 `T1/T2...`，并将保护状态卡片默认态调整为收起；2026-04-24 已将蓝牙设备详情 `readAllStatus()` 修正为 `0x100~0x134`（`0x35`/53 个寄存器）+ `0x141~动态尾地址` 的两段读取，兼容旧款 BMS 板未实现 `0x135~0x139` 的情况；2026-04-30 已将移动端与 Web 端顶部故障/告警/保护入口按 `0x131`/`0x134~0x135`/`0x12F~0x130` 只读状态位判断，并排除 `0x4xx` 配置项
   - 文档：`docs/03-development/features/FEAT-0017-bms-status-register-shift/`
 - [ ] `in_progress` **FEAT-0016** 遗留 BMS 设备 UUID 自动补建
   - owner：payhon

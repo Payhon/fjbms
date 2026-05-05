@@ -23,4 +23,5 @@
 - 后端定向 `go test` 已通过。
 - 已在生产环境验证目标 4G 设备存在持续 MQTT 上行，bridge 修复后可生成 `uplink_raw/uplink_decoded/uplink_parsed/downlink_publish` 日志，且主平台 `device_batteries.soc/soh/updated_at` 可随报文刷新。
 - 已补充“无 `device_config` 时按业务数据自动上线并刷新默认心跳 TTL”的后端兜底实现，待生产部署后继续核验首页/详情在线态。
+- 已补充 `bms-bridge` 单元测试，验证 `identity.boardCode` 不会同步到 `device_batteries.item_uuid`，且空字符串不会覆盖持久字段。
 - 前端运行态和整包构建尚未完成。

@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-04-27
+- last_updated: 2026-04-30
 - related_feature: FEAT-0049
 - version: v0.1.0
 
@@ -10,6 +10,11 @@
 - 后端：当前遥测接口可通过已绑定/组织可见设备查询数据。
 - 后端：无 `bms.snapshot` 时仍返回当前摘要遥测 map。
 - UniApp：4G-only 设备进入详情页不发起 BLE 连接，不因主动连接失败显示离线。
+- UniApp：4G/4G+BLE 设备进入详情页优先使用 MQTT Socket 透传实时读取，透传失败后显示主动上报兜底数据。
+- UniApp：连接成功但首帧 BMS 实时状态未返回时，仪表盘展示加载提示而不是空白/零值数据。
+- UniApp：参数设置基础分组首次展开时先显示标题右侧加载图标，读取完成后再展开。
+- Web：4G 设备进入 BMS 面板自动使用 MQTT Socket 透传实时读取，手动按钮可重新连接/断开透传。
+- 后端：Socket WebSocket 首包使用数据库 UUID 鉴权，实际 MQTT topic 使用 `devices.device_number`。
 - UniApp：有当前遥测但无 `cell.voltagesMv` 时，仪表盘有摘要数据，电芯 Tab 显示明确空态。
 
 ## 当前结果
@@ -18,6 +23,9 @@
   - 校验最高电压 `3002mV`、最低电压 `2973mV`、压差 `29mV`、单体和 `41.816V`。
   - 温度寄存器按当前协议实现公式 `raw - 2731` 后除以 10，结果为 `27.0/28.0/27.0/27.0°C`。
 - [x] `cd frontend && pnpm build`：通过；构建期间存在既有 `eval` 与 unocss 图标加载警告，不影响本次构建结果。
+- [x] `cd frontend && pnpm typecheck`：通过。
+- [x] 后台 Web 4G 设备详情交互检查：BMS 面板默认云端遥测展示，不再自动连接参数直连；连接状态拆分为 MQTT 上报、云端订阅、参数通道。
+- [x] 后台 Web 云端刷新检查：手动刷新会重新拉取电池基础信息、当前遥测和历史图表；云端遥测 WebSocket 关闭/异常后会自动重连。
 - [x] `pnpm --dir fjbms-uniapp -s exec tsc --noEmit`：通过。
 - [x] 生产 `bms-bridge` 更新：`make deploy-bridge-prod` 已同步二进制、主配置和 `backend/configs` 目录，`make update-bridge-prod` 已追加发布短 `0x0100` 防污染保护，systemd 服务 `fjbms-bms-bridge` 为 `active`。
 - [x] 生产配置核验：`/www/fjia/fjbms/backend/bms-bridge/configs/bms-bridge-rules.yml` 已包含 `cell.voltagesMv`、`temperature.cellTempsC`、`cellVoltagesMv`、`cellTempsC`、电芯最高/最低索引等发布键。
@@ -29,4 +37,40 @@
   - 当前仅存在 `highestCellVoltageMv`、`lowestCellVoltageMv`、`maxCellVoltageDiffMv`
   - 未查询到 `bms.snapshot`、`cell.voltagesMv`、`temperature.cellTempsC`
   - 最近匹配上报时间：`2026-04-27 11:18:55`（Asia/Shanghai）
+- [x] 生产只读确认目标设备 `36011161145053593437373030124930` 当前绑定与遥测：
+  - `device_id=05de8897-838e-8913-45d5-24b968abc913`
+  - `device_batteries.item_uuid=36011161145053593437373030124930`
+  - `bms_comm_type=2`，`activation_status=ACTIVE`，`transfer_status=USER`
+  - 当前用户已存在 `device_user_bindings` 绑定记录，重复扫码添加时后端返回 `device already bound to current user`
+  - `telemetry_current_datas` 已有 `soc/soh/currentA/packCellSumVoltageV/cell.voltagesMv/temperature.cellTempsC` 等当前值
+- [x] 生产接口探测：
+  - `GET https://cloud.fjiaenergy.com/api/v1/app/battery/detail/:device_id` 未登录返回 401，路由存在
+  - `GET https://cloud.fjiaenergy.com/api/v1/app/battery/current-telemetry/:device_id` 未登录返回 404，生产后端暂未发布 App 专用当前遥测路由
+  - `GET https://cloud.fjiaenergy.com/api/v1/telemetry/datas/current/:device_id` 未登录返回 401，通用当前遥测路由存在，可作为移动端兼容 fallback
+- [x] `cd fjbms-uniapp && pnpm exec tsc --noEmit`：通过。
+- [x] `cd backend && go test ./internal/api ./internal/service ./router/apps`：通过；仅出现 macOS SDK 中 `IOMasterPort` 废弃警告。
+- [x] 生产后端与前端更新：`make update-backend-prod`、`make update-frontend-prod` 均已完成；`fjbms-backend` systemd 服务为 `active (running)`。
+- [x] 后端 Socket WebSocket 生产实测：使用数据库 UUID `05de8897-838e-8913-45d5-24b968abc913` 初始化 `/api/v1/app/battery/socket/ws`，设备详情解析出的 `device_number=36011161145053593437373030124930` 可正常完成透传。
+- [x] 生产 4G Socket 响应实测：旧实现下发送读 UUID 和读 `0x0100` 均收到 `0x0F` 响应帧，证明后端桥接 Topic 已能到达目标设备；后续已根据协议修正普通 BMS 读寄存器不应统一转 `0x0F`。
+- [x] 生产问题定位：实测 `0x0F` 响应的 `byteCount` 为字节数，例如 `byteCount=0x3C` 时整帧长度为 69 字节；原前端按寄存器数执行 `byteCount * 2`，导致帧长度不匹配并被丢弃。
+- [x] UniApp/Web 协议解析修复：`SOCKET_READ=0x0F` 响应统一按 `byteCount` 字节截取数据，不再翻倍。
+- [x] UniApp 二次剥离修复：`parseFrame` 不再提前剥离 `0x0F` 数据区的 `startAddress/quantity`，避免 `BmsClient` 后续解析时误把寄存器数据当地址头。
+- [x] 生产轮询超时复现：目标设备读 `0x0100` 响应耗时约 4~7 秒，原 2500ms 会提前超时并错过响应。
+- [x] 生产响应范围复现：读 `0x0100, qty=1` 实际返回 `0x0100, qty=54`，读动态区 `0x0141` 返回已有 28 个寄存器；客户端已改为缓存整段响应并按请求范围取交集。
+- [x] 生产 `readAllStatus()` 顺序模拟：`readSn -> head cache -> tail` 跑通，读出 `seriesCount=14`、`cellTempCount=4`，动态区 28 个寄存器可进入状态解析。
+- [x] UniApp/Web 4G Socket 默认请求超时调整为 10000ms，串行请求队列在单次超时后可恢复。
+- [x] 参数配置寄存器无响应结论修正：生产无响应发生时目标设备已离线，不作为 4G Socket 不支持 `0x0400` 等配置寄存器的证据。
+- [x] UniApp/Web 响应匹配修复：`SOCKET_READ=0x0F` pending 请求增加寄存器区间校验，避免主动上报的 `0x0100/0x0141` 状态帧误匹配参数读取请求。
+- [x] UniApp 参数设置页修正：撤回 MQTT 实时模式下的“不支持”提示和跳过读取逻辑，在线设备会继续真实读取参数配置寄存器。
+- [x] 4G MQTT 透传功能码修正：普通状态/参数寄存器保持 BLE 同款 `0x03` 读寄存器帧，仅 `0x0900~0x0923` 4G 模块专有寄存器使用云平台 `SOCKET_READ=0x0F`。
+- [x] UniApp/Web Transport 修正：默认不再将 `0x03` 请求转换为 `0x0F`；仅请求区间完全落在 `0x0900~0x0923` 时执行自动转换。
+- [x] 参数设置读取性能优化：UniApp/Web 直连模式改为 `readParamsByKeys()` 按连续寄存器范围批量读取，避免展开单体/总压等分组时逐项串行显示。
+- [x] `cd fjbms-uniapp && pnpm exec tsc --noEmit`：通过。
+- [x] UniApp 首帧等待态与参数分组加载态类型校验：`cd fjbms-uniapp && pnpm exec tsc --noEmit` 通过。
+- [x] `cd frontend && pnpm typecheck`：通过。
+- [x] `make update-frontend-prod`：解析修复已重新构建并替换生产前端；构建期间仅有既有 `eval` 与 unocss 图标加载警告。
+- [x] 生产 WebSocket 复测：初始化后收到 `0x0F` 透传状态帧，发送读 UUID 后收到目标设备响应。
+- [ ] UniApp 真机复测：待使用包含本次解析修复的移动端包进入 4G 设备详情，确认状态为 `MQTT透传实时`，仪表盘/电芯/参数来自 `readAllStatus()`。
+- [ ] UniApp 真机交互复测：待确认从首页进入详情时首帧等待卡片展示正常，参数分组加载图标在数据返回后切为向上箭头并展开。
+- [ ] Web 浏览器复测：待进入同一 4G 设备 BMS 面板确认仪表/电芯数据来自 `readAllStatus()`，并验证重新连接和断开实时透传。
 - [ ] `go test ./...`：失败在既有环境依赖用例，非本次改动包；`initialize/test` 空指针，`backend/test` 未设置 `run_env` 导致 DB 为空。

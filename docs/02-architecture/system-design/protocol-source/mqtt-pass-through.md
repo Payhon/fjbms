@@ -24,14 +24,14 @@
 #### 6.2.1 发送 Topic（设备 → 平台/APP）
 
 - **格式**: `device/socket/tx/{device_id}`
-- **说明**: 设备向此 Topic 发布数据，平台/APP 端订阅此 Topic 接收数据
+- **说明**: 设备向此 Topic 发布数据，平台/APP 端订阅此 Topic 接收数据；当前 4G BMS 接入中 `{device_id}` 使用 `devices.device_number`，不是数据库 UUID。
 
 #### 6.2.2 接收 Topic（平台/APP → 设备）
 
 - **格式**: `device/socket/rx/{device_id}`
-- **说明**: 设备订阅此 Topic 接收平台/APP 端下发的数据
+- **说明**: 设备订阅此 Topic 接收平台/APP 端下发的数据；当前 4G BMS 接入中 `{device_id}` 使用 `devices.device_number`，不是数据库 UUID。
 
-**注意**: `{device_id}` 为设备的唯一标识符（UUID）。
+**注意**: 本文原始协议中的 `{device_id}` 表示硬件侧 Topic 标识。FJBMS 当前实现统一映射为 `devices.device_number`；数据库 UUID 只用于页面路由、权限校验和后端查询，不得直接拼入 Socket Topic。
 
 ### 6.3 QoS 设置
 

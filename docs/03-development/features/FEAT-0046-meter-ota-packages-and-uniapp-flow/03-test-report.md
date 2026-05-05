@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-04-26
+- last_updated: 2026-04-28
 - related_feature: FEAT-0046
 - version: v0.1.0
 
@@ -34,5 +34,10 @@
 - 2026-04-26：根据 iOS 成功升级日志确认 `0x53` 全部 ACK 与 `0x54` finalize 收敛，并优化 iOS 扫描进详情直连候选与取消旧连接后的锁等待，复测 `cd fjbms-uniapp && pnpm exec tsc --noEmit`，通过。
 - 2026-04-27：新增开发者模式下仪表 OTA 端上调试日志、复制与清空能力后，复测 `cd fjbms-uniapp && pnpm exec tsc --noEmit`，通过。
 - 2026-04-27：优化微信小程序主包体积，将 OTA 调试日志模块迁入设备详情分包并删除未引用 `static/js/moment.js` 后，复测 `cd fjbms-uniapp && pnpm exec tsc --noEmit`，通过。
+- 2026-04-28：根据微信小程序仪表 OTA 95% 日志，补齐最后一个 `0x53` 写入遇到 `10006/writeValueToCharacteristics` 时进入 `0x54` finalize 的成功收敛策略，复测 `cd fjbms-uniapp && pnpm exec tsc --noEmit`，通过。
+- 2026-04-28：统一蓝牙 BMS 与蓝牙仪表在 Android/iOS 运行时的 OTA 末尾边界策略，仪表 Android 专用写包节奏保持独立，复测 `cd fjbms-uniapp && pnpm exec tsc --noEmit`，通过。
+- 2026-04-28：根据小程序仪表 OTA 成功界面但版本未变化日志，将仪表 OTA 改为 `0x53` 全部 ACK + 延迟 2s + `0x54 status=0` 的严格成功条件，复测 `cd fjbms-uniapp && pnpm exec tsc --noEmit`，通过。
+- 2026-04-28：借鉴旧版微信小程序 OTA 可用实现，蓝牙 BMS 与蓝牙仪表 OTA 均增加 `0x54` 300ms/600ms/900ms 补发；两者均要求 `0x54 status=0` 才判定成功，仪表额外兼容 `0xFD` Boot 回包源地址，复测 `cd fjbms-uniapp && pnpm exec tsc --noEmit`，通过。
+- 2026-04-28：优化 Android 仪表 `0x53` ACK 驱动发包速度，取消默认 ACK 后固定等待、降低最小帧间隔与 4KB 边界等待，并增加超时后的自动慢速保护，复测 `cd fjbms-uniapp && pnpm exec tsc --noEmit`，通过。
 - 待执行前端构建复测。
 - 待真机联调仪表 OTA 下载与写包流程。

@@ -38,6 +38,13 @@
    - 根因为 `backend/internal/adapter/mqttadapter/adapter.go` 将公共 payload 的 `values` 声明为普通 `[]byte`，无法接收 bridge 发布的 JSON 对象。
    - 已改为 `json.RawMessage`，保持 `values` 原始 JSON 结构透传给后续遥测/属性/事件处理链，恢复入库与在线态刷新。
 
+## 2026-04-29
+1. BMS 板编码与 `item_uuid` 误关联修复
+   - 确认 `identity.boardCode` 是硬件端用户定义的 BMS 板编码，不是平台 `device_batteries.item_uuid`。
+   - 已删除 `backend/configs/bms-bridge-rules.yml` 中 `item_uuid: identity.boardCode` 的 DB 同步映射。
+   - 已从 `bms-bridge` 的 `device_batteries` 可同步列白名单移除 `item_uuid`，即使规则误配也不会通过上报覆盖平台设备唯一编号。
+   - 已补充 DB 同步空字符串过滤，避免设备上报空字符串覆盖已有 `ble_mac/imei/iccid/comm_chip_id` 等持久字段。
+
 ## 待完成
 - 本地浏览器运行态回归
 - 后台账号菜单可见性确认

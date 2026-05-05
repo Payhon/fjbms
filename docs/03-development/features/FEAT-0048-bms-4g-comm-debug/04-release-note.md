@@ -10,11 +10,13 @@
 - 新增 `bms_bridge_comm_logs` 通讯日志表
 - 新增 BMS 后台菜单 `通讯调试管理`
 - `bms-bridge` 增加 4G BMS 通讯日志采集与 7 天清理
+- `bms-bridge` 不再将硬件 `identity.boardCode` 写入 `device_batteries.item_uuid`
 - 后端新增分页查询接口和 SSE 实时流接口
 
 ## 2. 发布前检查
 - 执行 `backend/sql/52.sql`
 - 确认 `bms-bridge` 已更新到包含通讯调试日志采集的版本
+- 确认生产 `bms-bridge-rules.yml` 已移除 `item_uuid: identity.boardCode`
 - 确认后台账号拥有 `bms_ops_comm_debug` 菜单权限
 
 ## 3. 回滚说明

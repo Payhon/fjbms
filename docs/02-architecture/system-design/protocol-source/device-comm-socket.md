@@ -2,11 +2,13 @@
 
 - status: approved
 - owner: <owner>
-- last_updated: 2026-02-14
+- last_updated: 2026-04-30
 - source: `doc/oriigin/device_comm_protocol_socket.md`
 - version: v1.0.0
 
 > 本文是迁移后的主维护版本。
+
+> 使用范围：本文的云平台 `0x0F` 读指令仅用于 4G 模块专有寄存器 `0x0900~0x0923`。4G MQTT 数据透传读取普通 BMS 状态/配置寄存器时，仍按 BLE 通讯相同的 BMS 协议发送 `0x03` 读寄存器帧。
 
 ## 云平台-读指令
 

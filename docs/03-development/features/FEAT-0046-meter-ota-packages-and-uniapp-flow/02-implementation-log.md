@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-04-26
+- last_updated: 2026-04-28
 - related_feature: FEAT-0046
 - version: v0.1.0
 
@@ -38,3 +38,8 @@
 27. 根据 `_resources/ble-metric-upgrade-console-ios-02.txt` 复核 iOS 升级完成日志：最后一个 `0x53 packetIndex=1613` 回 `requested=1614`，随后发送 `0x54` 并按预期 finalize timeout 收敛，确认界面完成对应真实写包完成。同步优化 iOS 扫描进入详情连接耗时：扫描页传入的 UUID 型 `deviceId` 不再被 MAC 兼容过滤误判，允许直接连接；详情页主动取消旧连接后，连接锁等待缩短到 1.2s，避免被旧 AC 设备连接任务拖慢约 8s。
 28. 针对线上用户“还没开始写固件前失败”问题，新增开发者模式下端上仪表 OTA 调试日志：本地缓冲最近 120 条关键日志，覆盖选包、升级包列表、固件下载、Boot `0x50/0x52` 前置、首包预览、关键 ACK、失败错误对象与成功收敛证据；在仪表升级卡片下方展示并支持复制/清空，不新增后端接口，不影响 BMS OTA。
 29. 针对微信小程序主包 2053KB 超过 2048KB 限制，优化包体：将仪表 OTA 调试日志模块从 `common/` 移入 `pages/device-battery` 分包，避免进入主包；删除未被源码引用但会被打入主包的 `static/js/moment.js`，释放约 85KB 静态资源空间。
+30. 根据 `_resources/ble-metric-upgrade-log-mp.txt` 排查微信小程序仪表 OTA 95% 失败：日志显示数据包 ACK 已到 `packetIndex=1599/requested=1600`，最后一个 `0x53 packetIndex=1613` 写入时小程序 BLE 栈返回 `10006/writeValueToCharacteristics`，App 侧尚未发出 `0x54`。仪表分支新增终端数据包写入错误收敛：仅当当前包为最后一个数据包且错误为 BLE 连接/特征写入终止类错误时，不再重发 `0x53`，改为进入 `0x54` finalize，并沿用全部数据写完后的超时/断开成功收敛；若数据包应答阶段已收到设备 `0x54` 完成响应，则立即停止继续写数据。BMS OTA 默认不启用该策略。
+31. 统一蓝牙 OTA 末尾边界策略：抽出 Android/iOS 蓝牙运行时选项，蓝牙 BMS 与蓝牙仪表均曾启用 `0x54` finalize 超时/断开成功收敛、最后一个 `0x53` 终端写入错误进入 finalize、数据应答阶段收到 `0x54` 后立即停止继续写数据；仪表 Android 继续单独保留慢速写包与 4KB 边界等待，BMS OTA 不使用仪表专用时序。
+32. 根据 `_resources/ble-metric-upgrade-log-mp-02.txt` 复核小程序仪表 OTA“界面成功但版本未变化”问题：日志只显示 `0x54` 已发送，随后 `finalize assume success after timeout`，未收到协议要求的 `0x54 status=0` 返回。仪表 OTA 改为严格协议闭环：必须完成全部 `0x53` ACK 到 `requested == packetTotal`，等待 2s 后发送 `0x54`，且 `0x54` 必须返回 `status=0` 才显示成功；否则显示“固件数据包未完整确认”或“升级完成指令未收到设备确认”。
+33. 对照旧版微信小程序 `_resources/vendor.js` 的可用 OTA 状态机经验，补齐 OTA 完成阶段稳定性：全部 `0x53` ACK 后，蓝牙 BMS 与蓝牙仪表均会将 `0x54` 按 300ms/600ms/900ms 额外补发，并且都必须收到任意一次 `0x54 status=0` 才判定成功；不再把 finalize 超时或 BLE 断开收敛为成功。同时仪表 Boot 回包源地址兼容 `0x01/0xFC/0xFD`，避免不同 Bootloader 地址差异导致有效 ACK 被过滤。
+34. 按旧版小程序 `0x53` ACK 驱动发包经验优化仪表 Android OTA 速度：默认取消 ACK 后固定 `packetDelayMs`，最小帧间隔从 220ms 降为 100ms，4KB 边界等待从 1500ms 降为 300ms；若发生 `0x53` 超时重试，自动启用慢速保护参数（100ms 包间等待、1500ms 边界等待），兼顾稳定性与速度。

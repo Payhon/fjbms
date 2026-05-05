@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-04-24
+- last_updated: 2026-04-30
 - related_feature: FEAT-0017
 - version: v0.1.0
 
@@ -51,3 +51,9 @@
    - 已根据旧版本 BMS 实际兼容要求确认 `0x135` 也不存在，首段读取必须改为 `0x100~0x134`。
    - 已将 `readAllStatus()` 首段数量改为 `0x35`（53）个寄存器，第二段仍从 `0x141` 读取。
    - 拼装连续视图时，`0x135~0x140` 保持零值占位；`alarmStatus` 中依赖 `0x135` 的高位部分在旧板兼容读取下按默认值处理。
+12. 2026-04-30 顶部故障/告警/保护入口状态源修正
+   - 已根据协议口径重新区分 `0x1xx` 只读状态与 `0x4xx` 读写配置项，`0x4xx` 配置项开启不再触发设备详情仪表页顶部故障、告警或保护入口。
+   - UniApp 设备详情仪表页顶部入口已调整为：故障仅来自 `status.failureStatus`（`0x131`），告警仅来自 `status.alarmStatus`（`0x134~0x135`），保护仅来自 `status.protectionStatus`（`0x12F~0x130`）。
+   - Web 端 BMS 面板已同步增加故障/告警/保护入口与弹层，来源与 UniApp 保持一致。
+   - Frontend 与 UniApp 的 `readAllStatus()` 已在旧板兼容主流程外单独尝试读取 `0x135`，支持新板完整解析告警状态 32BIT；旧板读取失败时仍按零值回填，不中断轮询。
+   - 后端与 Web 协议解析已补齐 `failureStatus` 字段、状态扁平化与事件跟踪前缀，并新增后端单测覆盖保护/失效/告警状态分段解析。
