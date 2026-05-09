@@ -679,6 +679,8 @@ OTA固件升级包表
 | description | varchar(500) | 描述 | |
 | additional_info | json | 附加信息 | DEFAULT '{}' |
 | tenant_id | varchar(36) | 租户ID | |
+| device_kind | int2 | 设备类型 | 1-BMS 2-仪表 3-4G模块，DEFAULT 1 |
+| is_latest | boolean | 是否最新固件 | DEFAULT false；4G模块同租户最多一个最新包 |
 | created_at | timestamptz | 创建时间 | NOT NULL |
 | updated_at | timestamptz | 更新时间 | |
 | remark | varchar(255) | 备注 | |

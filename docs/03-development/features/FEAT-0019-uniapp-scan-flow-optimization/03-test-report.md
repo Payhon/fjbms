@@ -2,7 +2,7 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-04-20
+- last_updated: 2026-05-05
 - related_feature: FEAT-0019
 - version: v0.1.0
 
@@ -13,6 +13,7 @@
 - 已添加设备扫码直达详情
 - BMS 绑定成功后跳转详情页
 - 仪表临时 BLE 会话详情与二次扫码绑定 BMS
+- 设备详情页蓝牙 BMS 首帧读取慢响应、自动恢复与人工重试入口
 
 ## 2. 测试环境
 - 当前 Codex 桌面执行环境
@@ -49,12 +50,20 @@
 - 通过：`pnpm exec tsc --noEmit` 校验通过，无新增 TypeScript 类型错误。
 - 通过：`uni-ble-transport.ts` 现已将 iOS 正常 notify 驱动下的 `writeBLECharacteristicValue` 软超时日志收敛为单次 info 诊断，不再在轮询期间持续刷屏。
 - 通过：`uni-ble-transport.ts` 现已将该类一次性写入日志显式标注为 `callback latency diagnostic`，与真正的 `BLE request timeout` 区分。
+- 通过：`useBatteryDetail.ts` 在 handoff / 普通详情 warm BLE 复用前新增健康探测，探测失败时会断开旧缓存并改走重连，避免旧连接直接进入首帧等待。
+- 通过：`useBatteryDetail.ts` 在普通蓝牙 BMS 首帧失败时会自动断开并重连，最多自动恢复 2 次；成功拿到 `status` 后重置首帧恢复状态，不影响后续 2s 常规轮询。
+- 通过：`detail.vue` 在首帧慢响应或失败时展示可操作按钮，用户可以选择重新连接读取或在当前连接上重新读取。
+- 通过：`lang/zh-CN.ts` 与 `lang/en-US.ts` 已补齐首帧慢响应、自动重连、失败和重试按钮文案。
+- 通过：`pnpm exec tsc --noEmit --pretty false` 校验通过，无新增 TypeScript 类型错误。
+- 通过：蓝牙扫描页已添加设备卡片点击时会先命中 `boundDevicesStore.findByBleMac()`，命中后直接进入 `/pages/device-battery/detail?device_id=...`，不再进入添加向导。
+- 通过：`mode=qr&mac=...` 进入蓝牙扫描页时，若目标 MAC 已绑定，会直接重定向到对应设备详情页。
+- 通过：绑定接口错误提示已优先读取响应 `data.message`，例如后端返回 `device already bound to current user` 时不会只显示外层“请求参数验证失败”。
 
 ## 4. 缺陷与风险
 - 尚未完成真机蓝牙联调，以下场景仍需设备侧验证：
   - 已添加设备通过扫码直达详情页后的首连时延与页面体验；
   - iPhone 上“我的设备列表已连接 -> 扫码直达详情”是否稳定直接接管已有 BLE 会话，而不是再次重连；
-  - 蓝牙扫描页显示“已添加”备注的设备卡片后，用户点击该卡片时的后续引导是否符合业务预期；
+  - 蓝牙扫描页显示“已添加”备注的设备卡片后，点击直达对应设备详情页的真机跳转体验；
   - iPhone 冷启动后首次进入某已绑定设备详情时，若本地已有 remembered `deviceId`，是否会优先出现 `ios direct connect try` 并明显缩短等待；
   - iPhone 若 remembered `deviceId` 失效，是否会先走短扫回退，而不是再次固定等待满 `5s`；
   - BMS 绑定成功后跳转详情页时，是否稳定复用原 BLE 会话，且不再出现第二次 discover/connect；
@@ -66,6 +75,8 @@
   - iOS App 端在打印 `[ble] post-connect warmup` 后执行 `readUuid()` 时，是否可稳定收到首个回复帧并进入第三步，不再长期停留在“读取设备唯一编号（执行中）”；
   - iOS App 端若首包仍失败，是否能够继续看到一次性的写入 soft-timeout 诊断、fallback 告警或标准 `BLE request timeout`，而不是完全无日志卡死；
   - iOS App 端首页进入设备详情页时，首个 `status obj` 打印耗时是否明显收敛，且重复 timeout 日志是否已基本消失；
+  - iOS/Android 首页直接进入蓝牙 BMS 详情时，首帧失败后是否按预期自动重连，并在多次失败后展示人工重连入口；
+  - BMS 绑定成功后 handoff 进入详情页时，warm BLE 健康探测失败是否能自动切换为重连，而不是卡在首帧等待；
   - 仪表临时 BLE 会话下的自动连接成功率；
   - 仪表详情页二次扫码后 `configureMeterMac` 的协议写入和设备刷新时序；
   - APP 与微信小程序扫码 API 在不同机型上的体验一致性。

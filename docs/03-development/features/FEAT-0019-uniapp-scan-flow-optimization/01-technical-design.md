@@ -85,9 +85,11 @@
 - `DeviceRow` 记录 `deviceType: SupportedDeviceType | null`。
 - `upsertDevice()` 在解析到广播 MAC 后调用 `resolveDeviceTypeByMac(advMac)` 写入行数据；若本次广播缺失 `advMac`，沿用已存在行上的 `deviceType`，避免设备类型在重复广播中闪断。
 - `selectDevice()` 的点击规则固定为：
+  - 扫描行 `advMac` 命中 `boundDevicesStore.findByBleMac()` -> 直接跳转 `/pages/device-battery/detail?device_id=...`
   - `deviceType === 'meter'` 且 `advMac` 可用 -> 跳转 `/pages/device-battery/detail?session_mode=instrument&ble_mac=...&allow_scan_handoff=1&device_name=...`
   - 其它情况 -> 继续跳转 `/pages/device-provision/provision-wizard?deviceId=...`
 - 不调整 `onDeviceFound()` 的自动匹配逻辑；`mode=qr` 仍只服务 BMS 添加链路，仪表仅在用户点击扫描卡片时进入临时会话。
+- 绑定接口错误文案统一走 `common/api-error.ts` 的 `extractApiErrorMessage()`，展示优先级为 `data.message` / `data.error` / 外层 `message` / fallback，并保留 `data.sql_error` 调试后缀。
 - BLE 扫描页的蓝牙 API 调用需要增加超时保护：
   - `openBluetoothAdapter` / `startBluetoothDevicesDiscovery` 超时后直接抛错，结束按钮 loading 并展示初始化失败；
   - `stopBluetoothDevicesDiscovery` 在 iOS App 端若未处于 `discovering` 状态则不调用，若回调长时间不返回则超时放行，避免阻塞后续启动扫描。

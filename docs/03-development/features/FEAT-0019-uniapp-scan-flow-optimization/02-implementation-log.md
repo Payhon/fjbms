@@ -2,7 +2,7 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-04-20
+- last_updated: 2026-05-05
 - related_feature: FEAT-0019
 - version: v0.1.0
 
@@ -169,3 +169,21 @@
 - 调整设备详情页 BLE 轮询频率：
   - `pages/device-battery/useBatteryDetail.ts` 将常规状态轮询间隔由 `5s` 下调为 `2s`；
   - 仪表临时会话“首包前 1.2s 快速重试”逻辑保持不变，仅缩短首包后的常规刷新周期。
+
+## 2026-05-05
+- 加固设备详情页蓝牙 BMS 首帧读取稳定性：
+  - `pages/device-battery/useBatteryDetail.ts` 在复用 warm BLE 会话前增加 `readUuid()` 轻量健康探测，并设置 3.8s 外层超时；探测失败时主动断开缓存连接并走重连，避免把“看似已连接但首包不通”的旧连接直接接入详情页。
+  - 首帧 `readAllStatus()` 失败时新增自动恢复路径：普通 BMS 蓝牙会话在首帧失败后自动断开并重新连接，最多自动重试 2 次；成功拿到 `status` 后清空恢复状态，不影响后续常规轮询。
+  - 新增首帧加载状态 `reading / slow / retrying / failed`，9s 未拿到首帧时进入友好提示状态，避免页面长时间只有静态“等待首帧”文案。
+- 补齐详情页人工兜底操作：
+  - `pages/device-battery/detail.vue` 在首帧慢响应或失败时展示“重新连接读取”和“重新读取”按钮；
+  - “重新连接读取”会断开当前 BLE 缓存并强制重连，“重新读取”在当前连接上重新启动状态轮询。
+- 补齐中英文文案：
+  - `lang/zh-CN.ts`、`lang/en-US.ts` 新增首帧慢响应、自动重连、读取失败、重新读取与重新连接读取文案。
+- 优化蓝牙扫描已添加设备点击行为：
+  - `pages/device-provision/ble-scan.vue` 点击设备卡片时先通过 `boundDevicesStore.findByBleMac()` 命中“我的设备”绑定记录；
+  - 命中后直接跳转 `/pages/device-battery/detail?device_id=...`，不再进入 `provision-wizard` 和重复绑定流程；
+  - `mode=qr&mac=...` 入口若发现目标 MAC 已绑定，也改为直接 `redirectTo` 对应设备详情页。
+- 优化后端参数校验错误展示：
+  - 新增 `common/api-error.ts`，错误文案优先展示响应 `data.message`；
+  - `provision-wizard.vue`、`uuid-bind.vue` 和 `common/request.ts` 已复用该提取逻辑，避免只显示外层“请求参数验证失败”。

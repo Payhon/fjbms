@@ -14,6 +14,12 @@
 ## 模块泳道看板
 
 ### Backend（`backend/`）
+- [ ] `in_progress` **FEAT-0051** 4G模块 OTA 升级包管理
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0046
+  - 进展：已扩展 OTA 升级包 `device_kind=3` 与 `is_latest`，新增后台 4G 模块升级包 Tab、固件 URL 复制、公开升级检查接口和 SQL/文档；已通过定向 Go 测试与前端 typecheck，`go test ./...` 剩余既有环境型失败待单独处理
+  - 文档：`docs/03-development/features/FEAT-0051-4g-module-ota-package-management/`
 - [ ] `in_progress` **FEAT-0050** 电池列表恢复出厂操作
   - owner：payhon
   - 优先级：P1
@@ -332,7 +338,7 @@
   - owner：payhon
   - 优先级：P1
   - 依赖：FEAT-0016
-  - 进展：已完成扫码入口按设备类型分流、设备前缀静态配置化、BMS 绑定成功直达详情页，以及仪表临时 BLE 会话详情模式；本次继续补齐 BMS 绑定成功后的 BLE 会话复用与 `provision -> detail` handoff，详情页已改为优先接管已连 BLE 会话并后台刷新云端详情，同时修复蓝牙扫描页“正在匹配：{mac}”占位显示；已通过 `pnpm exec tsc --noEmit`，待真机联调验收绑定成功后进入详情页的首连时延、BLE 会话复用命中率、BLE 扫描点击分流，以及 iOS 扫描启动稳定性、向导页连接启动/服务树发现/首包读取与仪表首连体验
+  - 进展：已完成扫码入口按设备类型分流、设备前缀静态配置化、BMS 绑定成功直达详情页，以及仪表临时 BLE 会话详情模式；本次继续补齐 BMS 绑定成功后的 BLE 会话复用与 `provision -> detail` handoff，详情页已改为优先接管已连 BLE 会话并后台刷新云端详情，同时修复蓝牙扫描页“正在匹配：{mac}”占位显示；2026-05-05 增加设备详情 warm BLE 健康探测、首帧读取失败自动重连恢复、“重新连接读取 / 重新读取”人工兜底入口，并补齐蓝牙扫描已添加设备点击直达详情与绑定错误 `data.message` 展示；已通过 `pnpm exec tsc --noEmit --pretty false`，待真机联调验收绑定成功后进入详情页的首连时延、BLE 会话复用命中率、BLE 扫描点击分流，以及 iOS 扫描启动稳定性、向导页连接启动/服务树发现/首包读取与仪表首连体验
   - 文档：`docs/03-development/features/FEAT-0019-uniapp-scan-flow-optimization/`
 - [ ] `in_progress` **FEAT-0018** UniApp 温度参数支持负数输入
   - owner：payhon

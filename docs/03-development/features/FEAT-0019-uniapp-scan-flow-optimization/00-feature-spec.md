@@ -2,7 +2,7 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-04-18
+- last_updated: 2026-05-05
 - related_feature: FEAT-0019
 - version: v0.1.0
 
@@ -58,6 +58,8 @@
 10. BMS 绑定成功跳转设备详情页时，不再必然发生第二次 BLE discover/connect；若 handoff 失效，前端自动回退到原有重连路径。
 11. 蓝牙扫描页 `mode=qr&mac=...` 时，“正在匹配：{mac}”占位文案需正确显示真实 MAC，而不是字面量 `{mac}`。
 12. iPhone 已绑定设备进入设备详情页时，若本地已记住该设备的 BLE `deviceId`，日志应优先出现 `ios direct connect try`，且不再固定等待约 5 秒后才开始建连。
+13. 蓝牙扫描页已标记“该设备已添加到我的设备”的设备卡片，点击后必须直接进入该绑定设备详情页，不再进入添加向导或再次调用绑定接口。
+14. 添加/绑定接口返回外层通用错误时，移动端错误提示需优先展示 `data.message` 下的后端业务详情，例如 `device already bound to current user`。
 
 ## 4. 风险与约束
 - `custom-tab-bar/index.js` 需要与 TS 页面共享同一份常量源，静态配置文件需兼容 JS `require` 与 TS `import` 使用。
