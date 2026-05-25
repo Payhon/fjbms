@@ -4,7 +4,7 @@
 
 该接口供 4G 模块或设备侧服务在无需登录的情况下检测 4G 模块固件是否需要升级。
 
-接口会根据调用方上报的当前固件版本号、ICCID 和租户 ID，查找后台 `4G模块升级包` 中可用的升级包，并返回是否需要升级以及固件下载 URL。
+接口会根据调用方上报的当前固件版本号、IMEI 或 4G 通讯卡 ID 和租户 ID，查找后台 `4G模块升级包` 中可用的升级包，并返回是否需要升级以及固件下载 URL。
 
 ## 2. 接口地址
 
@@ -15,7 +15,7 @@ GET /api/v1/ota/4g-module/check
 示例完整地址：
 
 ```text
-https://cloud.fjiaenergy.com/api/v1/ota/4g-module/check?tenant_id=d616bcbb&version=1.0.0&iccid=89860000000000000000
+https://cloud.fjiaenergy.com/api/v1/ota/4g-module/check?tenant_id=d616bcbb&version=1.0.0&imei=860000000000000
 ```
 
 ## 3. 认证与租户参数
@@ -56,20 +56,20 @@ Query 参数：
 |------|------|------|------|------|
 | `tenant_id` | string | 条件必填 | 最大 36 字符 | 当前设备所属租户 ID；也可通过 Header 传递 |
 | `version` | string | 是 | 最大 36 字符 | 4G 模块当前固件版本号 |
-| `iccid` | string | 是 | 最大 22 字符 | 4G 模块 ICCID |
+| `imei` | string | 是 | 最大 64 字符 | 4G 模块 IMEI 或 4G 通讯卡 ID。后端会匹配 `device_batteries.comm_chip_id` 或 `device_batteries.imei`，任一字段命中即可 |
 
 请求示例（推荐，租户 ID 通过 Query 传递）：
 
 ```bash
 curl -X GET \
-  'https://cloud.fjiaenergy.com/api/v1/ota/4g-module/check?tenant_id=d616bcbb&version=1.0.0&iccid=89860000000000000000'
+  'https://cloud.fjiaenergy.com/api/v1/ota/4g-module/check?tenant_id=d616bcbb&version=1.0.0&imei=860000000000000'
 ```
 
 请求示例（兼容，租户 ID 通过 Header 传递）：
 
 ```bash
 curl -X GET \
-  'https://cloud.fjiaenergy.com/api/v1/ota/4g-module/check?version=1.0.0&iccid=89860000000000000000' \
+  'https://cloud.fjiaenergy.com/api/v1/ota/4g-module/check?version=1.0.0&imei=860000000000000' \
   -H 'X-Tenant-ID: d616bcbb'
 ```
 
@@ -90,7 +90,7 @@ curl -X GET \
     "name": "4G模块固件",
     "description": "修复通信稳定性",
     "is_latest": true,
-    "iccid": "89860000000000000000"
+    "imei": "860000000000000"
   }
 }
 ```
@@ -107,12 +107,12 @@ curl -X GET \
 | `name` | string | 升级包名称 |
 | `description` | string | 升级包说明 |
 | `is_latest` | boolean | 返回的升级包是否标记为最新固件 |
-| `iccid` | string | 本次请求传入的 ICCID |
+| `imei` | string | 本次请求传入的 IMEI |
 
 ## 6. 判断规则
 
-1. 校验 `version`、`iccid` 和租户 ID。
-2. 根据租户 ID 与 `iccid` 确认该 4G 模块属于当前租户。
+1. 校验 `version`、`imei` 和租户 ID。
+2. 根据租户 ID 与 `imei` 确认该 4G 模块属于当前租户，后端匹配 `device_batteries.comm_chip_id` 或 `device_batteries.imei` 字段，任一字段命中即可。
 3. 查询当前租户或公共升级包中 `device_kind=3` 的 4G 模块升级包。
 4. 只考虑版本号大于当前 `version` 的升级包。
 5. 如果没有可升级包，返回 `need_upgrade=false`。
@@ -130,14 +130,14 @@ curl -X GET \
     "need_upgrade": false,
     "current_version": "1.0.2",
     "is_latest": false,
-    "iccid": "89860000000000000000"
+    "imei": "860000000000000"
   }
 }
 ```
 
 常见无升级原因：
 
-- ICCID 在当前租户下不存在。
+- `imei` 参数值在当前租户下的 `device_batteries.comm_chip_id` 和 `device_batteries.imei` 均不存在。
 - 后台没有 4G 模块升级包。
 - 后台升级包版本不大于请求版本。
 - 存在多个更高版本升级包，但未标记 `是否最新固件`。

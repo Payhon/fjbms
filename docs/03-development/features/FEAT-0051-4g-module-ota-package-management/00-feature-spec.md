@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-05-07
+- last_updated: 2026-05-18
 - related_feature: FEAT-0051
 - version: v0.1.0
 
@@ -31,7 +31,7 @@
 3. 同租户下保存一个 4G 包为最新固件时，其他 4G 包自动取消最新标记。
 4. 未登录调用升级检查接口不触发 JWT 校验。
 5. 接口缺少租户 ID 时返回参数错误。
-6. 接口按 `version + iccid + tenant_id` 返回是否需要升级与固件 URL，租户 ID 可通过 Query 或 Header 传递。
+6. 接口按 `version + imei + tenant_id` 返回是否需要升级与固件 URL，租户 ID 可通过 Query 或 Header 传递；`imei` 入参匹配 `device_batteries.comm_chip_id` 或 `device_batteries.imei`，任一字段命中即可。
 
 ## 4. 风险与约束
 - 公开接口仍依赖租户 ID 隔离数据，调用方必须传 Query `tenant_id`、Header `X-Tenant-ID` 或兼容头 `X-TenantID`。

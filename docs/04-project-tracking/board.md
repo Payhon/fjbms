@@ -13,7 +13,27 @@
 
 ## 模块泳道看板
 
+### Mobile（`fjbms-uniapp/`）
+- [ ] `in_progress` **FEAT-0052** UniApp 设备详情、扫描、多语言与登录体验优化
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0021、FEAT-0030、FEAT-0033
+  - 进展：已完成设备详情中间单 SOC 仪表、高级参数 SOH/虚拟容量写入、只读 SOH 与虚拟容量设备参数权限节点、BLE RSSI 信号格、英文文案、小程序 Add Device 弹层、Home TabBar 语言刷新、首页蓝牙断开、登录跳转节流，以及微信小程序登录/注册协议默认未勾选的代码与协议文档更新；UniApp 类型检查与后端权限树单测已通过，待真机/小程序抽测
+  - 文档：`docs/03-development/features/FEAT-0052-uniapp-device-detail-scan-i18n-login-ux/`
+
 ### Backend（`backend/`）
+- [ ] `in_progress` **FEAT-0054** 后台附件管理
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0038
+  - 进展：已新增后台附件管理页面、当前租户附件列表筛选、预览/下载/删除操作、后端本地/阿里云/七牛存储对象删除逻辑，以及菜单权限 SQL；业务类型筛选已改为下拉选择，上传人改为显示账号/名称；已通过后端定向测试、前端 typecheck 和附件管理相关文件 ESLint，`make update-frontend-prod` 已完成构建但因当前 shell 缺少 `FJBMS_PROD_SSH_PASSWORD` 未完成上传更新；前端全量 lint 仍受既有旧文件 `no-empty` 等问题阻塞，待浏览器权限回归
+  - 文档：`docs/03-development/features/FEAT-0054-admin-attachment-management/`
+- [ ] `in_progress` **FEAT-0053** BMS OTA 升级包约束匹配
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0046、FEAT-0051
+  - 进展：已新增 `ota_upgrade_packages` 三个约束字段与索引，后台 BMS 包表单改为 BMS 型号/批号/序列号约束，APP 检测请求补充约束字段，后端按约束精确度和版本选择升级包；已通过后端定向单测、前端 typecheck 与 UniApp TypeScript 校验，待运行态联调
+  - 文档：`docs/03-development/features/FEAT-0053-bms-ota-package-constraints/`
 - [ ] `in_progress` **FEAT-0051** 4G模块 OTA 升级包管理
   - owner：payhon
   - 优先级：P1

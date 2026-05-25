@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-05-07
+- last_updated: 2026-05-18
 - related_feature: FEAT-0051
 - version: v0.1.0
 
@@ -17,12 +17,12 @@
 - 保存 4G 包且 `is_latest=true` 时，事务内将同租户其他 4G 包更新为 `false`。
 - 公开接口：
   - `GET /api/v1/ota/4g-module/check`
-  - Query：`version`、`iccid`
+  - Query：`version`、`imei`
   - Query：`tenant_id`，兼容 Header `X-Tenant-ID` / `X-TenantID`
-  - Response：`need_upgrade`、`current_version`、`version`、`firmware_url`、`package_id`、`name`、`description`、`is_latest`、`iccid`
+  - Response：`need_upgrade`、`current_version`、`version`、`firmware_url`、`package_id`、`name`、`description`、`is_latest`、`imei`
 
 ## 3. 升级包选择
-- 先通过 `devices.tenant_id + device_batteries.iccid` 确认 ICCID 属于当前租户。
+- 先通过 `devices.tenant_id + (device_batteries.comm_chip_id OR device_batteries.imei)` 确认 `imei` 入参属于当前租户。
 - 查找当前租户或公共的 `device_kind=3` 包。
 - 只考虑版本号大于入参 `version` 的包。
 - 若只有一个候选包，直接返回。
