@@ -2,7 +2,7 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-04-18
+- last_updated: 2026-05-25
 - related_feature: FEAT-0019
 - version: v0.1.0
 
@@ -10,6 +10,7 @@
 - 新增 `fjbms-uniapp/common/device-provision/device-prefix.js` 作为设备前缀配置真源。
 - 扫码解析模块在识别到 `MAC` 后，通过 `resolveDeviceTypeByMac(mac)` 得到 `bms | meter | null`。
 - 摄像头扫码新增“已添加设备直达详情”分支：先基于绑定设备列表匹配 `ble_mac / item_uuid`，命中后直接以 `device_id` 打开详情页。
+- APP 端扫码入口不传 `onlyFromCamera`，保留系统扫码组件的“摄像头扫码 + 相册二维码识别”能力；两种来源共用同一段扫码结果解析和路由决策。
 - BMS 扫码继续复用：
   - `ble-scan.vue` 自动匹配 BLE 设备
   - `provision-wizard.vue` 完成 UUID 读取、可选 DTU 写入和绑定
@@ -38,11 +39,13 @@
 - `common/device-provision/scan-code.ts`
   - 维持对 `MAC/UUID` 的识别。
   - 对 `MAC` 结果补充 `deviceType` 字段，来源于 `device-prefix.js`。
+  - 不区分二维码来源；摄像头实时扫码和相册图片识别后的原始字符串进入同一解析函数。
 
 ### 3.2 入口统一
 - `common/composables/useAddDeviceActionSheet.ts`
 - `custom-tab-bar/index.js`
 - `common/device-provision/scan-routing.js`
+- `useAddDeviceActionSheet.ts` 调用 `uni.scanCode` 时不设置 `onlyFromCamera: true`，避免 APP 端只能打开摄像头而无法选择相册二维码。
 - 两处均按同一规则跳转：
   - `已命中绑定设备` -> `device-battery/detail?device_id=...`
   - `UUID`（未命中） -> `uuid-bind`

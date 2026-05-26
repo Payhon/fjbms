@@ -2,7 +2,7 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-05-05
+- last_updated: 2026-05-25
 - related_feature: FEAT-0019
 - version: v0.1.0
 
@@ -187,3 +187,11 @@
 - 优化后端参数校验错误展示：
   - 新增 `common/api-error.ts`，错误文案优先展示响应 `data.message`；
   - `provision-wizard.vue`、`uuid-bind.vue` 和 `common/request.ts` 已复用该提取逻辑，避免只显示外层“请求参数验证失败”。
+
+## 2026-05-25
+- 补齐 APP 端相册二维码识别能力：
+  - `common/composables/useAddDeviceActionSheet.ts` 调用 `uni.scanCode` 时移除 `onlyFromCamera: true`，允许 APP 系统扫码组件同时提供摄像头扫码和相册二维码图片识别入口；
+  - 相册识别返回的二维码内容继续复用 `parseAddDeviceScanCode()` 与既有扫码分流，不新增单独路径，确保已绑定设备直达、BMS 添加、仪表临时会话和 UUID 绑定行为一致。
+- 同步入口文案与权限说明：
+  - `lang/zh-CN.ts`、`lang/en-US.ts` 和 `custom-tab-bar/i18n.js` 将扫码入口文案从“摄像头扫码 / Camera Scan”调整为“扫码/相册识别 / Scan or Album”；
+  - `manifest.json` 的 `NSPhotoLibraryUsageDescription` 补充“选择设备二维码图片完成扫码添加”用途，避免 iOS 权限说明与新增能力不一致。

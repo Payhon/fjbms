@@ -11,6 +11,7 @@
 - 后端：无 `bms.snapshot` 时仍返回当前摘要遥测 map。
 - UniApp：4G-only 设备进入详情页不发起 BLE 连接，不因主动连接失败显示离线。
 - UniApp：4G/4G+BLE 设备进入详情页优先使用 MQTT Socket 透传实时读取，透传失败后显示主动上报兜底数据。
+- UniApp：4G 设备详情顶部状态不暴露技术链路，Socket 透传实时和主动上报兜底都显示 4G 图标与“已连接”。
 - UniApp：连接成功但首帧 BMS 实时状态未返回时，仪表盘展示加载提示而不是空白/零值数据。
 - UniApp：参数设置基础分组首次展开时先显示标题右侧加载图标，读取完成后再展开。
 - Web：4G 设备进入 BMS 面板自动使用 MQTT Socket 透传实时读取，手动按钮可重新连接/断开透传。
@@ -67,6 +68,7 @@
 - [x] 参数设置读取性能优化：UniApp/Web 直连模式改为 `readParamsByKeys()` 按连续寄存器范围批量读取，避免展开单体/总压等分组时逐项串行显示。
 - [x] `cd fjbms-uniapp && pnpm exec tsc --noEmit`：通过。
 - [x] UniApp 首帧等待态与参数分组加载态类型校验：`cd fjbms-uniapp && pnpm exec tsc --noEmit` 通过。
+- [x] UniApp 4G 连接状态展示口径调整：`connType=mqtt` 时顶部胶囊统一显示 4G 图标与“已连接”，不再展示 `MQTT透传实时` 或 `主动上报兜底`。
 - [x] `cd frontend && pnpm typecheck`：通过。
 - [x] `make update-frontend-prod`：解析修复已重新构建并替换生产前端；构建期间仅有既有 `eval` 与 unocss 图标加载警告。
 - [x] 生产 WebSocket 复测：初始化后收到 `0x0F` 透传状态帧，发送读 UUID 后收到目标设备响应。

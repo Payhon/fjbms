@@ -2,7 +2,7 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-05-05
+- last_updated: 2026-05-25
 - related_feature: FEAT-0019
 - version: v0.1.0
 
@@ -14,6 +14,7 @@
 - BMS 绑定成功后跳转详情页
 - 仪表临时 BLE 会话详情与二次扫码绑定 BMS
 - 设备详情页蓝牙 BMS 首帧读取慢响应、自动恢复与人工重试入口
+- APP 端扫码入口相册二维码识别
 
 ## 2. 测试环境
 - 当前 Codex 桌面执行环境
@@ -58,6 +59,9 @@
 - 通过：蓝牙扫描页已添加设备卡片点击时会先命中 `boundDevicesStore.findByBleMac()`，命中后直接进入 `/pages/device-battery/detail?device_id=...`，不再进入添加向导。
 - 通过：`mode=qr&mac=...` 进入蓝牙扫描页时，若目标 MAC 已绑定，会直接重定向到对应设备详情页。
 - 通过：绑定接口错误提示已优先读取响应 `data.message`，例如后端返回 `device already bound to current user` 时不会只显示外层“请求参数验证失败”。
+- 通过：`useAddDeviceActionSheet.ts` 已移除 `uni.scanCode` 的 `onlyFromCamera: true` 限制，APP 端扫码入口可同时使用摄像头扫码和系统相册二维码图片识别。
+- 通过：相册二维码识别结果未新增分叉逻辑，仍复用现有 MAC/UUID 解析、已添加设备直达、BMS 添加、仪表临时会话与 UUID 绑定分流规则。
+- 通过：扫码入口中英文文案已更新为“扫码/相册识别 / Scan or Album”，iOS 相册权限说明已补充设备二维码图片用途。
 
 ## 4. 缺陷与风险
 - 尚未完成真机蓝牙联调，以下场景仍需设备侧验证：
@@ -80,6 +84,7 @@
   - 仪表临时 BLE 会话下的自动连接成功率；
   - 仪表详情页二次扫码后 `configureMeterMac` 的协议写入和设备刷新时序；
   - APP 与微信小程序扫码 API 在不同机型上的体验一致性。
+  - iOS/Android APP 端扫码组件中的相册入口展示、相册权限弹窗文案，以及选择二维码图片后的识别成功率。
 
 ## 5. 结论
 - 当前代码实现与静态校验已完成，建议进入真机联调/验收阶段。
