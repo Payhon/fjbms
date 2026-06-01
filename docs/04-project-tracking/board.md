@@ -14,6 +14,18 @@
 ## 模块泳道看板
 
 ### Mobile（`fjbms-uniapp/`）
+- [ ] `review` **FEAT-0056** 外挂蓝牙透传设备双 MAC 添加
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0019、FEAT-0049
+  - 进展：已新增 `identity_ble_mac` 字段与索引，移动端添加向导提交连接 MAC + 协议身份 MAC，后端绑定允许同一 `item_uuid` 下双 MAC 不同并保留旧客户端强校验；已通过后端定向测试、UniApp 类型检查和前端 typecheck，待生产问题设备真机回归
+  - 文档：`docs/03-development/features/FEAT-0056-dual-ble-mac-provision/`
+- [ ] `review` **FEAT-0055** PACK 厂微信小程序配置接入
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0031、FEAT-0025
+  - 进展：已完成 PACK 小程序配置表、配置接口、运行配置接口、微信登录身份隔离、WEB 配置弹窗、登录 Logo、图片上传缩略图回显、独立内容配置、联系客服内容配置、UniApp 按 AppID 区分 PACK 微信-only 与租户级账号密码登录/Banner/Logo/内容适配、PACK 小程序设置页账号安全入口隐藏、我的页头像边框取消、关于我们厂商名读取关联 PACK 厂机构名称，以及 APP 用户管理来源筛选增强；后端定向测试、前端定向类型检查与 UniApp 定向类型检查通过，待微信开发者工具或真机小程序回归
+  - 文档：`docs/03-development/features/FEAT-0055-pack-wxmp-miniapp-config/`
 - [ ] `in_progress` **FEAT-0052** UniApp 设备详情、扫描、多语言与登录体验优化
   - owner：payhon
   - 优先级：P1
@@ -56,7 +68,7 @@
   - owner：payhon
   - 优先级：P1
   - 依赖：FEAT-0023
-  - 进展：已完成 `bms-bridge` 侧 4G BMS 通讯日志采集、7 天保留清理、后端分页/SSE 接口与后台通讯调试管理页面；2026-04-27 已修复生产环境 4G BMS Topic 标识映射、`0xFF` 主动上报与短帧状态解析兼容，并补充“有业务数据上报即在线”的默认保活兜底；2026-04-29 已修复 `identity.boardCode` 误写 `device_batteries.item_uuid` 的 DB 同步规则；待继续执行前端整包构建与后台菜单回归
+  - 进展：已完成 `bms-bridge` 侧 4G BMS 通讯日志采集、7 天保留清理、后端分页/SSE 接口与后台通讯调试管理页面；2026-04-27 已修复生产环境 4G BMS Topic 标识映射、`0xFF` 主动上报与短帧状态解析兼容，并补充“有业务数据上报即在线”的默认保活兜底；2026-05-26 默认保活兜底调整为 300 秒，适配设备约 150 秒一次上报；2026-04-29 已修复 `identity.boardCode` 误写 `device_batteries.item_uuid` 的 DB 同步规则；待继续执行前端整包构建与后台菜单回归
   - 文档：`docs/03-development/features/FEAT-0048-bms-4g-comm-debug/`
 - [ ] `in_progress` **FEAT-0047** BMS 分页修复与电池详情操作记录 Tab
   - owner：payhon
