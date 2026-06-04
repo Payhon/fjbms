@@ -2,7 +2,7 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-03-09
+- last_updated: 2026-06-04
 - related_feature: FEAT-0012
 - version: v0.1.0
 
@@ -31,6 +31,7 @@
 4. 通知对象仅任务创建人。
 5. 下载成功后任务标记为已下载，并从“已完成未下载”列表移除。
 6. 导出文件有效期 7 天，超时后不可下载。
+7. 宽表视图与宽表导出不展示 JSON 结构字段及内部冗余字段（如 `bms.snapshot`、`balancingOn`、`protectOn`、`protectCount`、`vPackV`）；长表保留原始明细。
 
 ## 4. 验收标准
 1. 菜单可见：具备权限用户可在 BMS/电池管理下看到「历史数据」。

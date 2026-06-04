@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-04-30
+- last_updated: 2026-06-04
 - related_feature: FEAT-0049
 - version: v0.1.0
 
@@ -12,10 +12,14 @@
 - UniApp：4G-only 设备进入详情页不发起 BLE 连接，不因主动连接失败显示离线。
 - UniApp：4G/4G+BLE 设备进入详情页优先使用 MQTT Socket 透传实时读取，透传失败后显示主动上报兜底数据。
 - UniApp：4G 设备详情顶部状态不暴露技术链路，Socket 透传实时和主动上报兜底都显示 4G 图标与“已连接”。
+- UniApp：4G 设备进入详情页先展示当前遥测/快照，后台实时 `readAllStatus()` 返回后覆盖，不因 Socket 切换清空首屏。
+- UniApp：4G Socket 建连不再先执行 `readUuid()` 预读。
+- UniApp：4G BMS OTA 通过 MQTT Socket Transport 发送 BOOT 帧，并使用 4G 专用超时/节流参数。
 - UniApp：连接成功但首帧 BMS 实时状态未返回时，仪表盘展示加载提示而不是空白/零值数据。
 - UniApp：参数设置基础分组首次展开时先显示标题右侧加载图标，读取完成后再展开。
 - Web：4G 设备进入 BMS 面板自动使用 MQTT Socket 透传实时读取，手动按钮可重新连接/断开透传。
 - 后端：Socket WebSocket 首包使用数据库 UUID 鉴权，实际 MQTT topic 使用 `devices.device_number`。
+- 后端：APP 电池路由注册 `/api/v1/app/battery/socket/ws`。
 - UniApp：有当前遥测但无 `cell.voltagesMv` 时，仪表盘有摘要数据，电芯 Tab 显示明确空态。
 
 ## 当前结果
@@ -76,3 +80,7 @@
 - [ ] UniApp 真机交互复测：待确认从首页进入详情时首帧等待卡片展示正常，参数分组加载图标在数据返回后切为向上箭头并展开。
 - [ ] Web 浏览器复测：待进入同一 4G 设备 BMS 面板确认仪表/电芯数据来自 `readAllStatus()`，并验证重新连接和断开实时透传。
 - [ ] `go test ./...`：失败在既有环境依赖用例，非本次改动包；`initialize/test` 空指针，`backend/test` 未设置 `run_env` 导致 DB 为空。
+- [x] 2026-06-04 `cd fjbms-uniapp && pnpm exec tsc --noEmit`：通过。
+- [x] 2026-06-04 `cd backend && go test ./internal/api ./internal/service ./router/apps`：通过。
+- [ ] 2026-06-04 UniApp 真机复测：待使用新包确认 4G BMS 详情核心数据 2 秒内可见，以及后台实时数据覆盖快照。
+- [ ] 2026-06-04 4G BMS OTA 真机复测：待使用真实 4G BMS 通过 MQTT Socket 透传执行 BOOT 升级。

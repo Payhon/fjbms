@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-04-30
+- last_updated: 2026-06-04
 - related_feature: FEAT-0049
 - version: v0.1.0
 
@@ -89,3 +89,19 @@
    - UniApp 设备详情顶部连接胶囊在 `connType=mqtt` 时统一显示 4G 图标与“已连接”。
    - 不再向终端用户展示 `MQTT透传实时`、`主动上报兜底` 等技术链路文案；内部 `dataSourceMode`、Socket 透传和主动上报兜底逻辑保持不变。
    - 蓝牙连接、离线、连接中状态维持原有展示逻辑。
+
+## 2026-06-04
+1. 优化移动端 4G 详情首屏响应
+   - 4G/4G+BLE 设备详情加载基础信息后，立即请求 `current-telemetry` 作为首屏快照，后台继续连接 MQTT Socket 透传。
+   - Socket 切换期间允许保留当前遥测合成的 `status`，避免首屏快照被 `disconnectAll()` 清空回加载态。
+   - `current-telemetry` 若晚于实时 `readAllStatus()` 返回，不再覆盖实时数据源。
+   - 4G Socket 建连后移除 `readUuid()` 预读，直接进入后台 `readAllStatus()` 轮询，减少首帧前额外往返。
+2. 补齐 APP MQTT Socket 路由
+   - 后端路由注册 `GET /api/v1/app/battery/socket/ws`，使已实现的 `ServeBatterySocketByWS` 可被移动端详情与 4G OTA 使用。
+3. 支持 4G BMS OTA 透传
+   - BMS OTA 入口在 `connType=mqtt` 时复用现有 BMS OTA 包检查、固件下载与 BOOT 升级流程。
+   - 4G BMS OTA 使用 MQTT Socket Transport 的 `request()` 发送 BOOT 帧，BMS 目标地址仍为 `0x01`，仪表设备仍为 `0xFC`。
+   - MQTT OTA 增加更长 ACK/收尾超时、最小帧间隔、包间延迟、页边界延迟和自适应降速参数，适配 4G/MQTT 透传时延。
+4. 加固 MQTT Socket BOOT 响应匹配
+   - `UniMqttSocketBmsTransport` 兼容 finalize `0x54` 收到 `0x53` ACK 的 BOOT 回包。
+   - 仪表 BOOT 源地址兼容 `0xFD`，保持与蓝牙 OTA 解析口径一致。

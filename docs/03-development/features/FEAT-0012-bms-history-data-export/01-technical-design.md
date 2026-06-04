@@ -2,7 +2,7 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-03-09
+- last_updated: 2026-06-04
 - related_feature: FEAT-0012
 - version: v0.1.0
 
@@ -10,7 +10,7 @@
 - 后端新增统一历史查询域：按设备聚合 `telemetry_datas` 与 `attribute_history_datas`。
 - 查询接口支持 `view_mode=long|wide`：
   - `long`：按“时间 + 数据类型 + 标识符 + 值”返回行。
-  - `wide`：按“时间行 + 动态 key 列”返回行与列定义。
+  - `wide`：按“时间行 + 动态 key 列”返回行与列定义，并过滤 JSON 结构字段及不适合展示的内部冗余字段。
 - 导出采用异步任务表 `bms_history_export_jobs`，后台 goroutine 生成 Excel 文件。
 - 导出成功后通过用户维度 WebSocket 通道推送消息，前端消息中心展示“已完成未下载”任务。
 
@@ -47,12 +47,18 @@
 - 下载任务需校验任务归属（租户/创建人）。
 - 查询/导出均校验时间跨度不超过 31 天。
 
+### 2.6 宽表字段过滤
+- 宽表查询和宽表导出共用后端过滤规则，避免页面与 Excel 表头不一致。
+- 固定排除 `balancingOn`、`bms.snapshot`、`protectCount`、`protectOn`、`vPackV`。
+- 对 `cell.voltagesMv`、`cell.balancing`、`temperature.cellTempsC`、`customParams` 等结构字段做 identifier 兜底过滤。
+- 对历史值可解析为 JSON object/array 的动态字段做运行时过滤；长表仍保留原始值。
+
 ## 3. 前端设计
 1. 新增页面：`/bms/battery/history`（`view.bms_battery_history`）。
 2. 页面布局：左筛选（设备列表 + 搜索 + 可折叠）/右查询区（日期、视图切换、导出、表格、分页）。
 3. 长宽表：
    - 长表固定列。
-   - 宽表根据后端 `columns` 动态渲染。
+   - 宽表根据后端 `columns` 动态渲染，后端已剔除 JSON 结构字段和内部冗余字段。
 4. 全局消息中心：
    - 顶部右上角新增消息图标（位于语言切换前）。
    - 未读闪烁，点击 Popover 展示“已完成未下载”任务表。
