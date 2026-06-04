@@ -14,6 +14,12 @@
 ## 模块泳道看板
 
 ### Mobile（`fjbms-uniapp/`）
+- [x] `done` **FEAT-0057** UniApp 设备详情参数多语言补齐
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0030、FEAT-0052
+  - 进展：已补齐设备详情参数设置页 `bmsParam` 中英文翻译，覆盖当前页面 91 个可见参数 key 与协议注册表 157 个参数定义；System Config 功能开关名称和状态已改为 i18n 输出，仅调整移动端展示文案，不修改协议、权限 key 或接口
+  - 文档：`docs/03-development/features/FEAT-0057-uniapp-device-detail-param-i18n/`
 - [ ] `review` **FEAT-0056** 外挂蓝牙透传设备双 MAC 添加
   - owner：payhon
   - 优先级：P1
@@ -32,6 +38,14 @@
   - 依赖：FEAT-0021、FEAT-0030、FEAT-0033
   - 进展：已完成设备详情中间单 SOC 仪表、高级参数 SOH/虚拟容量写入、只读 SOH 与虚拟容量设备参数权限节点、BLE RSSI 信号格、英文文案、小程序 Add Device 弹层、Home TabBar 语言刷新、首页蓝牙断开、登录跳转节流，以及微信小程序登录/注册协议默认未勾选的代码与协议文档更新；UniApp 类型检查与后端权限树单测已通过，待真机/小程序抽测
   - 文档：`docs/03-development/features/FEAT-0052-uniapp-device-detail-scan-i18n-login-ux/`
+
+### Web（`frontend/`）
+- [ ] `review` **FEAT-0058** Web 后台 BMS 模块多语言补齐
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0047、FEAT-0049、FEAT-0057
+  - 进展：已补齐英文 BMS 路由菜单 key，新增 Web BMS 专用 `bms.json` 中英文词包，覆盖 BMS Dashboard、设备详情 BMS 模式 Tab、面板状态、参数设置、Basic Info、Operation Logs、功能配置、工厂命令、147 个协议参数 label；其余 `views/bms/**` 管理页仍需逐页迁移既有中文硬编码；仅调整 Web 展示层文案，不修改后端接口、权限 key、路由 name 或设备通信协议
+  - 文档：`docs/03-development/features/FEAT-0058-web-bms-admin-i18n/`
 
 ### Backend（`backend/`）
 - [ ] `in_progress` **FEAT-0054** 后台附件管理
