@@ -44,7 +44,7 @@
   - owner：payhon
   - 优先级：P1
   - 依赖：FEAT-0047、FEAT-0049、FEAT-0057
-  - 进展：已补齐英文 BMS 路由菜单 key，新增 Web BMS 专用 `bms.json` 中英文词包，覆盖 BMS Dashboard、设备详情 BMS 模式 Tab、面板状态、参数设置、Basic Info、Operation Logs、功能配置、工厂命令、147 个协议参数 label；其余 `views/bms/**` 管理页仍需逐页迁移既有中文硬编码；仅调整 Web 展示层文案，不修改后端接口、权限 key、路由 name 或设备通信协议
+  - 进展：已补齐英文 BMS 路由菜单 key，新增 Web BMS 专用 `bms.json` 中英文词包，覆盖 BMS Dashboard、设备详情 BMS 模式 Tab、面板状态、参数设置、Basic Info、Operation Logs、功能配置、工厂命令、147 个协议参数 label，并完成 `frontend/src/views/bms/**` 全部 BMS 管理子功能页面和模块弹窗的用户可见文案迁移；`pnpm typecheck`、BMS 目录中文静态扫描、`zh-cn/en-us bms.json` key 对齐和英文词包占位检查已通过；待英文/中文环境逐菜单人工回归；仅调整 Web 展示层文案，不修改后端接口、权限 key、路由 name 或设备通信协议
   - 文档：`docs/03-development/features/FEAT-0058-web-bms-admin-i18n/`
 
 ### Backend（`backend/`）
