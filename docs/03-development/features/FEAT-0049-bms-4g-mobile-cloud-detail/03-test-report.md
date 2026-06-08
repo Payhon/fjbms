@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-06-04
+- last_updated: 2026-06-05
 - related_feature: FEAT-0049
 - version: v0.1.0
 
@@ -84,3 +84,10 @@
 - [x] 2026-06-04 `cd backend && go test ./internal/api ./internal/service ./router/apps`：通过。
 - [ ] 2026-06-04 UniApp 真机复测：待使用新包确认 4G BMS 详情核心数据 2 秒内可见，以及后台实时数据覆盖快照。
 - [ ] 2026-06-04 4G BMS OTA 真机复测：待使用真实 4G BMS 通过 MQTT Socket 透传执行 BOOT 升级。
+- [x] 2026-06-05 生产只读日志确认目标设备 `360111611350535934373730300A354F`：
+  - `bms_comm_type=2`，确认是 4G BMS。
+  - `bms_bridge_comm_logs` 在 `2026-06-05 10:18:02.929725+08` 与 `2026-06-05 10:18:05.960001+08` 收到两次 `0x50` BOOT 版本响应，响应间隔约 3 秒。
+  - 最近 4 小时未查到 `0x51/0x52/0x53/0x54` BOOT 响应，判断移动端需要放宽 4G/MQTT BOOT 时序并兼容 `0x51` timeout。
+- [x] 2026-06-05 `cd fjbms-uniapp && pnpm exec tsc --noEmit`：通过。
+- [x] 2026-06-05 `git -C fjbms-uniapp diff --check`：通过。
+- [ ] 2026-06-05 4G BMS OTA 真机复测：待使用包含本次 BOOT 时序修复的新包，确认 `0x50` 能匹配响应并进入 `0x52/0x53/0x54` 升级流程。

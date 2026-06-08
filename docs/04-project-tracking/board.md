@@ -24,7 +24,7 @@
   - owner：payhon
   - 优先级：P1
   - 依赖：FEAT-0019、FEAT-0049
-  - 进展：已新增 `identity_ble_mac` 字段与索引，移动端添加向导提交连接 MAC + 协议身份 MAC，后端绑定允许同一 `item_uuid` 下双 MAC 不同并保留旧客户端强校验；已通过后端定向测试、UniApp 类型检查和前端 typecheck，待生产问题设备真机回归
+  - 进展：已新增 `identity_ble_mac` 字段与索引，移动端添加向导提交连接 MAC + 协议身份 MAC，后端绑定允许同一 `item_uuid` 下双 MAC 不同；解绑/移除/后台强制解绑后在无 APP 侧关联时释放连接 MAC；协议身份 MAC 未读出时也允许同一 `item_uuid` 下更换连接 MAC；新连接 MAC 被其他外挂模块历史档案占用时自动迁移，被其他内置 BLE 身份设备占用时仍阻断；重复绑定当前用户已绑定设备时幂等返回成功；已通过后端定向测试、UniApp 类型检查和前端 typecheck，待生产问题设备真机回归
   - 文档：`docs/03-development/features/FEAT-0056-dual-ble-mac-provision/`
 - [ ] `review` **FEAT-0055** PACK 厂微信小程序配置接入
   - owner：payhon

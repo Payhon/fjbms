@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-06-04
+- last_updated: 2026-06-05
 - related_feature: FEAT-0049
 - version: v0.1.0
 
@@ -105,3 +105,9 @@
 4. 加固 MQTT Socket BOOT 响应匹配
    - `UniMqttSocketBmsTransport` 兼容 finalize `0x54` 收到 `0x53` ACK 的 BOOT 回包。
    - 仪表 BOOT 源地址兼容 `0xFD`，保持与蓝牙 OTA 解析口径一致。
+
+## 2026-06-05
+1. 修复 4G BMS OTA BOOT 阶段超时
+   - 生产 `bms_bridge_comm_logs` 确认目标 4G BMS 对 `0x50` 版本查询约 3 秒返回，原移动端 `0x50` 固定 3000ms 超时会提前清理 pending，导致升级失败。
+   - 仅在 `connType=mqtt` 的 BMS OTA 运行参数中放宽 BOOT 查询、进入 Bootloader、准备和数据包 ACK 超时；BLE BMS 和仪表升级保留原参数。
+   - MQTT BMS OTA 对 `0x51` 进入 Bootloader 的 timeout 支持继续执行到 `0x52`，适配 4G 透传下进入 Bootloader 可能无 ACK 或 ACK 晚到的情况；非 timeout 错误仍按失败处理。
