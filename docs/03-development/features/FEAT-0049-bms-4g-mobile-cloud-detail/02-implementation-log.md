@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-06-05
+- last_updated: 2026-06-08
 - related_feature: FEAT-0049
 - version: v0.1.0
 
@@ -111,3 +111,19 @@
    - 生产 `bms_bridge_comm_logs` 确认目标 4G BMS 对 `0x50` 版本查询约 3 秒返回，原移动端 `0x50` 固定 3000ms 超时会提前清理 pending，导致升级失败。
    - 仅在 `connType=mqtt` 的 BMS OTA 运行参数中放宽 BOOT 查询、进入 Bootloader、准备和数据包 ACK 超时；BLE BMS 和仪表升级保留原参数。
    - MQTT BMS OTA 对 `0x51` 进入 Bootloader 的 timeout 支持继续执行到 `0x52`，适配 4G 透传下进入 Bootloader 可能无 ACK 或 ACK 晚到的情况；非 timeout 错误仍按失败处理。
+
+## 2026-06-08
+1. 增加 4G BMS MQTT Socket 设备级 owner 保守互斥
+   - 后端 `/api/v1/app/battery/socket/ws` 在鉴权和设备可见性校验通过后，使用 Redis `bms:mqtt_socket:owner:{device_id}` 执行 `SET NX` 抢占实时透传 owner。
+   - owner value 记录 `session_id/user_id/tenant_id/device_id/device_number/platform/last_seen_ts/expires_at_ts`，TTL 为 45 秒。
+   - `ping` 和任意下行发布请求会刷新 owner TTL；WebSocket 关闭时只删除当前 `session_id` 匹配的 owner。
+   - Redis 不可用或设备已被其他会话占用时保守拒绝新的实时透传连接，不踢掉旧连接。
+2. 增加 Socket 控制消息兼容协议
+   - 新移动端首包声明 `features:["mqtt_socket_owner_v1"]`。
+   - 新后端仅对声明 feature 的客户端发送 `socket_ready/socket_occupied/socket_error` JSON 控制消息。
+   - 未声明 feature 的旧客户端成功连接时不收到 `socket_ready`；占用失败时仍返回纯文本错误并关闭。
+3. UniApp 4G 详情 occupied 只读降级
+   - `UniMqttSocketBmsTransport.connect()` 等待 `socket_ready`，1.2 秒无控制消息时兼容旧后端继续连接。
+   - Transport 忽略 `pong`，识别控制消息，occupied 时抛出 `MQTT_SOCKET_OCCUPIED`，并在 ready 后每 15 秒发送 `ping` 保活。
+   - 详情页捕获 occupied 后自动切换到云端上报只读模式，顶部仍显示 4G，同时展示“实时连接被占用，当前显示云端上报数据”轻提示。
+   - 参数配置、虚拟容量写入和 BMS OTA 在 occupied 只读模式下统一显示专用 toast，不再发实时透传指令。

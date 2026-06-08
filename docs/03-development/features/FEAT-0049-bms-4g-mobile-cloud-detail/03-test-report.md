@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-06-05
+- last_updated: 2026-06-08
 - related_feature: FEAT-0049
 - version: v0.1.0
 
@@ -15,6 +15,11 @@
 - UniApp：4G 设备进入详情页先展示当前遥测/快照，后台实时 `readAllStatus()` 返回后覆盖，不因 Socket 切换清空首屏。
 - UniApp：4G Socket 建连不再先执行 `readUuid()` 预读。
 - UniApp：4G BMS OTA 通过 MQTT Socket Transport 发送 BOOT 帧，并使用 4G 专用超时/节流参数。
+- 后端：同一 4G BMS 只能有一个移动端实时 MQTT Socket owner，第二个连接返回 occupied，不挤掉当前连接。
+- 后端：owner TTL 可由 `ping` 和下行发布请求刷新，WebSocket 关闭时只释放同 `session_id` owner。
+- 后端：未声明 `mqtt_socket_owner_v1` 的旧客户端成功连接不收到 `socket_ready` 控制消息。
+- UniApp：第二个账号遇到 occupied 后切到云端上报只读模式，顶部显示友好轻提示。
+- UniApp：occupied 只读模式下参数写入、虚拟容量写入和 BMS OTA 显示专用提示且不发送透传指令。
 - UniApp：连接成功但首帧 BMS 实时状态未返回时，仪表盘展示加载提示而不是空白/零值数据。
 - UniApp：参数设置基础分组首次展开时先显示标题右侧加载图标，读取完成后再展开。
 - Web：4G 设备进入 BMS 面板自动使用 MQTT Socket 透传实时读取，手动按钮可重新连接/断开透传。
@@ -91,3 +96,7 @@
 - [x] 2026-06-05 `cd fjbms-uniapp && pnpm exec tsc --noEmit`：通过。
 - [x] 2026-06-05 `git -C fjbms-uniapp diff --check`：通过。
 - [ ] 2026-06-05 4G BMS OTA 真机复测：待使用包含本次 BOOT 时序修复的新包，确认 `0x50` 能匹配响应并进入 `0x52/0x53/0x54` 升级流程。
+- [x] 2026-06-08 后端相关包回归：`cd backend && go test ./internal/api ./internal/service ./router/apps` 通过。
+- [x] 2026-06-08 UniApp occupied 降级类型检查：`cd fjbms-uniapp && pnpm exec tsc --noEmit` 通过。
+- [x] 2026-06-08 `git diff --check`：通过。
+- [ ] 2026-06-08 真机双账号复测：待使用新包同时进入同一 4G BMS，确认第一个实时连接保持、第二个云端只读、参数/OTA 入口被友好拦截。
