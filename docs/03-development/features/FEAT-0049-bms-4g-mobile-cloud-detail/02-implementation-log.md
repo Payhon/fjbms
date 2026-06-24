@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-06-08
+- last_updated: 2026-06-12
 - related_feature: FEAT-0049
 - version: v0.1.0
 
@@ -127,3 +127,53 @@
    - Transport 忽略 `pong`，识别控制消息，occupied 时抛出 `MQTT_SOCKET_OCCUPIED`，并在 ready 后每 15 秒发送 `ping` 保活。
    - 详情页捕获 occupied 后自动切换到云端上报只读模式，顶部仍显示 4G，同时展示“实时连接被占用，当前显示云端上报数据”轻提示。
    - 参数配置、虚拟容量写入和 BMS OTA 在 occupied 只读模式下统一显示专用 toast，不再发实时透传指令。
+
+## 2026-06-10
+1. 优化 4G BMS OTA 数据包传输节奏
+   - 仅在 `connType=mqtt` 的 BMS OTA 分支启用快速模式，将常规 `0x53` 包间固定等待降为 `packetDelayMs=0`、`minFrameIntervalMs=40ms`、`pageBoundaryDelayMs=100ms`。
+   - 保留超时后的自适应降速参数，出现 ACK timeout 后仍切回更保守的包间与页边界等待。
+   - BLE BMS、蓝牙仪表 OTA 和 occupied 云端只读拦截逻辑不变。
+2. 增加 APP/后端 OTA 链路埋点
+   - UniApp 记录 4G BOOT runtime options、每个 `0x53` 包的 APP 侧 RTT、ACK requested、尝试次数和当前快/慢模式参数。
+   - WebSocket Transport 记录 Boot 请求的最小帧间隔等待、请求总耗时和响应帧摘要。
+   - 后端 `/api/v1/app/battery/socket/ws` 对 Boot 帧记录 APP 下发到 MQTT 的 publish wait、MQTT 回包写回 WebSocket 的 lock/write/elapsed 耗时。
+3. 加固 MQTT Socket BOOT 收包
+   - Boot 收包扫描增加最大帧长保护，遇到普通 BMS 帧中的 `7F 55` 或异常长度候选时丢弃错误候选，避免真实 ACK 被卡在缓冲区后触发长超时重发。
+4. 增加 Debug 模式 OTA 日志浮层
+   - 扩展移动端 OTA 调试日志为通用 `ota-debug`，支持 BMS OTA、4G BMS OTA、仪表 OTA 和 Socket/BOOT 日志统一记录。
+   - Debug 模式下 OTA 升级弹窗右上角显示日志查看图标，默认不展开；点击后展示深色浮动日志层，可滚动查看完整升级日志。
+   - 浮层支持复制完整日志文本和清空日志；普通模式不显示入口。
+   - OTA 运行期间临时将 Transport logger 指向 OTA logger，使 APP 端 `[socket] boot request timing` 等控制台日志同步进入界面日志。
+
+## 2026-06-11
+1. 优化 Debug 模式 OTA 日志浮层展示
+   - 将 OTA 调试日志面板从 OTA 升级 `u-popup` 内部移到页面级 fixed 浮层，避免被升级弹窗内容容器裁剪。
+   - 日志正文高度改为按当前窗口、安全区和浮层头部操作区动态计算，小屏设备可通过浮层内滚动查看完整日志。
+   - 点击浮层外侧仅关闭日志层，不关闭 OTA 升级弹窗；复制、清空和关闭按钮行为保持不变。
+
+## 2026-06-12
+1. 后端加固 4G BMS OTA ACK 链路诊断
+   - `/api/v1/app/battery/socket/ws` 在 MQTT `device/socket/tx/{device_number}` 收到 BOOT retained 消息时不再转发给 APP，避免旧 retained ACK 污染当前 OTA 会话。
+   - WebSocket 会话内增加 BOOT 轻量追踪状态，仅用于日志记录最近下发 `0x53` 包号、最近 ACK requested、包重发、ACK 间隔、ACK 到云端后下一包下发间隔。
+   - 当 ACK 间隔或 ACK 对应下发后的回包耗时超过 2 秒时，后端输出 `bms mqtt socket boot uplink slow ack` 警告，便于区分 4G 模块/蜂窝上行延迟和后端发布耗时。
+   - 当 ACK 已到云端但下一包进入后端下发耗时超过 2 秒时，输出 `bms mqtt socket boot downlink slow after ack` 警告，用于排查 APP/WebSocket 侧停顿。
+   - MQTT topic、QoS、owner 互斥、WebSocket 控制消息和非 BOOT 实时透传行为保持不变。
+2. 增加 4G BMS 休眠唤醒查询补发
+   - `UniMqttSocketBmsTransport` 记录最近一次有效响应时间；从未收到响应或距离上次响应超过 30 秒时，首个读查询若 1200ms 内未返回，会自动补发同一条查询帧一次。
+   - 补发仅限普通 BMS 读寄存器 `0x03` 和 4G 模块专用 `SOCKET_READ=0x0F` 查询帧，用于唤醒 30 秒无通讯后休眠的 BMS 板。
+   - 写入命令、BOOT OTA `0x50~0x54`、BLE transport、occupied 云端只读模式不走该补发逻辑，避免影响参数写入和升级包传输语义。
+   - 补发触发时输出 `[socket] wakeup resend query`，便于在 Debug 日志或控制台确认休眠唤醒行为。
+3. 收紧 4G BMS OTA 数据包 ACK 超时
+   - 将 4G MQTT BMS OTA 的 `0x53` 数据包 ACK 检测超时从 20000ms 调整为 3000ms，适配 BMS 板端 4 秒超时窗口，避免 APP 长时间等待后才重发。
+   - `0x50/0x51/0x52/0x54` 阶段超时、快速发送节奏、超时后自适应降速和 BLE/仪表 OTA 参数保持不变。
+   - 新增独立 runtime options helper，避免后续在参数页再次硬编码 20 秒数据包 ACK 超时。
+4. 增强 QoS1 后 4G BMS OTA 包序号诊断与后端桥接优化
+   - 生产日志确认 4G 模块订阅 QoS1 已生效，但现场延迟样例中云端仅收到 `0x04FA` ACK，未收到 `0x04FB` ACK；重复下发的是同一 `0x04FA` 数据包，不是 APP/后端继续推进到下一包。
+   - `/api/v1/app/battery/socket/ws` 的 BOOT 结构化日志新增 `boot_packet_seq_hex`、`boot_expected_ack_hex`、`boot_ack_requested_hex`、`boot_ack_for_packet_hex`、`boot_packet_attempt`、`boot_packet_retry_count`、`mqtt_message_id`、`mqtt_publish_message_id` 等字段。
+   - APP WebSocket 下行数据包不再每帧强制刷新 Redis owner，改为 5 秒节流刷新，`ping` 仍强制刷新，降低 OTA 高频下发期间 Redis 偶发抖动拖慢桥接链路的风险。
+   - `bms_bridge_comm_logs.parsed_summary` 对 BOOT 帧增加包序号摘要，4G 模块上行 ACK 可在生产库中直接看到 `boot_ack_requested_hex` 与对应确认的 `boot_ack_for_packet_hex`。
+   - `bms_bridge_comm_logs` 记录 MQTT 上行实际 QoS 与 broker message id，便于继续核对 4G 模块 QoS1 上行是否连续。
+5. App Debug OTA 日志补充包序号显示
+   - `boot-ota.ts` 的 `[boot] packet timing`、`[boot] packet timeout, retry`、`[boot] packet ack` 等日志增加 `packetIndexHex`、`expectedAckHex`、`requestedHex`、`ackForPacketHex`。
+   - `UniMqttSocketBmsTransport` 的 `[socket] boot request timing` 请求与响应摘要同步增加 16 位 BOOT 包序号和 ACK 序号字段。
+   - Debug 模式 OTA 日志浮层不改 UI 结构，继续复用现有日志数据展示和复制能力；新增字段会随日志 JSON 一起显示和复制。

@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-06-08
+- last_updated: 2026-06-12
 - related_feature: FEAT-0049
 - version: v0.1.0
 
@@ -100,3 +100,34 @@
 - [x] 2026-06-08 UniApp occupied 降级类型检查：`cd fjbms-uniapp && pnpm exec tsc --noEmit` 通过。
 - [x] 2026-06-08 `git diff --check`：通过。
 - [ ] 2026-06-08 真机双账号复测：待使用新包同时进入同一 4G BMS，确认第一个实时连接保持、第二个云端只读、参数/OTA 入口被友好拦截。
+- [x] 2026-06-10 UniApp 4G BMS OTA 快速模式与埋点类型检查：`cd fjbms-uniapp && pnpm exec tsc --noEmit` 通过。
+- [x] 2026-06-10 后端 WebSocket/MQTT Boot 埋点回归：`cd backend && go test ./internal/api ./internal/service ./router/apps` 通过。
+- [x] 2026-06-10 `git diff --check && git -C fjbms-uniapp diff --check && git -C backend diff --check`：通过。
+- [ ] 2026-06-10 4G BMS OTA 真机复测：待使用新包升级真实设备，采集 APP `[boot]/[socket]` 日志、后端 `bms mqtt socket boot ...` 日志和 BMS 串口日志，确认 `0x53` 平均间隔与 12 秒重发是否改善。
+- [x] 2026-06-10 Debug 模式 OTA 日志浮层类型检查：`cd fjbms-uniapp && pnpm exec tsc --noEmit` 通过。
+- [x] 2026-06-11 Debug 模式 OTA 日志浮层裁剪修复：日志面板已从 OTA 升级弹窗内部移到页面级 fixed 浮层，正文高度按窗口动态计算，避免受外层弹窗高度约束。
+- [x] 2026-06-11 Debug 日志浮层布局修复类型检查：`cd fjbms-uniapp && pnpm exec tsc --noEmit` 通过。
+- [x] 2026-06-11 `git diff --check && git -C fjbms-uniapp diff --check && git -C backend diff --check`：通过。
+- [ ] 2026-06-11 Debug 模式真机 UI 复测：待确认普通模式不显示日志入口；Debug 模式 OTA 弹窗显示日志图标，点击后页面级浮层可滚动查看完整升级日志并可复制文本。
+- [x] 2026-06-12 后端 4G BMS OTA retained/慢 ACK 诊断单测：新增 `internal/api/app_battery_socket_test.go`，覆盖 BOOT `0x53` 数据包/ACK 解析、慢 ACK 计算和 ACK 后下发间隔计算。
+- [x] 2026-06-12 后端定向回归：`cd backend && go test ./internal/api ./internal/service ./router/apps` 通过。
+- [x] 2026-06-12 后端 diff 空白检查：`git diff --check -- backend/internal/api/app_battery.go backend/internal/api/app_battery_socket_test.go` 通过。
+- [ ] 2026-06-12 生产 OTA 复测：待后端发布后，采集 `bms mqtt socket boot uplink slow ack`、`boot_ack_after_downlink_ms`、`boot_packet_after_ack_ms` 与 APP/BMS 串口日志，确认随机 3~6 秒停顿落点。
+- [x] 2026-06-12 4G BMS 休眠唤醒查询补发类型检查：`cd fjbms-uniapp && pnpm exec tsc --noEmit` 通过。
+- [x] 2026-06-12 4G BMS 休眠唤醒补发轻量断言：临时编译并执行 `common/lib/bms-protocol/uni-mqtt-socket-transport.wakeup.test.ts`，覆盖读查询可补发、近期有响应不补发、写命令不补发、BOOT OTA 不补发。
+- [x] 2026-06-12 UniApp diff 空白检查：`cd fjbms-uniapp && git diff --check` 通过。
+- [ ] 2026-06-12 4G BMS 休眠真机复测：待设备休眠 30 秒后进入详情页，确认首个实时读取会出现 `[socket] wakeup resend query` 且第二条查询唤醒后可返回数据。
+- [x] 2026-06-12 4G BMS OTA ACK 超时配置断言：临时编译并执行 `common/lib/bms-protocol/boot-ota-runtime-options.test.ts`，确认 MQTT BMS OTA `bootPacketTimeoutMs=3000`，其他阶段超时保持不变。
+- [x] 2026-06-12 4G BMS OTA 3 秒 ACK 超时类型检查：`cd fjbms-uniapp && pnpm exec tsc --noEmit` 通过。
+- [x] 2026-06-12 4G BMS OTA 3 秒 ACK 超时 diff 空白检查：`cd fjbms-uniapp && git diff --check` 通过。
+- [ ] 2026-06-12 4G BMS OTA 真机复测：待使用新包升级真实 4G BMS，确认 `0x53` ACK 未到时约 3 秒触发同包重发，不再等待 20 秒。
+- [x] 2026-06-12 生产只读排查 QoS1 后延迟样例：
+  - EMQX 目标设备 `360111611350535934373730300A3778` 订阅 `device/socket/rx/360111611350535934373730300A3778` 的 QoS 为 1。
+  - 生产后端日志显示 `0x04FA` ACK 于 `2026-06-12 18:20:25.707+08` 到达云端，后端于 `18:20:26.145+08` 下发 `0x04FA` 数据包，随后 `18:20:29.764+08`、`18:20:33.290+08` 重发同包。
+  - `bms_bridge_comm_logs` 到 `18:21:30+08` 未查询到 `0x04FB` ACK，判断本次样例不是后端继续下发下一包，而是 `0x04FA` 后未收到下一 ACK。
+- [x] 2026-06-12 后端 4G BMS OTA 包序号与 QoS1 日志回归：`cd backend && go test ./internal/api ./internal/bmsbridge` 通过。
+- [x] 2026-06-12 后端包序号日志 diff 空白检查：`git -C backend diff --check -- internal/api/app_battery.go internal/bmsbridge/bridge.go internal/bmsbridge/boot_debug.go` 通过。
+- [ ] 2026-06-12 发布后生产复测：采集 `boot_packet_seq_hex`、`boot_expected_ack_hex`、`boot_ack_requested_hex`、`boot_ack_for_packet_hex`、`boot_packet_attempt`、`mqtt_message_id` 与 `bms_bridge_comm_logs.parsed_summary`，确认随机延迟发生时 ACK 是否已经离开 BMS/4G 模块。
+- [x] 2026-06-12 App Debug OTA 包序号类型检查：`cd fjbms-uniapp && pnpm exec tsc --noEmit --pretty false` 通过。
+- [x] 2026-06-12 App Debug OTA 包序号 diff 空白检查：`cd fjbms-uniapp && git diff --check -- common/lib/bms-protocol/boot-ota.ts common/lib/bms-protocol/uni-mqtt-socket-transport.ts` 通过。
+- [ ] 2026-06-12 App Debug OTA 真机复测：待 Debug 模式下执行 4G BMS OTA，确认日志浮层和复制文本中可见 `packetIndexHex/expectedAckHex/requestedHex/ackForPacketHex`。

@@ -14,6 +14,12 @@
 ## 模块泳道看板
 
 ### Mobile（`fjbms-uniapp/`）
+- [ ] `review` **FEAT-0060** UniApp 详情状态与小程序品牌首屏优化
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0049、FEAT-0052、FEAT-0055
+  - 进展：已将 4G 设备详情顶部和首页设备列表状态改为按在线状态显示 `4G 在线` / `4G 离线` 并用颜色区分，不再显示 `MQTT 在线`；APP 添加设备扫码/相册识别链路新增流程锁，避免 Android 跳转详情后菜单残留或重弹；微信小程序端 Banner/Logo 在运行配置返回前不展示默认富嘉图，首页 Banner 保留 421rpx 占位，PACK 未配置专属图时继续隐藏；UniApp TypeScript 校验与空白检查通过，待 Android APP 与微信小程序真机回归
+  - 文档：`docs/03-development/features/FEAT-0060-uniapp-detail-and-wxmp-ux-fixes/`
 - [x] `done` **FEAT-0057** UniApp 设备详情参数多语言补齐
   - owner：payhon
   - 优先级：P1
@@ -48,6 +54,12 @@
   - 文档：`docs/03-development/features/FEAT-0058-web-bms-admin-i18n/`
 
 ### Backend（`backend/`）
+- [ ] `in_progress` **FEAT-0059** 4G BMS 直连 OTA HTTP 接口
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0053、FEAT-0051
+  - 进展：新增公开接口 `GET /api/v1/ota/4g-bms/check`，供 4G 类型 BMS 板 MCU 通过 HTTP 直连检测 BMS 固件并获取下载地址；接口按租户与 `item_uuid` 校验设备归属，只匹配 `device_kind=1` 的 BMS 升级包，复用现有 BMS OTA 约束优先级，不创建 OTA 任务、不通过 MQTT 转发、不依赖 APP 在线；后端定向 Go 测试与空白检查已通过，待嵌入式联调
+  - 文档：`docs/03-development/features/FEAT-0059-4g-bms-direct-ota-api/`
 - [ ] `in_progress` **FEAT-0054** 后台附件管理
   - owner：payhon
   - 优先级：P1
@@ -76,7 +88,7 @@
   - owner：payhon
   - 优先级：P1
   - 依赖：FEAT-0048
-  - 进展：已新增 APP 当前遥测接口与 UniApp 4G-only 云端只读详情链路；已修复 `0x0141` 动态电芯帧结构化发布和后台 BMS 面板当前遥测回退展示；2026-04-29 修复 UniApp 扫码添加已绑定设备误报失败，并为移动端 4G 详情当前遥测增加生产通用接口 fallback；本次将 UniApp/Web 4G 详情切换为 MQTT Socket 透传实时读取，后端桥接使用数据库 UUID 鉴权并以 `devices.device_number` 拼接 `device/socket/tx|rx/{device_number}`，主动上报仅作为兜底；生产实测已收到目标设备 `0x0F` 透传响应，并修复前端将 `0x0F byteCount` 误按寄存器数翻倍导致丢帧、2500ms 超时过短、`0x0100` 整段响应未缓存复用的问题；参数配置寄存器无响应发生时设备已离线，已撤回“不支持”结论并修复 `0x0F` 响应按寄存器区间匹配，避免主动上报帧误唤醒参数读取请求；2026-04-30 根据协议确认修正 4G MQTT 透传功能码，普通 BMS 寄存器保持 BLE 同款 `0x03`，仅 `0x0900~0x0923` 4G 模块专有寄存器使用云平台 `0x0F`；参数设置面板已改为按连续寄存器范围批量读取，减少 BLE/4G 展开分组时的串行请求；已补充移动端首帧实时数据等待卡片和参数分组首次展开加载图标；2026-05-25 已将 UniApp 4G 详情顶部连接状态改为 4G 图标 + “已连接”，不再向用户暴露主动上报兜底等技术链路；2026-06-04 已优化移动端 4G 详情首屏当前遥测/快照预填、移除 Socket 建连 `readUuid` 预读、补齐 APP Socket 路由，并支持 4G BMS 通过 MQTT Socket 透传执行 BLE 同款 BOOT OTA；2026-06-08 已为 APP 4G MQTT Socket 增加设备级 Redis owner 保守互斥，第二账号 occupied 时降级云端只读并提示，参数/OTA 暂不可用；待移动端新包和 Web 页面确认详情页指标展示
+  - 进展：已新增 APP 当前遥测接口与 UniApp 4G-only 云端只读详情链路；已修复 `0x0141` 动态电芯帧结构化发布和后台 BMS 面板当前遥测回退展示；2026-04-29 修复 UniApp 扫码添加已绑定设备误报失败，并为移动端 4G 详情当前遥测增加生产通用接口 fallback；本次将 UniApp/Web 4G 详情切换为 MQTT Socket 透传实时读取，后端桥接使用数据库 UUID 鉴权并以 `devices.device_number` 拼接 `device/socket/tx|rx/{device_number}`，主动上报仅作为兜底；生产实测已收到目标设备 `0x0F` 透传响应，并修复前端将 `0x0F byteCount` 误按寄存器数翻倍导致丢帧、2500ms 超时过短、`0x0100` 整段响应未缓存复用的问题；参数配置寄存器无响应发生时设备已离线，已撤回“不支持”结论并修复 `0x0F` 响应按寄存器区间匹配，避免主动上报帧误唤醒参数读取请求；2026-04-30 根据协议确认修正 4G MQTT 透传功能码，普通 BMS 寄存器保持 BLE 同款 `0x03`，仅 `0x0900~0x0923` 4G 模块专有寄存器使用云平台 `0x0F`；参数设置面板已改为按连续寄存器范围批量读取，减少 BLE/4G 展开分组时的串行请求；已补充移动端首帧实时数据等待卡片和参数分组首次展开加载图标；2026-05-25 已将 UniApp 4G 详情顶部连接状态改为 4G 图标 + “已连接”，不再向用户暴露主动上报兜底等技术链路；2026-06-04 已优化移动端 4G 详情首屏当前遥测/快照预填、移除 Socket 建连 `readUuid` 预读、补齐 APP Socket 路由，并支持 4G BMS 通过 MQTT Socket 透传执行 BLE 同款 BOOT OTA；2026-06-08 已为 APP 4G MQTT Socket 增加设备级 Redis owner 保守互斥，第二账号 occupied 时降级云端只读并提示，参数/OTA 暂不可用；2026-06-10 已为 4G BMS OTA 增加 APP/后端 Boot 链路耗时埋点并启用 APP 端正常快速、超时降速策略，Debug 模式 OTA 弹窗新增日志查看浮层与复制能力；2026-06-11 已将 Debug OTA 日志查看层改为页面级 fixed 浮层并按窗口动态计算日志区高度，避免被 OTA 弹窗裁剪；2026-06-12 后端已过滤 retained BOOT 回包并增加慢 ACK/ACK 后下发间隔诊断日志，UniApp 4G Socket 读查询已增加休眠唤醒补发，4G BMS OTA `0x53` ACK 超时已收紧为 3 秒重发；同日生产确认 QoS1 后延迟样例为 `0x04FA` 后未收到 `0x04FB` ACK，后端已补充 BOOT 包序号、期望 ACK、ACK 对应包、重发次数和 MQTT message id 日志，并对 APP Socket 数据包 owner 刷新做 5 秒节流；App Debug OTA 日志已同步展示 `packetIndexHex/expectedAckHex/requestedHex/ackForPacketHex`；待移动端新包和 Web 页面确认详情页指标展示
   - 文档：`docs/03-development/features/FEAT-0049-bms-4g-mobile-cloud-detail/`
 - [ ] `in_progress` **FEAT-0048** BMS 4G 通讯调试管理
   - owner：payhon
@@ -136,7 +148,7 @@
   - owner：payhon
   - 优先级：P1
   - 依赖：无
-  - 进展：已完成 APP 首页设备列表 `iccid` 返回、历史 `comm_chip_id` 兼容映射，以及首页设备副标题按通讯类型显示 MAC / ICCID；已通过定向 Go 与 TypeScript 校验，待真机联调验收
+  - 进展：已完成 APP 首页设备列表 `iccid/imei` 返回、历史 `comm_chip_id` 兼容映射，以及首页设备副标题按通讯类型显示 MAC / IMEI；4G/双模 BMS 设备优先显示 IMEI，缺失时回退 ICCID 兼容值；已通过定向 Go 与 TypeScript 校验，待真机联调验收
   - 文档：`docs/03-development/features/FEAT-0029-uniapp-home-device-identifier/`
 - [ ] `review` **FEAT-0027** 后台删除终端用户后账号身份残留修复
   - owner：payhon
@@ -342,7 +354,7 @@
   - owner：payhon
   - 优先级：P1
   - 依赖：无
-  - 进展：已完成首页“我的设备”卡片副标题按通讯类型显示 MAC / ICCID，并保留缺失字段回退逻辑；已通过 `pnpm exec tsc --noEmit` 校验，待真机联调验收
+  - 进展：已完成首页“我的设备”卡片副标题按通讯类型显示 MAC / IMEI，并保留 ICCID/历史 `comm_chip_id` 缺失字段回退逻辑；已通过 `go test ./internal/model ./internal/service -count=1` 与 `pnpm exec tsc --noEmit --pretty false` 校验，待真机联调验收
   - 文档：`docs/03-development/features/FEAT-0029-uniapp-home-device-identifier/`
 - [ ] `in_progress` **FEAT-0026** UniApp 账号注销
   - owner：payhon

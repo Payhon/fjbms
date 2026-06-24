@@ -2,20 +2,21 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-03-27
+- last_updated: 2026-06-12
 - related_feature: FEAT-0029
 - version: v0.1.0
 
 ## 1. 背景与目标
 当前 `fjbms-uniapp` 首页“我的设备”卡片在设备名称下方显示的是 `device_number/UUID` 口径，无法体现设备真实接入标识。业务要求改为按通讯类型展示：
 - 蓝牙设备显示 MAC
-- 4G 设备显示 ICCID
-- 蓝牙+4G 双模设备优先显示 ICCID
+- 4G BMS 设备显示 IMEI
+- 蓝牙+4G 双模 BMS 设备优先显示 IMEI
+- IMEI 缺失时保留 ICCID/历史 `comm_chip_id` 兼容回退
 
 ## 2. 范围（In Scope / Out of Scope）
 In Scope:
-- 后端首页设备列表接口补充 `iccid` 字段。
-- UniApp 首页卡片副标题按 `bms_comm_type` 显示 `MAC/ICCID`。
+- 后端首页设备列表接口补充 `imei` 字段，并保留 `iccid` 兼容字段。
+- UniApp 首页卡片副标题按 `bms_comm_type` 显示 `MAC/IMEI`。
 - 标识缺失时回退到当前旧值，避免卡片空白。
 - 同步功能文档与项目看板。
 
@@ -26,20 +27,21 @@ Out of Scope:
 
 ## 3. 用户价值
 - 首页设备列表展示更符合设备通讯形态，便于用户快速识别设备。
-- 双模设备优先显示 ICCID，便于 4G 设备现场核对。
+- 4G 与双模 BMS 设备优先显示 IMEI，便于现场按 4G 模块身份核对。
 - 缺失字段时保持兼容，不影响现有设备浏览。
 
 ## 4. 验收标准
 - `bms_comm_type=1` 的设备在首页副标题显示 MAC。
-- `bms_comm_type=2` 的设备在首页副标题显示 ICCID。
-- `bms_comm_type=3` 的设备在首页副标题显示 ICCID。
+- `bms_comm_type=2` 的设备在首页副标题优先显示 IMEI。
+- `bms_comm_type=3` 的设备在首页副标题优先显示 IMEI。
+- 4G/双模设备 IMEI 为空但 ICCID 或历史 `comm_chip_id` 存在时，仍回退显示 ICCID 兼容值。
 - 若目标字段为空，则回退显示旧副标题，不出现空行。
 
 ## 5. 风险与约束
-- 线上设备存在历史数据，部分设备只有 `comm_chip_id` 没有 `iccid`，后端需兼容映射。
+- 线上设备存在历史数据，部分设备只有 `comm_chip_id` 或 ICCID，后端与前端需保留兼容回退。
 - 首页卡片展示逻辑应集中在首页数据映射层，避免组件层重复判断通讯类型。
 - 需保持蓝牙自动连接、长按菜单等首页现有能力不受影响。
 
 ## 6. 回滚方案
-- 回滚后端首页列表 `iccid` 字段扩展。
-- 回滚 UniApp 首页副标题映射逻辑，恢复显示 `device_number`。
+- 回滚后端首页列表 `imei` 字段扩展。
+- 回滚 UniApp 首页副标题 IMEI 优先级，恢复显示原 MAC/ICCID 或旧 `device_number` 口径。
