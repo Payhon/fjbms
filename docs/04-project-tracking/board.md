@@ -156,11 +156,11 @@
   - 依赖：无
   - 进展：已确认后台删除用户仅删 `users` 主表导致 `user_identities` 等孤儿记录残留；已完成后端级联清理、自修复逻辑与 SQL 46 历史数据补丁，待环境执行补丁并回归验证重新注册/重新绑定链路
   - 文档：`docs/03-development/features/FEAT-0027-admin-end-user-delete-cleanup/`
-- [ ] `in_progress` **FEAT-0026** UniApp 账号注销
+- [ ] `review` **FEAT-0026** UniApp 账号注销
   - owner：payhon
   - 优先级：P1
   - 依赖：无
-  - 进展：已确认移动端设置页缺少账号注销入口，正在补充终端用户自助注销接口、密码校验与账号关联数据清理逻辑
+  - 进展：已完成终端用户自助注销接口、账号关联数据清理、UniApp 设置页注销入口与非 PACK 当前密码校验；2026-06-24 已补 PACK 厂微信小程序免密码注销适配，后端仅在启用中的 PACK 小程序 AppID 且当前用户绑定该 AppID 微信身份时跳过密码校验；后端定向测试与 UniApp TypeScript 校验通过，待真机/小程序联调验收
   - 文档：`docs/03-development/features/FEAT-0026-uniapp-account-deletion/`
 - [ ] `review` **FEAT-0025** APP 联系客服单页内容接入
   - owner：payhon
@@ -356,11 +356,11 @@
   - 依赖：无
   - 进展：已完成首页“我的设备”卡片副标题按通讯类型显示 MAC / IMEI，并保留 ICCID/历史 `comm_chip_id` 缺失字段回退逻辑；已通过 `go test ./internal/model ./internal/service -count=1` 与 `pnpm exec tsc --noEmit --pretty false` 校验，待真机联调验收
   - 文档：`docs/03-development/features/FEAT-0029-uniapp-home-device-identifier/`
-- [ ] `in_progress` **FEAT-0026** UniApp 账号注销
+- [ ] `review` **FEAT-0026** UniApp 账号注销
   - owner：payhon
   - 优先级：P1
   - 依赖：无
-  - 进展：正在“我的 > 设置 > 账号绑定”下方新增账号注销入口，并补充不可恢复提示、密码输入确认与成功后清空登录态流程
+  - 进展：已完成“我的 > 设置”账号注销入口、不可恢复提示、非 PACK 密码输入确认、成功后清空登录态流程；2026-06-24 已补 PACK 厂微信小程序风险确认后直接注销能力，后端按 PACK 小程序配置与 scoped 微信身份做可信免密判定，待真机/小程序联调验收
   - 文档：`docs/03-development/features/FEAT-0026-uniapp-account-deletion/`
 - [ ] `review` **FEAT-0025** APP 联系客服单页内容接入
   - owner：payhon
