@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-06-12
+- last_updated: 2026-06-29
 - related_feature: FEAT-0049
 - version: v0.1.0
 
@@ -177,3 +177,11 @@
    - `boot-ota.ts` 的 `[boot] packet timing`、`[boot] packet timeout, retry`、`[boot] packet ack` 等日志增加 `packetIndexHex`、`expectedAckHex`、`requestedHex`、`ackForPacketHex`。
    - `UniMqttSocketBmsTransport` 的 `[socket] boot request timing` 请求与响应摘要同步增加 16 位 BOOT 包序号和 ACK 序号字段。
    - Debug 模式 OTA 日志浮层不改 UI 结构，继续复用现有日志数据展示和复制能力；新增字段会随日志 JSON 一起显示和复制。
+
+## 2026-06-29
+1. 修复 4G BMS 详情实时数值可能不刷新的问题
+   - 生产视频和 `bms_bridge_comm_logs` 复核显示目标设备在测试期间持续上报，数据库当前遥测已变化，但移动端实时轮询可能继续保留旧 `status`。
+   - `UniMqttSocketBmsTransport` 对普通 `0x03` 读寄存器响应增加期望字节数匹配，避免同一 Socket 中迟到的短响应误唤醒当前大范围状态读取。
+   - `BmsClient.readRegisters()` 增加返回寄存器数量校验；普通 `0x03` 响应必须等于本次请求数量，`SOCKET_READ=0x0F` 响应仍允许覆盖更大地址范围但校验 payload 数量与响应头一致。
+   - UniApp 4G/MQTT 实时轮询失败时立即刷新一次云端当前遥测，使用生产库已入库的主动上报快照替换旧值；下一次实时读取成功后仍切回 `realtime`。
+   - 蓝牙 BMS、仪表会话、occupied 云端只读和 OTA BOOT 传输路径保持原行为。

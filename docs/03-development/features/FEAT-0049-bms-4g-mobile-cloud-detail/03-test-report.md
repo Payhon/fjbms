@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-06-12
+- last_updated: 2026-06-29
 - related_feature: FEAT-0049
 - version: v0.1.0
 
@@ -131,3 +131,12 @@
 - [x] 2026-06-12 App Debug OTA 包序号类型检查：`cd fjbms-uniapp && pnpm exec tsc --noEmit --pretty false` 通过。
 - [x] 2026-06-12 App Debug OTA 包序号 diff 空白检查：`cd fjbms-uniapp && git diff --check -- common/lib/bms-protocol/boot-ota.ts common/lib/bms-protocol/uni-mqtt-socket-transport.ts` 通过。
 - [ ] 2026-06-12 App Debug OTA 真机复测：待 Debug 模式下执行 4G BMS OTA，确认日志浮层和复制文本中可见 `packetIndexHex/expectedAckHex/requestedHex/ackForPacketHex`。
+- [x] 2026-06-29 生产只读排查目标设备 `360111611350535934373730300A365F`：
+  - `telemetry_datas` 与 `bms_bridge_comm_logs` 确认 `2026-06-29 15:39:54.731+08` 有数据入库。
+  - 视频测试时段 `16:02~16:06+08` 当前遥测已出现 `packCellSumVoltageV`、单体电压和电流变化，判断小程序未变化不是设备未上报，而是实时读取失败后保留旧状态。
+- [x] 2026-06-29 UniApp 4G Socket 响应匹配断言：新增 `uni-mqtt-socket-transport-response-match.test.ts`，覆盖普通 `0x03` 响应按期望 `byteCount` 匹配，以及 `SOCKET_READ=0x0F` 仍按地址区间交集匹配。
+- [x] 2026-06-29 UniApp `readRegisters()` 数量校验断言：新增 `client-read-registers.test.ts`，覆盖普通 `0x03` 短响应会抛出数量不匹配，并确认请求会向 Transport 传递期望寄存器数/字节数。
+- [x] 2026-06-29 `cd fjbms-uniapp && pnpm exec tsc --noEmit --pretty false`：通过。
+- [x] 2026-06-29 临时编译并执行新增协议断言：`client-read-registers.test.ts`、`uni-mqtt-socket-transport-response-match.test.ts` 均通过。
+- [x] 2026-06-29 diff 空白检查：FEAT-0049 文档、看板和 UniApp 本次变更文件均通过。
+- [ ] 2026-06-29 UniApp 真机复测：待使用包含本次修复的新包进入同一 4G BMS 详情页，确认外部测试改变电压/电流后小程序仪表盘随生产当前遥测或实时读数更新。

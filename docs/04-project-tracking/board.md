@@ -14,6 +14,12 @@
 ## 模块泳道看板
 
 ### Mobile（`fjbms-uniapp/`）
+- [ ] `review` **FEAT-0061** 设备详情充放电控制工厂命令
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0039、FEAT-0040、FEAT-0049、FEAT-0058
+  - 进展：已为 Web 与移动端设备详情高级设置新增 `禁止充电`、`禁止放电`、`允许充放电` 三个工厂命令；三项操作复用现有 `0x057A~0x057B` 写寄存器链路，并在后台设备参数权限树新增对应 `factory:*` 权限项；不新增 SQL 迁移，已有受限组织需管理员手动授权；后端权限树单测、Web 受影响文件 ESLint、UniApp TypeScript 校验、空白检查和协议帧校验均已通过；Web 显式全量 typecheck 仍受既有仓库类型错误阻塞，待受限账号与真实设备运行态回归
+  - 文档：`docs/03-development/features/FEAT-0061-bms-charge-discharge-factory-actions/`
 - [ ] `review` **FEAT-0060** UniApp 详情状态与小程序品牌首屏优化
   - owner：payhon
   - 优先级：P1
@@ -88,7 +94,7 @@
   - owner：payhon
   - 优先级：P1
   - 依赖：FEAT-0048
-  - 进展：已新增 APP 当前遥测接口与 UniApp 4G-only 云端只读详情链路；已修复 `0x0141` 动态电芯帧结构化发布和后台 BMS 面板当前遥测回退展示；2026-04-29 修复 UniApp 扫码添加已绑定设备误报失败，并为移动端 4G 详情当前遥测增加生产通用接口 fallback；本次将 UniApp/Web 4G 详情切换为 MQTT Socket 透传实时读取，后端桥接使用数据库 UUID 鉴权并以 `devices.device_number` 拼接 `device/socket/tx|rx/{device_number}`，主动上报仅作为兜底；生产实测已收到目标设备 `0x0F` 透传响应，并修复前端将 `0x0F byteCount` 误按寄存器数翻倍导致丢帧、2500ms 超时过短、`0x0100` 整段响应未缓存复用的问题；参数配置寄存器无响应发生时设备已离线，已撤回“不支持”结论并修复 `0x0F` 响应按寄存器区间匹配，避免主动上报帧误唤醒参数读取请求；2026-04-30 根据协议确认修正 4G MQTT 透传功能码，普通 BMS 寄存器保持 BLE 同款 `0x03`，仅 `0x0900~0x0923` 4G 模块专有寄存器使用云平台 `0x0F`；参数设置面板已改为按连续寄存器范围批量读取，减少 BLE/4G 展开分组时的串行请求；已补充移动端首帧实时数据等待卡片和参数分组首次展开加载图标；2026-05-25 已将 UniApp 4G 详情顶部连接状态改为 4G 图标 + “已连接”，不再向用户暴露主动上报兜底等技术链路；2026-06-04 已优化移动端 4G 详情首屏当前遥测/快照预填、移除 Socket 建连 `readUuid` 预读、补齐 APP Socket 路由，并支持 4G BMS 通过 MQTT Socket 透传执行 BLE 同款 BOOT OTA；2026-06-08 已为 APP 4G MQTT Socket 增加设备级 Redis owner 保守互斥，第二账号 occupied 时降级云端只读并提示，参数/OTA 暂不可用；2026-06-10 已为 4G BMS OTA 增加 APP/后端 Boot 链路耗时埋点并启用 APP 端正常快速、超时降速策略，Debug 模式 OTA 弹窗新增日志查看浮层与复制能力；2026-06-11 已将 Debug OTA 日志查看层改为页面级 fixed 浮层并按窗口动态计算日志区高度，避免被 OTA 弹窗裁剪；2026-06-12 后端已过滤 retained BOOT 回包并增加慢 ACK/ACK 后下发间隔诊断日志，UniApp 4G Socket 读查询已增加休眠唤醒补发，4G BMS OTA `0x53` ACK 超时已收紧为 3 秒重发；同日生产确认 QoS1 后延迟样例为 `0x04FA` 后未收到 `0x04FB` ACK，后端已补充 BOOT 包序号、期望 ACK、ACK 对应包、重发次数和 MQTT message id 日志，并对 APP Socket 数据包 owner 刷新做 5 秒节流；App Debug OTA 日志已同步展示 `packetIndexHex/expectedAckHex/requestedHex/ackForPacketHex`；待移动端新包和 Web 页面确认详情页指标展示
+  - 进展：已新增 APP 当前遥测接口与 UniApp 4G-only 云端只读详情链路；已修复 `0x0141` 动态电芯帧结构化发布和后台 BMS 面板当前遥测回退展示；2026-04-29 修复 UniApp 扫码添加已绑定设备误报失败，并为移动端 4G 详情当前遥测增加生产通用接口 fallback；本次将 UniApp/Web 4G 详情切换为 MQTT Socket 透传实时读取，后端桥接使用数据库 UUID 鉴权并以 `devices.device_number` 拼接 `device/socket/tx|rx/{device_number}`，主动上报仅作为兜底；生产实测已收到目标设备 `0x0F` 透传响应，并修复前端将 `0x0F byteCount` 误按寄存器数翻倍导致丢帧、2500ms 超时过短、`0x0100` 整段响应未缓存复用的问题；参数配置寄存器无响应发生时设备已离线，已撤回“不支持”结论并修复 `0x0F` 响应按寄存器区间匹配，避免主动上报帧误唤醒参数读取请求；2026-04-30 根据协议确认修正 4G MQTT 透传功能码，普通 BMS 寄存器保持 BLE 同款 `0x03`，仅 `0x0900~0x0923` 4G 模块专有寄存器使用云平台 `0x0F`；参数设置面板已改为按连续寄存器范围批量读取，减少 BLE/4G 展开分组时的串行请求；已补充移动端首帧实时数据等待卡片和参数分组首次展开加载图标；2026-05-25 已将 UniApp 4G 详情顶部连接状态改为 4G 图标 + “已连接”，不再向用户暴露主动上报兜底等技术链路；2026-06-04 已优化移动端 4G 详情首屏当前遥测/快照预填、移除 Socket 建连 `readUuid` 预读、补齐 APP Socket 路由，并支持 4G BMS 通过 MQTT Socket 透传执行 BLE 同款 BOOT OTA；2026-06-08 已为 APP 4G MQTT Socket 增加设备级 Redis owner 保守互斥，第二账号 occupied 时降级云端只读并提示，参数/OTA 暂不可用；2026-06-10 已为 4G BMS OTA 增加 APP/后端 Boot 链路耗时埋点并启用 APP 端正常快速、超时降速策略，Debug 模式 OTA 弹窗新增日志查看浮层与复制能力；2026-06-11 已将 Debug OTA 日志查看层改为页面级 fixed 浮层并按窗口动态计算日志区高度，避免被 OTA 弹窗裁剪；2026-06-12 后端已过滤 retained BOOT 回包并增加慢 ACK/ACK 后下发间隔诊断日志，UniApp 4G Socket 读查询已增加休眠唤醒补发，4G BMS OTA `0x53` ACK 超时已收紧为 3 秒重发；同日生产确认 QoS1 后延迟样例为 `0x04FA` 后未收到 `0x04FB` ACK，后端已补充 BOOT 包序号、期望 ACK、ACK 对应包、重发次数和 MQTT message id 日志，并对 APP Socket 数据包 owner 刷新做 5 秒节流；App Debug OTA 日志已同步展示 `packetIndexHex/expectedAckHex/requestedHex/ackForPacketHex`；2026-06-29 已根据目标设备 `360111611350535934373730300A365F` 真机视频和生产入库证据，收紧 UniApp 4G Socket 普通 `0x03` 响应字节数/寄存器数校验，并在 MQTT 实时轮询失败时立即刷新云端当前遥测，避免小程序继续显示旧值；待移动端新包和 Web 页面确认详情页指标展示
   - 文档：`docs/03-development/features/FEAT-0049-bms-4g-mobile-cloud-detail/`
 - [ ] `in_progress` **FEAT-0048** BMS 4G 通讯调试管理
   - owner：payhon
@@ -306,7 +312,7 @@
   - owner：payhon
   - 优先级：P1
   - 依赖：无
-  - 进展：已确认当前 OTA 主升级流程已区分仪表/ BMS，但 Boot 查询地址未严格统一，且仪表临时会话 OTA 入口被禁用；当前正在统一 Boot 地址口径并补齐仪表会话 OTA 检查/升级链路
+  - 进展：已确认当前 OTA 主升级流程已区分仪表/ BMS，但 Boot 查询地址未严格统一，且仪表临时会话 OTA 入口被禁用；已统一 Boot 地址口径并补齐仪表会话 OTA 检查/升级链路；2026-06-29 补充有线仪表体验判断，仪表临时会话首帧成功读取到 BMS 状态后不再展示“仪表临时连接”扫码提示；2026-06-30 补充有线仪表未接 BMS 的失败接管体验，连续 3 次读取 BMS 状态失败后关闭 loading、回到主面板，并显示包含有线连接/供电检查建议和继续扫码入口的提示；UniApp TypeScript、代码空白检查和文档/看板空白检查已通过，待真机回归
   - 文档：`docs/03-development/features/FEAT-0041-uniapp-ota-addressing-and-instrument-session/`
 - [ ] `in_progress` **FEAT-0039** UniApp 设备详情高级参数出厂命令补齐与底部遮挡修复
   - owner：payhon
