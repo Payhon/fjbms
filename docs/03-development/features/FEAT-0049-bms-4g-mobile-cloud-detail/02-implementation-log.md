@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-06-29
+- last_updated: 2026-07-07
 - related_feature: FEAT-0049
 - version: v0.1.0
 
@@ -185,3 +185,42 @@
    - `BmsClient.readRegisters()` 增加返回寄存器数量校验；普通 `0x03` 响应必须等于本次请求数量，`SOCKET_READ=0x0F` 响应仍允许覆盖更大地址范围但校验 payload 数量与响应头一致。
    - UniApp 4G/MQTT 实时轮询失败时立即刷新一次云端当前遥测，使用生产库已入库的主动上报快照替换旧值；下一次实时读取成功后仍切回 `realtime`。
    - 蓝牙 BMS、仪表会话、occupied 云端只读和 OTA BOOT 传输路径保持原行为。
+
+## 2026-07-02
+1. 优化移动端 4G BMS 高级参数读取体验
+   - 生产 MQTT 直连确认目标设备高级参数普通 `0x03` 读寄存器可在 1~3 秒内返回，慢加载主要来自移动端串行队列被前置状态/超时请求占住。
+   - `BmsClient.readAllStatus()` 增加 `shouldContinue` 检查点；设备详情进入设置页暂停轮询后，旧状态读取不会继续排后续状态子请求，减少高级参数排队等待。
+   - 轮询取消视为预期状态，不触发首帧失败、蓝牙仪表透传失败计数或 4G 云端兜底刷新。
+   - `readParamsByKeys()` 支持传入 `timeoutMs`，UniApp 在 `connType=mqtt` 参数读取时使用 5 秒单组超时，避免个别无响应区间按默认 10 秒持续拖慢后续分组。
+   - 暂不做 transport 级强制取消 in-flight 请求，避免普通 `0x03` 单寄存器迟到响应污染后续同字节数参数请求。
+
+## 2026-07-03
+1. 按 4G BMS 三分钟休眠策略优化参数读取前唤醒
+   - 根据设备端确认：4G BMS 在无 MQTT 通讯且无串口通讯约 3 分钟后进入休眠，休眠状态首个下行读指令可能只用于唤醒而不响应。
+   - `UniMqttSocketBmsTransport` 默认休眠判断阈值从 30 秒调整为 180 秒，并暴露 `shouldRunSleepWakeupProbe()`，用于页面在进入参数读取前判断是否需要主动唤醒探测。
+   - `BmsClient` 新增 `wakeupReadLink()`，默认发送轻量 `0x0100 qty=1` 读查询，可设置短超时；探测失败只记录调试日志并返回 `false`，不会阻断后续真实参数读取。
+   - UniApp 参数页在首次展开基础分组、打开“高级参数”弹层前，若当前为 MQTT 实时连接且可能已休眠，会先执行 2.5 秒短超时唤醒探测；探测成功或超时后都继续读取真实参数。
+   - 高级参数弹层增加加载序号保护，用户关闭或切换连接后，旧的异步唤醒/加载任务不会继续触发参数读取。
+
+## 2026-07-07
+1. 修复 4G BMS 小程序实时回包与仪表盘轮询链路
+   - `UniMqttSocketBmsTransport.onMessage()` 改为统一解码 `string`、`ArrayBuffer`、`TypedArray` 和数组消息，避免微信小程序 WebSocket 回包被转成 `"[object ArrayBuffer]"` 后误判为桥接错误并关闭连接。
+   - MQTT Socket 收包在没有 `hex` 时仅对明确桥接错误文本或 `socket_error/socket_occupied` 控制消息 reject pending；未知非帧消息记录调试日志后忽略，避免 `pong`、平台包装对象或其它控制文本污染当前实时读请求。
+   - 设备详情在仪表盘/电芯页增加连接就绪 watcher：用户停留在仪表盘时，只要 4G MQTT client 后续创建成功，会主动 `resumePolling()`，确保持续下发 `readAllStatus()` 读取请求。
+   - `useBatteryDetail.startPolling()` 增加当前 client 与 generation 保护，同一实时连接已在轮询时不重复启动；切到参数页、断开连接或换连接后，旧轮询不会继续排下一轮，也不会用迟到状态覆盖当前页面。
+   - 4G MQTT 状态轮询将 `readAllStatus()` 单段读取超时下调为 5 秒，并把 `timeoutMs` 贯通到 `readSn/head/alarm/tail` 子读取，避免单段无响应把仪表盘轮询和参数读取队列拖住过久。
+   - 后端 `/api/v1/app/battery/socket/ws` 对普通非 BOOT 帧补充 `ws_to_mqtt_rx` 与 `mqtt_tx_to_ws` 结构化日志，包含 topic、payload 摘要、frame source/target/function、publish/write 耗时和失败原因；普通帧 WebSocket 写失败不再静默。
+2. 修复 4G BMS 参数设置“单体设置”回包已到但小程序不展开
+   - 现场 MQTTX 确认 `0x040D qty=4` 请求 `7F55FE0103040D0004D4FAFD` 可在约 150ms 内收到普通 `0x03` 回包 `7F5501FE030814140B5409603214D464FD`，协议匹配层可正常识别，问题不在设备端回包。
+   - 移动端单体设置参数清单漏掉 `LOW_TEMP_CELL_UV_ALARM_V` 与 `LOW_TEMP_CELL_UV_PROTECT_V`，导致 `0x0408~0x0410` 连续配置区被拆成 `0x0408 qty=3` 和 `0x040D qty=4` 两段；补齐后单体欠压相关配置合并为 `0x0408 qty=9` 一次读取，减少 4G 透传请求数并避免后段单独请求卡住界面。
+   - 参数分组加载在 MQTT 模式下若首次读取没有任何有效值，会短间隔重试一次；重试后仍全空则返回失败并保持分组未加载，不再把失败结果吞掉后让用户停留在持续转圈或空值状态。
+   - 基础分组展开逻辑会根据 `loadSection()` 返回值决定是否展开，读取失败时 toast 提示并保留可再次点击重试的状态。
+3. 根据 MQTTX 导出日志修正参数读取超时
+   - `_resources/fjia.json` 显示单体设置的 `0x0408 qty=9` 曾在 `2026-07-07 11:15:22.268` 下发并于 `11:15:22.440` 快速返回，也曾在 `11:15:32.425/11:15:33.645` 下发后到 `11:15:35.803` 才收到回包；真实设备同一参数区间存在秒级波动。
+   - 之前将 MQTT 参数读取单组超时压到 5 秒，用于避免高级参数被前置状态请求拖慢；但在本设备慢回包窗口下会把仍会返回的参数读取判为失败，触发“打开失败，请重试”。
+   - UniApp MQTT 参数分组读取超时调整为 15 秒，仍保留进入参数页暂停实时轮询、休眠唤醒 probe、全空重试和失败不缓存的策略，避免恢复到约 1 分钟 fallback 等待。
+   - 补充完整 Transport 断言：当 WebSocket 收到 `0x0408 qty=9` 有效帧后拼接尾随字节时，`FrameCollector` 仍应切出有效帧并返回 9 个寄存器，覆盖 MQTTX 中 `...66F0FD150C...` 这类 payload。
+4. 修复 MQTT Socket 帧收集器被下行请求帧卡住的问题
+   - `_resources/fjia2.json` 前段显示小程序下发 `0x0100 qty=1`、`0x0400 qty=6`、`0x0408 qty=9` 后设备均有普通 `0x03` 响应；若 WebSocket 流中先混入同一条下行请求帧，旧 `FrameCollector` 会反复从错误起点解析失败，后续真实响应被留在缓冲区，最终 pending 超时并提示“打开失败，请重试”。
+   - `FrameCollector.tryShiftOneValidFrame()` 改为按响应功能码计算期望帧长，遇到请求帧、未知功能码、错误帧尾或 CRC 不匹配时丢弃当前错误起点后继续扫描；有效响应帧后仍保留尾随字节供下一次解析。
+   - 新增 `uni-mqtt-socket-transport-fjia2-repro.test.ts`，使用 `fjia2.json` 中的真实响应帧，并在每条响应前注入请求 echo，确认 4G BMS 单体参数分组仍可展开并解码出参数值。

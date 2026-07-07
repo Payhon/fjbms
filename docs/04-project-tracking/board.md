@@ -14,6 +14,12 @@
 ## 模块泳道看板
 
 ### Mobile（`fjbms-uniapp/`）
+- [ ] `review` **FEAT-0062** 用户质保信息与 PACK 质保卡片开关
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0055、FEAT-0014
+  - 进展：已新增移动端“我的 > 质保信息”入口和页面，支持终端用户维护姓名、联系电话，并按当前 PACK 小程序 AppID 读取服务端 `warranty_cards_enabled`；开关关闭时移动端只显示个人质保信息，不渲染关联电池卡片区域；个人质保信息已优化为默认只读、铅笔按钮进入编辑态后才显示保存按钮，关联电池卡片已升级为拟物化质保凭证样式，并收紧编号、型号和质保时长排版；“我的”页质保信息入口已替换为独立质保图标；已补齐中英文文案和页面标题，待小程序真机/开发者工具回归开关开启与关闭展示
+  - 文档：`docs/03-development/features/FEAT-0062-user-warranty-info/`
 - [ ] `review` **FEAT-0061** 设备详情充放电控制工厂命令
   - owner：payhon
   - 优先级：P1
@@ -52,6 +58,18 @@
   - 文档：`docs/03-development/features/FEAT-0052-uniapp-device-detail-scan-i18n-login-ux/`
 
 ### Web（`frontend/`）
+- [ ] `review` **FEAT-0063** PACK 厂小程序配置自助入口
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0055、FEAT-0062
+  - 进展：已新增 `BMS 管理 > 小程序配置` 独立入口和 `/bms/pack-wxmp-config` 页面，PACK_FACTORY 账号按登录态机构直接维护自己机构关联的小程序配置；原 PACK 厂家管理弹窗已抽为共享配置组件并继续供租户/系统管理员使用；`backend/sql/61.sql` 已更新到测试环境和生产环境且只读校验通过；待真实 PACK_FACTORY 账号回归菜单可见性、旧入口隐藏和保存回显
+  - 文档：`docs/03-development/features/FEAT-0063-pack-wxmp-self-config/`
+- [ ] `review` **FEAT-0062** 用户质保信息与 PACK 质保卡片开关
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0055、FEAT-0011、FEAT-0014
+  - 进展：已在 PACK 小程序配置弹窗新增“启用质保卡片”开关，默认开启并支持保存/回显；电池详情 BMS 模式新增“质保”Tab，展示绑定用户、联系人、激活日期、质保时长和到期日，并支持按单块电池人工编辑；新增页面元素权限 `bms_battery_detail_warranty`，待后台 PACK_FACTORY 实际账号权限和页面交互回归
+  - 文档：`docs/03-development/features/FEAT-0062-user-warranty-info/`
 - [ ] `review` **FEAT-0058** Web 后台 BMS 模块多语言补齐
   - owner：payhon
   - 优先级：P1
@@ -60,6 +78,18 @@
   - 文档：`docs/03-development/features/FEAT-0058-web-bms-admin-i18n/`
 
 ### Backend（`backend/`）
+- [ ] `review` **FEAT-0063** PACK 厂小程序配置自助入口
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0055、FEAT-0062
+  - 进展：已新增 `backend/sql/61.sql`，注册 `bms_pack_wxmp_config` 菜单并将 PACK_FACTORY 类型权限切换到自助入口；后端继续复用 `/api/v1/org/{id}/wxmp-config`，并补充 PACK_FACTORY 账号只能读写自己机构配置的定向测试；测试环境和生产环境 SQL 已执行，只读校验确认新菜单存在、PACK_FACTORY 已包含 `bms_pack_wxmp_config` 且不再包含 `bms_pack_factory`；待真实账号回归
+  - 文档：`docs/03-development/features/FEAT-0063-pack-wxmp-self-config/`
+- [ ] `review` **FEAT-0062** 用户质保信息与 PACK 质保卡片开关
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0055、FEAT-0014、FEAT-0026
+  - 进展：已新增 `user_warranty_infos`、扩展 `device_batteries` 质保字段和 `pack_wxmp_configs.warranty_cards_enabled`，补齐移动端质保 profile、电池质保查询/编辑接口、PACK 小程序配置开关和 runtime 返回；电池首次激活按 BMS 型号质保月数计算到期日，人工覆盖后不再被激活链路重算；已补后端定向测试，待目标环境执行 SQL 并完成接口/账号回归
+  - 文档：`docs/03-development/features/FEAT-0062-user-warranty-info/`
 - [ ] `in_progress` **FEAT-0059** 4G BMS 直连 OTA HTTP 接口
   - owner：payhon
   - 优先级：P1
@@ -95,6 +125,9 @@
   - 优先级：P1
   - 依赖：FEAT-0048
   - 进展：已新增 APP 当前遥测接口与 UniApp 4G-only 云端只读详情链路；已修复 `0x0141` 动态电芯帧结构化发布和后台 BMS 面板当前遥测回退展示；2026-04-29 修复 UniApp 扫码添加已绑定设备误报失败，并为移动端 4G 详情当前遥测增加生产通用接口 fallback；本次将 UniApp/Web 4G 详情切换为 MQTT Socket 透传实时读取，后端桥接使用数据库 UUID 鉴权并以 `devices.device_number` 拼接 `device/socket/tx|rx/{device_number}`，主动上报仅作为兜底；生产实测已收到目标设备 `0x0F` 透传响应，并修复前端将 `0x0F byteCount` 误按寄存器数翻倍导致丢帧、2500ms 超时过短、`0x0100` 整段响应未缓存复用的问题；参数配置寄存器无响应发生时设备已离线，已撤回“不支持”结论并修复 `0x0F` 响应按寄存器区间匹配，避免主动上报帧误唤醒参数读取请求；2026-04-30 根据协议确认修正 4G MQTT 透传功能码，普通 BMS 寄存器保持 BLE 同款 `0x03`，仅 `0x0900~0x0923` 4G 模块专有寄存器使用云平台 `0x0F`；参数设置面板已改为按连续寄存器范围批量读取，减少 BLE/4G 展开分组时的串行请求；已补充移动端首帧实时数据等待卡片和参数分组首次展开加载图标；2026-05-25 已将 UniApp 4G 详情顶部连接状态改为 4G 图标 + “已连接”，不再向用户暴露主动上报兜底等技术链路；2026-06-04 已优化移动端 4G 详情首屏当前遥测/快照预填、移除 Socket 建连 `readUuid` 预读、补齐 APP Socket 路由，并支持 4G BMS 通过 MQTT Socket 透传执行 BLE 同款 BOOT OTA；2026-06-08 已为 APP 4G MQTT Socket 增加设备级 Redis owner 保守互斥，第二账号 occupied 时降级云端只读并提示，参数/OTA 暂不可用；2026-06-10 已为 4G BMS OTA 增加 APP/后端 Boot 链路耗时埋点并启用 APP 端正常快速、超时降速策略，Debug 模式 OTA 弹窗新增日志查看浮层与复制能力；2026-06-11 已将 Debug OTA 日志查看层改为页面级 fixed 浮层并按窗口动态计算日志区高度，避免被 OTA 弹窗裁剪；2026-06-12 后端已过滤 retained BOOT 回包并增加慢 ACK/ACK 后下发间隔诊断日志，UniApp 4G Socket 读查询已增加休眠唤醒补发，4G BMS OTA `0x53` ACK 超时已收紧为 3 秒重发；同日生产确认 QoS1 后延迟样例为 `0x04FA` 后未收到 `0x04FB` ACK，后端已补充 BOOT 包序号、期望 ACK、ACK 对应包、重发次数和 MQTT message id 日志，并对 APP Socket 数据包 owner 刷新做 5 秒节流；App Debug OTA 日志已同步展示 `packetIndexHex/expectedAckHex/requestedHex/ackForPacketHex`；2026-06-29 已根据目标设备 `360111611350535934373730300A365F` 真机视频和生产入库证据，收紧 UniApp 4G Socket 普通 `0x03` 响应字节数/寄存器数校验，并在 MQTT 实时轮询失败时立即刷新云端当前遥测，避免小程序继续显示旧值；待移动端新包和 Web 页面确认详情页指标展示
+  - 2026-07-02 更新：根据生产 MQTT 直连结论，UniApp 4G BMS 高级参数读取已优化为暂停轮询后不再继续排旧 `readAllStatus()` 子请求，MQTT 参数分组读取使用 5 秒单组超时，并保留 transport in-flight 请求不强制取消以避免普通 `0x03` 迟到短响应污染后续参数读取；待新包真机复测高级参数是否稳定数秒内显示
+  - 2026-07-03 更新：根据设备端“无 MQTT/串口通讯 3 分钟后休眠，第二次指令唤醒”策略，UniApp 4G MQTT Socket 默认休眠阈值调整为 180 秒；参数分组首次展开和高级参数弹层加载前增加 2.5 秒轻量 `0x0100 qty=1` 唤醒 probe，probe 超时不阻断真实参数读取；类型检查与协议断言通过，待 3 分钟静置真机复测
+  - 2026-07-07 更新：修复小程序 4G MQTT Socket 实时回包链路，`onMessage` 已兼容 `ArrayBuffer/TypedArray` 回包并避免非帧消息误断链；仪表盘/电芯页在 MQTT client 就绪后会主动恢复轮询，`readAllStatus()` 4G 单段超时改为 5 秒且旧轮询不会覆盖当前状态；后端 Socket 桥接补充普通帧 `ws_to_mqtt_rx/mqtt_tx_to_ws` 日志；同日修复参数设置单体分组缺失低温单体欠压两项导致 `0x0408~0x0410` 被拆段的问题，现合并为 `0x0408 qty=9` 读取，且 MQTT 参数读取全空会重试并保留可重试状态；根据 `_resources/fjia.json` 复核到同一参数区间存在秒级慢回包，将 MQTT 参数分组读取超时从 5 秒调整为 15 秒，并补充有效帧后带尾随字节的 Transport 断言；根据 `_resources/fjia2.json` 继续加固 `FrameCollector`，请求 echo/坏帧会丢弃错误起点后继续匹配真实回包，并补充真实帧回归断言；待新包和后端发布后用 MQTTX/生产日志复测周期性读取、实时刷新与单体/总压设置展开显示
   - 文档：`docs/03-development/features/FEAT-0049-bms-4g-mobile-cloud-detail/`
 - [ ] `in_progress` **FEAT-0048** BMS 4G 通讯调试管理
   - owner：payhon

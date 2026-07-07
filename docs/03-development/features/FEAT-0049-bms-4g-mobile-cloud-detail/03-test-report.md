@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-06-29
+- last_updated: 2026-07-07
 - related_feature: FEAT-0049
 - version: v0.1.0
 
@@ -140,3 +140,35 @@
 - [x] 2026-06-29 临时编译并执行新增协议断言：`client-read-registers.test.ts`、`uni-mqtt-socket-transport-response-match.test.ts` 均通过。
 - [x] 2026-06-29 diff 空白检查：FEAT-0049 文档、看板和 UniApp 本次变更文件均通过。
 - [ ] 2026-06-29 UniApp 真机复测：待使用包含本次修复的新包进入同一 4G BMS 详情页，确认外部测试改变电压/电流后小程序仪表盘随生产当前遥测或实时读数更新。
+- [x] 2026-07-02 生产 MQTT 直连排查目标设备 `36011161145053593437373030124A57`：
+  - 高级参数普通 `0x03` 区间 `0x0454/0x0500/0x053A/0x0001/0x0004/0x0030/0x003E` 在无前置超时请求时 0.9~2.5 秒返回。
+  - 状态大包 `0x0100 qty=53` 与 `0x0141 qty=79` 也可实时返回；`0x0F 0x0900 qty=36` 两轮无响应，应与高级参数读取隔离。
+- [x] 2026-07-02 UniApp 状态轮询取消断言：扩展 `client-read-registers.test.ts`，覆盖 `readAllStatus({ shouldContinue })` 在暂停后不继续排后续状态子请求。
+- [x] 2026-07-02 UniApp MQTT 参数读取超时断言：扩展 `client-read-registers.test.ts`，覆盖 `readParamsByKeys(..., { timeoutMs })` 会将短超时传递到 transport。
+- [x] 2026-07-02 `cd fjbms-uniapp && pnpm exec tsc --noEmit --pretty false`：通过。
+- [x] 2026-07-02 临时编译并执行协议断言：`client-read-registers.test.ts` 通过。
+- [ ] 2026-07-02 UniApp 真机复测：待使用新包进入同一 4G BMS `设置 > 高级参数`，确认正常情况下高级参数在数秒内显示，且切页时不会被旧状态轮询拖到约 1 分钟。
+- [x] 2026-07-03 UniApp 4G BMS 休眠策略断言：扩展 `uni-mqtt-socket-transport.wakeup.test.ts`，确认默认休眠唤醒阈值为 180 秒，并覆盖从未收到响应/超过阈值才需要主动 probe。
+- [x] 2026-07-03 UniApp 参数读取前唤醒 probe 断言：扩展 `client-read-registers.test.ts`，确认 `wakeupReadLink()` 默认发送 `0x0100 qty=1` 轻量读查询、传递短超时，并吞掉休眠超时错误。
+- [x] 2026-07-03 `cd fjbms-uniapp && pnpm exec tsc -p tsconfig.json --noEmit --pretty false`：通过。
+- [x] 2026-07-03 临时编译并执行协议断言：`client-read-registers.test.ts`、`uni-mqtt-socket-transport.wakeup.test.ts` 均通过。
+- [ ] 2026-07-03 UniApp 真机复测：待设备静置超过 3 分钟后进入 `设置 > 高级参数`，确认先触发轻量唤醒读，随后高级参数分组不再因首包休眠无响应长时间空白。
+- [x] 2026-07-07 后端 WebSocket/MQTT 普通帧转发日志单测：`cd backend && go test ./internal/api -run 'TestSocket'` 通过；仅出现 macOS SDK `IOMasterPort` 废弃警告。
+- [x] 2026-07-07 UniApp MQTT Socket 收包断言：扩展 `uni-mqtt-socket-transport.wakeup.test.ts`，覆盖微信小程序 WebSocket `ArrayBuffer` 与 `Uint8Array` 消息可解码为 JSON `{hex}` 文本。
+- [x] 2026-07-07 UniApp 状态轮询超时断言：扩展 `client-read-registers.test.ts`，覆盖 `readAllStatus({ timeoutMs })` 会把 4G 实时轮询短超时传递到 `readSn/head/alarm/tail` 子读取。
+- [x] 2026-07-07 临时编译并执行协议断言：`client-read-registers.test.ts`、`uni-mqtt-socket-transport.wakeup.test.ts` 的输出 JS 均通过；单文件 `tsc` 因未加载 uniapp 全局声明出现预期 `Cannot find name 'uni'`，不影响输出断言。
+- [x] 2026-07-07 UniApp 项目级类型检查：`cd fjbms-uniapp && ./node_modules/.bin/tsc -p tsconfig.json --noEmit` 通过。
+- [x] 2026-07-07 UniApp 参数响应匹配断言：`uni-mqtt-socket-transport-response-match.test.ts` 覆盖现场普通 `0x03` 回包 `7F5501FE030814140B5409603214D464FD` 可满足 `0x040D qty=4` 的 pending 请求。
+- [x] 2026-07-07 UniApp 单体参数批量读取断言：`client-read-registers.test.ts` 覆盖单体设置会读取 `0x0400 qty=6` 与 `0x0408 qty=9`，不再把后半段拆成独立 `0x040D qty=4` 请求。
+- [x] 2026-07-07 UniApp 参数页失败态检查：MQTT 参数分组首次全空会重试一次；重试后仍全空则不标记分组已加载，用户可重新点击触发真实读取。
+- [x] 2026-07-07 MQTTX 导出日志复核：`_resources/fjia.json` 显示 `0x0408 qty=9` 既存在约 172ms 快回包，也存在超过 3 秒才出现且带尾随字节的回包；结合 5 秒单组超时会导致慢窗口下参数分组被误判失败。
+- [x] 2026-07-07 UniApp 参数读取超时修正：MQTT 参数分组读取超时从 5 秒调整为 15 秒，避免真实 4G BMS 慢回包触发“打开失败，请重试”。
+- [x] 2026-07-07 UniApp Transport 尾随字节断言：`uni-mqtt-socket-transport.wakeup.test.ts` 覆盖 `0x0408 qty=9` 有效帧后拼接 `150C...` 尾随字节时，Transport 仍可解析并返回 9 个寄存器。
+- [x] 2026-07-07 UniApp 项目级类型检查：`cd fjbms-uniapp && ./node_modules/.bin/tsc -p tsconfig.json --noEmit` 通过。
+- [x] 2026-07-07 UniApp 协议断言执行：项目 tsconfig 编译测试产物后执行 `client-read-registers.test.js`、`uni-mqtt-socket-transport-response-match.test.js`、`uni-mqtt-socket-transport.wakeup.test.js` 均通过。
+- [x] 2026-07-07 `fjia2.json` 真实帧回归：新增 `uni-mqtt-socket-transport-fjia2-repro.test.ts`，回放 `0x0100 qty=1`、`0x0400 qty=6`、`0x0408 qty=9` 的真实响应，并在每条真实响应前注入请求 echo，验证 `FrameCollector` 会跳过下行请求帧且单体设置参数可解码。
+- [x] 2026-07-07 本轮 UniApp 类型检查：`cd fjbms-uniapp && pnpm exec tsc -p tsconfig.json --noEmit --pretty false` 通过。
+- [x] 2026-07-07 本轮协议断言执行：临时编译并执行 `client-read-registers.test.js`、`uni-mqtt-socket-transport-response-match.test.js`、`uni-mqtt-socket-transport.wakeup.test.js`、`uni-mqtt-socket-transport-fjia2-repro.test.js` 均通过。
+- [ ] 2026-07-07 UniApp 真机复测：待使用新包停留在 4G BMS `设备详情 > 仪表盘`，通过 MQTTX 订阅 `device/socket/rx/{device_number}` 确认会周期性出现状态读取 payload，并确认 `device/socket/tx/{device_number}` 回包后仪表盘实时刷新。
+- [ ] 2026-07-07 UniApp 参数设置真机复测：待使用新包进入 4G BMS `设备详情 > 参数设置 > 单体设置/总压设置`，确认 MQTTX 可见分组读取 payload，慢回包在 15 秒内返回时小程序端可展开并显示参数值。
+- [ ] 2026-07-07 生产日志复测：待后端发布后，观察 `/api/v1/app/battery/socket/ws` 普通帧日志是否连续出现 `ws_to_mqtt_rx` 与 `mqtt_tx_to_ws`，并用 `ws_write_ms/mqtt_publish_wait_ms` 排除 Broker/WS 转发阻塞。
