@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-06-04
+- last_updated: 2026-07-07
 - related_feature: FEAT-0049
 - version: v0.1.0
 
@@ -14,6 +14,8 @@
 - MQTT Socket Topic 标识使用 `devices.device_number`：订阅 `device/socket/tx/{device_number}`，发布 `device/socket/rx/{device_number}`。数据库 UUID 不允许直接用于 Socket Topic。
 - 当 `device_number` 为空时，WebSocket 初始化返回明确错误，不回退到数据库 UUID。
 - APP 路由层需显式注册 `GET /api/v1/app/battery/socket/ws`，移动端实时详情与 4G BMS OTA 共用该桥接入口。
+- MQTT Socket 桥接收到 `device/socket/tx/{device_number}` 非 retained 上行回包后，后端按设备详情判定 4G 能力；仅 `bms_comm_type=2/3` 或存在 `comm_chip_id` 的设备刷新 `devices.is_online=1` 与在线 TTL。
+- 4G Socket 交互置在线以设备侧上行回包为准；APP 仅发布下行请求、Socket 建连或 ping 不触发在线状态，避免离线设备被误判在线。
 
 ## 2. 移动端数据流
 - 详情页加载 `appBatteryDetail` 后判断 4G 能力：`bms_comm_type=2/3`，或存在 `comm_chip_id`。
@@ -27,6 +29,7 @@
 - 透传连接或实时读取失败后，降级调用当前遥测接口显示主动上报兜底数据。
 - 若返回 `bms.snapshot`，直接作为 `BmsStatus`；否则从当前遥测摘要键合成局部 `BmsStatus` 供仪表盘组件使用。
 - 兜底模式下详情页以固定间隔轮询当前遥测，保持面板数据刷新。
+- MQTT 实时读取 `readAllStatus()` 成功后，移动端同步将当前详情态 `is_online` 置为 `1`，使顶部状态立即显示 4G 在线；后端持久状态由 Socket 上行回包同步。
 - 详情页新增 `bmsDataLoading` 首帧读取状态：
   - 连接建立后、`status` 仍为空时显示仪表盘加载卡片；
   - 首帧 `readAllStatus()` 或云端 `bms.snapshot` 返回后隐藏加载态；

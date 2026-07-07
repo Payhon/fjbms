@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-06-12
+- last_updated: 2026-07-07
 - related_feature: FEAT-0049
 - version: v0.1.0
 
@@ -22,6 +22,7 @@
 - 4G BMS OTA 数据包 ACK 检测超时从 20 秒收紧到 3 秒，未收到 ACK 时更快重发同包，匹配 BMS 板端 4 秒超时窗口。
 - 4G BMS OTA 后端日志和通信调试日志新增 BOOT 包序号、期望 ACK 序号、ACK 对应包序号、重发次数和 MQTT message id，便于现场排查随机延迟。
 - Debug 模式 OTA 日志浮层中，APP 侧 BOOT 日志同步显示 16 位包序号、期望 ACK、ACK requested 和 ACK 对应数据包，复制日志时一并带出。
+- 4G BMS 设备通过 MQTT Socket 产生真实上行回包时，后端会刷新设备在线状态；即使当前没有主动遥测上报，移动端详情页实时读数成功后也会显示 4G 在线。
 
 ## 发布范围
 - 后端 APP 电池接口。
@@ -32,7 +33,9 @@
 - 后端 4G BMS OTA 慢 ACK/ACK 后下发间隔诊断日志。
 - 后端 4G BMS OTA 包序号/QoS1 message id 诊断日志。
 - 后端 MQTT Socket owner 高频数据包刷新节流。
+- 后端 4G MQTT Socket 上行回包置在线逻辑。
 - UniApp 4G MQTT Socket 读查询休眠唤醒补发逻辑。
+- UniApp 4G 详情实时读取成功后的在线状态同步。
 - UniApp 4G BMS OTA runtime options 数据包 ACK 超时。
 - UniApp Debug OTA 日志中的 BOOT 包序号字段。
 
@@ -43,3 +46,4 @@
 - 如休眠唤醒补发在现场造成重复查询干扰，可单独将 `UniMqttSocketBmsTransport` 的 `sleepWakeupResendDelayMs` 调整为 `0` 或回滚该 transport 内的补发逻辑；BLE、写入和 BOOT OTA 不依赖该逻辑。
 - 如 3 秒数据包 ACK 超时导致蜂窝网络抖动场景下重发过于频繁，可单独调整 `MQTT_BMS_BOOT_PACKET_ACK_TIMEOUT_MS`；BLE BMS、仪表 OTA 和 BOOT 其他阶段无需同步回滚。
 - 如 App Debug 包序号字段造成日志过长，可单独回滚 `boot-ota.ts` 与 `uni-mqtt-socket-transport.ts` 中的 `packetIndexHex/expectedAckHex/requestedHex/ackForPacketHex` 日志增强，不影响 OTA 传输协议。
+- 如 4G 数据交互置在线在现场造成误判，可单独回滚后端 `MarkFourGBatteryOnlineByInteraction` 调用与 UniApp `readAllStatus()` 成功后的 `is_online` 同步；实时数据读取、参数读取和 OTA 透传协议不需要同步回滚。

@@ -172,3 +172,7 @@
 - [ ] 2026-07-07 UniApp 真机复测：待使用新包停留在 4G BMS `设备详情 > 仪表盘`，通过 MQTTX 订阅 `device/socket/rx/{device_number}` 确认会周期性出现状态读取 payload，并确认 `device/socket/tx/{device_number}` 回包后仪表盘实时刷新。
 - [ ] 2026-07-07 UniApp 参数设置真机复测：待使用新包进入 4G BMS `设备详情 > 参数设置 > 单体设置/总压设置`，确认 MQTTX 可见分组读取 payload，慢回包在 15 秒内返回时小程序端可展开并显示参数值。
 - [ ] 2026-07-07 生产日志复测：待后端发布后，观察 `/api/v1/app/battery/socket/ws` 普通帧日志是否连续出现 `ws_to_mqtt_rx` 与 `mqtt_tx_to_ws`，并用 `ws_write_ms/mqtt_publish_wait_ms` 排除 Broker/WS 转发阻塞。
+- [x] 2026-07-07 后端 4G 设备类型判定单测：`isFourGBatteryDetail()` 覆盖 BLE-only、4G、蓝牙+4G 与 `comm_chip_id` 兜底。
+- [x] 2026-07-07 后端定向回归：`cd backend && go test ./internal/api ./internal/service -run 'TestSocket|TestIsFourGBatteryDetail|TestNormalizeAppBattery|TestMergeCurrentTelemetry' -count=1` 通过，仅有 macOS SDK `IOMasterPort` 废弃警告。
+- [x] 2026-07-07 代码空白检查：`git -C backend diff --check -- internal/api/app_battery.go internal/service/app_battery.go internal/service/app_battery_report_test.go` 与 `git -C fjbms-uniapp diff --check -- pages/device-battery/useBatteryDetail.ts` 通过。
+- [ ] 2026-07-07 4G 在线状态生产复测：待发布后，使用当前无主动上报但可实时读数的 4G 设备进入详情页，确认 `device/socket/tx/{device_number}` 回包后 `devices.is_online=1`，移动端顶部从 4G 离线切换为 4G 在线。

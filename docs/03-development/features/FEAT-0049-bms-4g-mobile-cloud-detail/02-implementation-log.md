@@ -224,3 +224,8 @@
    - `_resources/fjia2.json` 前段显示小程序下发 `0x0100 qty=1`、`0x0400 qty=6`、`0x0408 qty=9` 后设备均有普通 `0x03` 响应；若 WebSocket 流中先混入同一条下行请求帧，旧 `FrameCollector` 会反复从错误起点解析失败，后续真实响应被留在缓冲区，最终 pending 超时并提示“打开失败，请重试”。
    - `FrameCollector.tryShiftOneValidFrame()` 改为按响应功能码计算期望帧长，遇到请求帧、未知功能码、错误帧尾或 CRC 不匹配时丢弃当前错误起点后继续扫描；有效响应帧后仍保留尾随字节供下一次解析。
    - 新增 `uni-mqtt-socket-transport-fjia2-repro.test.ts`，使用 `fjia2.json` 中的真实响应帧，并在每条响应前注入请求 echo，确认 4G BMS 单体参数分组仍可展开并解码出参数值。
+5. 调整 4G 设备数据交互置在线逻辑
+   - 后端 `/api/v1/app/battery/socket/ws` 在订阅到 `device/socket/tx/{device_number}` 非 retained 上行回包后，异步调用 4G 设备交互置在线逻辑；仅对 `bms_comm_type=2/3` 或存在 `comm_chip_id` 的设备生效。
+   - 在线状态刷新以设备侧回包为依据，不因 APP 下发请求、Socket 建连或 ping 直接置在线；刷新 `devices.is_online=1` 后同步发布设备状态消息，并用 `heartbeat.default_online_ttl_sec` 刷新在线 TTL。
+   - WebSocket 上行回包置在线按会话 30 秒节流，避免详情页实时轮询时每帧触发数据库更新。
+   - UniApp 详情页在 MQTT `readAllStatus()` 成功后同步将当前 `battery.is_online` 置为 `1`，让顶部 4G 状态与已经刷新的仪表盘数据保持一致。

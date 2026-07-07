@@ -14,6 +14,12 @@
 ## 模块泳道看板
 
 ### Mobile（`fjbms-uniapp/`）
+- [ ] `review` **FEAT-0064** 移动端与 Web BMS 展示修正
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0055、FEAT-0060
+  - 进展：已收紧 PACK 微信小程序首页 Banner 与登录页 Logo 默认富嘉图兜底策略，仅明确普通租户小程序允许回退默认图；PACK、运行配置异常或字段缺失时保持空白无品牌；BMS 保护状态值已统一为 `ON/OFF`，待微信小程序开发者工具或真机回归
+  - 文档：`docs/03-development/features/FEAT-0064-mobile-web-bms-ux-fixes/`
 - [ ] `review` **FEAT-0062** 用户质保信息与 PACK 质保卡片开关
   - owner：payhon
   - 优先级：P1
@@ -58,6 +64,12 @@
   - 文档：`docs/03-development/features/FEAT-0052-uniapp-device-detail-scan-i18n-login-ux/`
 
 ### Web（`frontend/`）
+- [ ] `review` **FEAT-0064** 移动端与 Web BMS 展示修正
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0049、FEAT-0058
+  - 进展：已将电池详情 BMS 面板电芯 TAB 下方电压值从竖排改为横向单行居中显示，保留电压精度、高低电压高亮、均衡状态和横向滚动逻辑；待浏览器打开目标页面回归
+  - 文档：`docs/03-development/features/FEAT-0064-mobile-web-bms-ux-fixes/`
 - [ ] `review` **FEAT-0063** PACK 厂小程序配置自助入口
   - owner：payhon
   - 优先级：P1
@@ -127,7 +139,7 @@
   - 进展：已新增 APP 当前遥测接口与 UniApp 4G-only 云端只读详情链路；已修复 `0x0141` 动态电芯帧结构化发布和后台 BMS 面板当前遥测回退展示；2026-04-29 修复 UniApp 扫码添加已绑定设备误报失败，并为移动端 4G 详情当前遥测增加生产通用接口 fallback；本次将 UniApp/Web 4G 详情切换为 MQTT Socket 透传实时读取，后端桥接使用数据库 UUID 鉴权并以 `devices.device_number` 拼接 `device/socket/tx|rx/{device_number}`，主动上报仅作为兜底；生产实测已收到目标设备 `0x0F` 透传响应，并修复前端将 `0x0F byteCount` 误按寄存器数翻倍导致丢帧、2500ms 超时过短、`0x0100` 整段响应未缓存复用的问题；参数配置寄存器无响应发生时设备已离线，已撤回“不支持”结论并修复 `0x0F` 响应按寄存器区间匹配，避免主动上报帧误唤醒参数读取请求；2026-04-30 根据协议确认修正 4G MQTT 透传功能码，普通 BMS 寄存器保持 BLE 同款 `0x03`，仅 `0x0900~0x0923` 4G 模块专有寄存器使用云平台 `0x0F`；参数设置面板已改为按连续寄存器范围批量读取，减少 BLE/4G 展开分组时的串行请求；已补充移动端首帧实时数据等待卡片和参数分组首次展开加载图标；2026-05-25 已将 UniApp 4G 详情顶部连接状态改为 4G 图标 + “已连接”，不再向用户暴露主动上报兜底等技术链路；2026-06-04 已优化移动端 4G 详情首屏当前遥测/快照预填、移除 Socket 建连 `readUuid` 预读、补齐 APP Socket 路由，并支持 4G BMS 通过 MQTT Socket 透传执行 BLE 同款 BOOT OTA；2026-06-08 已为 APP 4G MQTT Socket 增加设备级 Redis owner 保守互斥，第二账号 occupied 时降级云端只读并提示，参数/OTA 暂不可用；2026-06-10 已为 4G BMS OTA 增加 APP/后端 Boot 链路耗时埋点并启用 APP 端正常快速、超时降速策略，Debug 模式 OTA 弹窗新增日志查看浮层与复制能力；2026-06-11 已将 Debug OTA 日志查看层改为页面级 fixed 浮层并按窗口动态计算日志区高度，避免被 OTA 弹窗裁剪；2026-06-12 后端已过滤 retained BOOT 回包并增加慢 ACK/ACK 后下发间隔诊断日志，UniApp 4G Socket 读查询已增加休眠唤醒补发，4G BMS OTA `0x53` ACK 超时已收紧为 3 秒重发；同日生产确认 QoS1 后延迟样例为 `0x04FA` 后未收到 `0x04FB` ACK，后端已补充 BOOT 包序号、期望 ACK、ACK 对应包、重发次数和 MQTT message id 日志，并对 APP Socket 数据包 owner 刷新做 5 秒节流；App Debug OTA 日志已同步展示 `packetIndexHex/expectedAckHex/requestedHex/ackForPacketHex`；2026-06-29 已根据目标设备 `360111611350535934373730300A365F` 真机视频和生产入库证据，收紧 UniApp 4G Socket 普通 `0x03` 响应字节数/寄存器数校验，并在 MQTT 实时轮询失败时立即刷新云端当前遥测，避免小程序继续显示旧值；待移动端新包和 Web 页面确认详情页指标展示
   - 2026-07-02 更新：根据生产 MQTT 直连结论，UniApp 4G BMS 高级参数读取已优化为暂停轮询后不再继续排旧 `readAllStatus()` 子请求，MQTT 参数分组读取使用 5 秒单组超时，并保留 transport in-flight 请求不强制取消以避免普通 `0x03` 迟到短响应污染后续参数读取；待新包真机复测高级参数是否稳定数秒内显示
   - 2026-07-03 更新：根据设备端“无 MQTT/串口通讯 3 分钟后休眠，第二次指令唤醒”策略，UniApp 4G MQTT Socket 默认休眠阈值调整为 180 秒；参数分组首次展开和高级参数弹层加载前增加 2.5 秒轻量 `0x0100 qty=1` 唤醒 probe，probe 超时不阻断真实参数读取；类型检查与协议断言通过，待 3 分钟静置真机复测
-  - 2026-07-07 更新：修复小程序 4G MQTT Socket 实时回包链路，`onMessage` 已兼容 `ArrayBuffer/TypedArray` 回包并避免非帧消息误断链；仪表盘/电芯页在 MQTT client 就绪后会主动恢复轮询，`readAllStatus()` 4G 单段超时改为 5 秒且旧轮询不会覆盖当前状态；后端 Socket 桥接补充普通帧 `ws_to_mqtt_rx/mqtt_tx_to_ws` 日志；同日修复参数设置单体分组缺失低温单体欠压两项导致 `0x0408~0x0410` 被拆段的问题，现合并为 `0x0408 qty=9` 读取，且 MQTT 参数读取全空会重试并保留可重试状态；根据 `_resources/fjia.json` 复核到同一参数区间存在秒级慢回包，将 MQTT 参数分组读取超时从 5 秒调整为 15 秒，并补充有效帧后带尾随字节的 Transport 断言；根据 `_resources/fjia2.json` 继续加固 `FrameCollector`，请求 echo/坏帧会丢弃错误起点后继续匹配真实回包，并补充真实帧回归断言；待新包和后端发布后用 MQTTX/生产日志复测周期性读取、实时刷新与单体/总压设置展开显示
+  - 2026-07-07 更新：修复小程序 4G MQTT Socket 实时回包链路，`onMessage` 已兼容 `ArrayBuffer/TypedArray` 回包并避免非帧消息误断链；仪表盘/电芯页在 MQTT client 就绪后会主动恢复轮询，`readAllStatus()` 4G 单段超时改为 5 秒且旧轮询不会覆盖当前状态；后端 Socket 桥接补充普通帧 `ws_to_mqtt_rx/mqtt_tx_to_ws` 日志；同日修复参数设置单体分组缺失低温单体欠压两项导致 `0x0408~0x0410` 被拆段的问题，现合并为 `0x0408 qty=9` 读取，且 MQTT 参数读取全空会重试并保留可重试状态；根据 `_resources/fjia.json` 复核到同一参数区间存在秒级慢回包，将 MQTT 参数分组读取超时从 5 秒调整为 15 秒，并补充有效帧后带尾随字节的 Transport 断言；根据 `_resources/fjia2.json` 继续加固 `FrameCollector`，请求 echo/坏帧会丢弃错误起点后继续匹配真实回包，并补充真实帧回归断言；本次补充 4G MQTT Socket 上行回包置在线逻辑，真实读数成功后即使无主动上报也会刷新设备在线状态；待新包和后端发布后用 MQTTX/生产日志复测周期性读取、实时刷新、在线状态与单体/总压设置展开显示
   - 文档：`docs/03-development/features/FEAT-0049-bms-4g-mobile-cloud-detail/`
 - [ ] `in_progress` **FEAT-0048** BMS 4G 通讯调试管理
   - owner：payhon
