@@ -14,6 +14,12 @@
 ## 模块泳道看板
 
 ### Mobile（`fjbms-uniapp/`）
+- [ ] `review` **FEAT-0066** 移动端认证失效弹窗去重
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0052、FEAT-0060
+  - 进展：已新增统一认证失效处理入口，收敛 `401/402/403` 并发响应为一次提示和一次登录页跳转；启动阶段不再抢跑绑定设备缓存刷新，首页在 `user/detail` 已认证失效时停止后续设备列表请求；待真机或微信开发者工具验证无 token、无效 token 与正常登录场景
+  - 文档：`docs/03-development/features/FEAT-0066-mobile-auth-session-expiry/`
 - [ ] `review` **FEAT-0064** 移动端与 Web BMS 展示修正
   - owner：payhon
   - 优先级：P1
@@ -64,6 +70,12 @@
   - 文档：`docs/03-development/features/FEAT-0052-uniapp-device-detail-scan-i18n-login-ux/`
 
 ### Web（`frontend/`）
+- [ ] `review` **FEAT-0065** 版本更新记录后台管理
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：已在后台“系统管理”下新增“版本更新记录”菜单和 CRUD 页面，支持项目、版本号、日期范围、内容关键词筛选，以及新增、编辑、删除；已补 API 封装、路由、view import、route 类型声明和中英文路由文案；已修复初版 SQL 下划线菜单 code 与 elegant-router 短横线 route key 不一致导致菜单点击无法打开的问题，待前端类型检查和浏览器回归
+  - 文档：`docs/03-development/features/FEAT-0065-version-update-records/`
 - [ ] `review` **FEAT-0064** 移动端与 Web BMS 展示修正
   - owner：payhon
   - 优先级：P1
@@ -90,6 +102,12 @@
   - 文档：`docs/03-development/features/FEAT-0058-web-bms-admin-i18n/`
 
 ### Backend（`backend/`）
+- [ ] `review` **FEAT-0065** 版本更新记录后台管理
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：无
+  - 进展：已新增 `version_update_records` 表结构、CRUD API、服务层测试和 `backend/sql/62.sql`；SQL 包含菜单注册，并从 `docs/APP_UPDATE.md`、`backend` git log、`frontend` git log 幂等导入移动端 13 条、后端 101 条、前端 65 条记录；2026-07-08 已在生产库执行 SQL 并校验总计 179 条，旧菜单 code `bms_system_version_updates` 已更新到 `/bms/system/version-updates` 与 `view.bms_system_version-updates`；生产前端已通过 `make update-frontend-prod` 部署到 `cloud.fjiaenergy.com` 对应目录并确认线上入口包含新路由，待后台账号登录后做菜单点击和 CRUD 回归
+  - 文档：`docs/03-development/features/FEAT-0065-version-update-records/`
 - [ ] `review` **FEAT-0063** PACK 厂小程序配置自助入口
   - owner：payhon
   - 优先级：P1
