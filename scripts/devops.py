@@ -530,11 +530,11 @@ def _backend_temp_start(
     pid_file: str,
 ) -> None:
     start_inner = (
-        f"cd {shlex.quote(work_dir)} && "
-        f"echo \"starting: {shlex.quote(binary_path)} {shlex.quote(config_flag)} {shlex.quote(config_path)}\" && "
+        f"cd {shlex.quote(work_dir)} || exit 1; "
+        f"echo \"starting: {shlex.quote(binary_path)} {shlex.quote(config_flag)} {shlex.quote(config_path)}\"; "
         f"nohup {shlex.quote(binary_path)} {shlex.quote(config_flag)} {shlex.quote(config_path)} </dev/null "
         f">> {shlex.quote(log_file)} 2>&1 & "
-        f"pid=$!; disown $pid 2>/dev/null || true; echo \"started pid $pid (log: {shlex.quote(log_file)})\"; "
+        f"pid=$!; disown \"$pid\" 2>/dev/null || true; echo \"started pid $pid (log: {shlex.quote(log_file)})\"; "
         f"echo $pid > {shlex.quote(pid_file)}"
     )
     ssh.run(f"{_sudo_prefix(use_sudo)}bash -lc {shlex.quote(start_inner)}")
