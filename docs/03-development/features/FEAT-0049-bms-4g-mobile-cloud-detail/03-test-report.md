@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-07-07
+- last_updated: 2026-07-10
 - related_feature: FEAT-0049
 - version: v0.1.0
 
@@ -176,3 +176,12 @@
 - [x] 2026-07-07 后端定向回归：`cd backend && go test ./internal/api ./internal/service -run 'TestSocket|TestIsFourGBatteryDetail|TestNormalizeAppBattery|TestMergeCurrentTelemetry' -count=1` 通过，仅有 macOS SDK `IOMasterPort` 废弃警告。
 - [x] 2026-07-07 代码空白检查：`git -C backend diff --check -- internal/api/app_battery.go internal/service/app_battery.go internal/service/app_battery_report_test.go` 与 `git -C fjbms-uniapp diff --check -- pages/device-battery/useBatteryDetail.ts` 通过。
 - [ ] 2026-07-07 4G 在线状态生产复测：待发布后，使用当前无主动上报但可实时读数的 4G 设备进入详情页，确认 `device/socket/tx/{device_number}` 回包后 `devices.is_online=1`，移动端顶部从 4G 离线切换为 4G 在线。
+- [x] 2026-07-10 UniApp 项目级类型检查：`cd fjbms-uniapp && pnpm exec tsc -p tsconfig.json --noEmit --pretty false` 通过。
+- [x] 2026-07-10 移动端数据仲裁断言：临时 CommonJS 编译并执行 `detail-data-arbiter.test.ts` 通过，覆盖 bootstrap/fallback 迟到、实时恢复、A 设备响应晚到 B 会话、云端 `last_report_ts` 倒退、fallback 早于 last-good realtime、单次实时失败不回退和无实时首帧可快速预填。
+- [x] 2026-07-10 后端 P0 定向回归：`cd backend && go test ./internal/adapter/mqttadapter ./internal/bmsbridge ./internal/storage ./internal/uplink ./internal/api ./cmd/bms-bridge` 通过；仅出现 macOS SDK `IOMasterPort` 既有废弃警告。
+- [x] 2026-07-10 后端竞态回归：`cd backend && go test -race ./internal/adapter/mqttadapter ./internal/bmsbridge ./internal/storage ./internal/uplink ./internal/api ./internal/service` 通过；仅有既有 macOS 链接/废弃警告。
+- [x] 2026-07-10 后端单测覆盖：主 MQTT adapter 默认投递与普通设备 storage 时间语义不变、bridge 独立 clean/ordered 配置、retained 丢弃、原始 Topic 分片 FIFO、同设备严格递增毫秒、远未来时间回退、current 时间单调 upsert、fallback 多历史行映射。
+- [x] 2026-07-10 快照新鲜度断言：覆盖 `snapshot_ts == last_report_ts` 可使用完整快照、快照早于任一 current 最新时间或缺少自身时间时改用逐 key current。
+- [x] 2026-07-10 后端快照合并回归：覆盖比快照旧的单键 current 不得反向覆盖新快照，同时比快照新的单键仍可覆盖。
+- [ ] 2026-07-10 真机弱网回归：待使用包含本次修复的新包，在仪表盘/电芯页制造一次短暂读超时，确认页面保留最后实时值且不闪回旧快照；连续失败超过保护窗口后才进入云端兜底，实时恢复后立即切回。
+- [ ] 2026-07-10 发布后数据链路观察：确认 retained 上行记录为 `uplink_ignored`，同一设备当前遥测 `ts` 不倒退，并观察 bridge 分片队列无持续满载告警。

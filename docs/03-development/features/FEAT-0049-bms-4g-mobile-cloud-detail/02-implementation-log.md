@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-07-07
+- last_updated: 2026-07-10
 - related_feature: FEAT-0049
 - version: v0.1.0
 
@@ -229,3 +229,24 @@
    - 在线状态刷新以设备侧回包为依据，不因 APP 下发请求、Socket 建连或 ping 直接置在线；刷新 `devices.is_online=1` 后同步发布设备状态消息，并用 `heartbeat.default_online_ttl_sec` 刷新在线 TTL。
    - WebSocket 上行回包置在线按会话 30 秒节流，避免详情页实时轮询时每帧触发数据库更新。
    - UniApp 详情页在 MQTT `readAllStatus()` 成功后同步将当前 `battery.is_online` 置为 `1`，让顶部 4G 状态与已经刷新的仪表盘数据保持一致。
+
+## 2026-07-10
+1. 增加移动端详情数据源仲裁
+   - 新增独立 `detail-data-arbiter`，每次设备详情/仪表会话加载生成 session generation，设备详情、云端遥测、连接、轮询、重连和页面卸载统一校验会话有效性。
+   - 云端请求记录 request sequence、发起时的 realtime success sequence、响应 `device_id` 与 `last_report_ts` 水位；旧请求、跨设备响应、实时恢复后的迟到响应和时间倒退响应均不再写入当前页面。fallback 的云端时间若早于最后实时成功时间超过 5 秒，也只保留 last-good 实时状态。
+   - 已成功展示实时帧后，单次 MQTT 状态读取失败继续保留最后实时数据；只有连续失败至少 2 次且最后实时成功已超过 10 秒，才允许使用云端当前遥测兜底。
+   - 首帧尚未返回时仍允许云端快照快速填充；实时帧一旦成功，正在途中的 bootstrap/fallback 响应立即失效。
+   - `cloud_mode` 仅在无实时 client 时运行；fallback 绑定 polling generation 与原 client，切入参数/历史页或连接变化后不提交，也不把存活的 MQTT client 改成 offline。
+   - 页面卸载增加永久 disposed latch，扫码、仪表延迟重连、延迟恢复轮询和 relay 参数命令均增加页面/session/task/client 校验，旧异步任务不能重新连接或跨设备执行。
+2. 加固 MQTT 上行新鲜度与处理顺序
+   - APP Socket WebSocket 和 bms-bridge 对所有 retained 上行帧直接丢弃，避免历史状态帧或 BOOT ACK 参与当前会话。
+   - bms-bridge 单独启用 clean session、关闭离线订阅恢复并启用有序回调；主 MQTT adapter 保持历史默认配置。
+   - bms-bridge 按原始 Topic 设备标识哈希分片，同一设备固定进入同一 FIFO worker，跨设备仍可并行处理；同设备接收时间生成严格递增毫秒，避免同毫秒帧结果依批次边界变化。
+3. 保留原始采集时间并阻止当前值倒退
+   - bms-bridge 发布结构化遥测时增加 `source=bms_bridge` 与桥接接收时间戳；MQTT adapter 拒绝超过接收时间 5 分钟的未来值，uplink 仅对 bridge metadata 保留该时间，普通设备继续使用原 storage 处理时刻。
+   - bridge uplink 到 storage 不再二次覆盖消息时间；`telemetry_current_datas` 的批量和逐条 upsert 仅接受时间不早于当前行的数据。
+   - 修复逐条 fallback 在同一 key 对应多条历史记录时按数组下标取 current 可能越界或错配的问题，改为按 `device_id + key` 映射。
+   - 当前遥测接口增加 `snapshot_ts`；后端只允许不早于快照的逐 key current 覆盖快照，移动端仅在 `snapshot_ts >= last_report_ts` 时整体采用快照，否则使用逐 key current 合成仪表盘和电芯状态。
+4. 兼容性控制
+   - BLE-only、仪表会话、参数读取、OTA、Socket owner 互斥和主 MQTT adapter 默认会话参数不变。
+   - 本次不新增数据库表或字段，后端各防线和移动端仲裁可独立回滚。

@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-07-07
+- last_updated: 2026-07-10
 - related_feature: FEAT-0049
 - version: v0.1.0
 
@@ -16,6 +16,12 @@
 - APP 路由层需显式注册 `GET /api/v1/app/battery/socket/ws`，移动端实时详情与 4G BMS OTA 共用该桥接入口。
 - MQTT Socket 桥接收到 `device/socket/tx/{device_number}` 非 retained 上行回包后，后端按设备详情判定 4G 能力；仅 `bms_comm_type=2/3` 或存在 `comm_chip_id` 的设备刷新 `devices.is_online=1` 与在线 TTL。
 - 4G Socket 交互置在线以设备侧上行回包为准；APP 仅发布下行请求、Socket 建连或 ping 不触发在线状态，避免离线设备被误判在线。
+- `/api/v1/app/battery/socket/ws` 对 `device/socket/tx/{device_number}` 的所有 retained 上行响应直接丢弃，不再只过滤 BOOT OTA 帧，避免历史状态帧满足当前请求。
+- bms-bridge 使用独立的 clean session、关闭离线订阅恢复并启用 MQTT 有序投递；这些选项只作用于 bridge，主 MQTT adapter 与模拟器保持原默认配置。
+- bms-bridge 按原始 MQTT Topic 设备标识哈希分片，同一物理设备固定进入同一 FIFO worker，DB 映射变化不切换分片，跨设备继续并行；同设备桥接接收时间按毫秒严格递增后随结构化遥测传递。
+- MQTT adapter 只在 `source=bms_bridge` 且时间不超过 adapter 接收时间 5 分钟时保留桥接时间，uplink 也只对 bridge metadata 透传该时间；普通 MQTT 设备继续使用原 storage 处理时刻。
+- `telemetry_current_datas` 的批量与逐条冲突更新仅接受 `EXCLUDED.ts` 不早于当前行的值，历史表仍保留迟到数据。
+- APP 当前遥测响应独立返回 `snapshot_ts`；后端只用 `item.ts >= snapshot_ts` 的逐 key current 覆盖快照。完整 `bms.snapshot` 只有自身时间不早于本次所有 current key 的最新时间时才可整体采用，否则移动端按逐 key current 合成状态。
 
 ## 2. 移动端数据流
 - 详情页加载 `appBatteryDetail` 后判断 4G 能力：`bms_comm_type=2/3`，或存在 `comm_chip_id`。
@@ -23,6 +29,11 @@
 - Socket 建连成功后不再先执行 `readUuid()` 预读；直接创建 `BmsClient` 并由后台轮询执行 `readAllStatus()`，减少进入详情后的首帧等待。
 - 连接 Socket 前后的 `disconnectAll` 允许保留当前遥测合成出的 `status`，避免首屏快照被清空回加载态。
 - `current-telemetry` 若在实时 `readAllStatus()` 已返回后才完成，不覆盖 `dataSourceMode=realtime` 下的实时状态。
+- 每次详情加载生成 session generation；设备详情、当前遥测、连接、轮询和重连的异步结果在提交前校验 generation 与设备 ID，页面卸载后统一失效。
+- 当前遥测请求记录 request sequence、发起时的 realtime success sequence 与 `last_report_ts` 水位；旧请求、设备不匹配响应、实时恢复后才返回的云端响应和时间倒退响应全部丢弃。fallback 的云端上报时间还必须不早于最后一次实时成功时间（允许 5 秒端云时钟偏差）。
+- 已有实时帧时，单次 MQTT 状态读取失败保留最后实时状态；仅连续失败达到阈值且最后实时成功超过保护窗口后才允许云端兜底。尚无实时首帧时仍允许云端快照快速填充。
+- fallback 请求同时绑定发起它的 realtime client、polling generation 与暂停状态；切入参数/历史页、换连接或恢复实时后，在途 fallback 不得提交。`cloud_mode` 只允许在无实时 client 时请求和续轮询。
+- 页面卸载设置永久 disposed latch 并清理页面延迟任务；旧扫码、仪表重连和 relay 命令必须同时匹配页面生命周期、详情 session、原 Socket task 与原 BMS client。
 - 4G/4G+BLE 设备通过 `BmsClient.readAllStatus()` 实时读取仪表盘、电芯和参数数据。
 - 4G MQTT 透传中的普通 BMS 寄存器读写保持与 BLE 完全一致的 BMS 帧协议，例如读配置寄存器 `0x0400` 使用功能码 `0x03`。
 - 仅 4G 模块专有寄存器 `0x0900~0x0923` 使用云平台读指令 `SOCKET_READ=0x0F`。
@@ -60,3 +71,4 @@
 - BLE-only 设备维持现有主动连接和状态上报逻辑。
 - 4G+BLE 设备在详情页优先使用 4G MQTT 透传实时读取。
 - 用户侧连接状态在 `connType=mqtt` 时统一显示 4G 图标与“已连接”；内部仍保留 `realtime`、`cloud_fallback`、`offline` 数据源状态用于逻辑分支。
+- 参数页暂停轮询、仪表会话、BLE 暖连接、BMS OTA 与 Socket owner 互斥逻辑不参与云端状态仲裁，保持既有行为。

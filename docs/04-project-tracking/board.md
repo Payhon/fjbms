@@ -14,6 +14,12 @@
 ## 模块泳道看板
 
 ### Mobile（`fjbms-uniapp/`）
+- [ ] `review` **FEAT-0068** 移动端质保资料填写引导
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0062、FEAT-0067
+  - 进展：已在首次真实新增绑定后接入“立即填写 / 以后再说”引导；App 启动和前台恢复时静默检查，未完成资料的已绑定终端用户会在原生/微信自定义“我的”Tab、我的页质保菜单看到红点，质保页显示售后资料提示；个人质保信息展示已收紧为只读取 `user_warranty_infos`，无记录时明确显示“未填写”和立即填写入口，不再回填账号姓名或手机号；后端已返回资料完成、记录存在和提醒状态，保存姓名和联系电话后同步清除提醒；UniApp TypeScript、TabBar JS 语法与空白检查通过，待微信小程序、iOS、Android 真机回归
+  - 文档：`docs/03-development/features/FEAT-0068-mobile-warranty-profile-guidance/`
 - [ ] `review` **FEAT-0066** 移动端认证失效弹窗去重
   - owner：payhon
   - 优先级：P1
@@ -70,6 +76,12 @@
   - 文档：`docs/03-development/features/FEAT-0052-uniapp-device-detail-scan-i18n-login-ux/`
 
 ### Web（`frontend/`）
+- [ ] `review` **FEAT-0067** BMS 电池质保截止日期补偿任务
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0062
+  - 进展：已在 BMS 型号管理页新增“补偿空质保日期”入口和任务弹窗；型号编辑保存后如后端返回补偿任务 ID 会自动打开进度弹窗；2026-07-09 已发布测试/生产前端，生产站点返回 200；测试前端返回 200，待测试后端 MQTT 认证修复后继续浏览器联调
+  - 文档：`docs/03-development/features/FEAT-0067-battery-warranty-expiry-recalculation/`
 - [ ] `review` **FEAT-0065** 版本更新记录后台管理
   - owner：payhon
   - 优先级：P1
@@ -102,6 +114,18 @@
   - 文档：`docs/03-development/features/FEAT-0058-web-bms-admin-i18n/`
 
 ### Backend（`backend/`）
+- [ ] `review` **FEAT-0068** 移动端质保资料填写引导
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0062
+  - 进展：App 质保 profile 已新增 `warranty_profile_exists`、`warranty_profile_completed` 与 `warranty_profile_reminder_needed`，联系人字段只返回 `user_warranty_infos` 原始记录，完成度只认可用户主动保存的非空姓名和联系电话；设备开通绑定响应新增 `newly_bound`，profile、绑定事务及 API/路由编译级定向测试通过；待移动端真机联调
+  - 文档：`docs/03-development/features/FEAT-0068-mobile-warranty-profile-guidance/`
+- [ ] `review` **FEAT-0067** BMS 电池质保截止日期补偿任务
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0062
+  - 进展：已新增 `backend/sql/63.sql`、质保补偿任务表/日志表、型号变更自动触发任务、后台手动扫描接口、任务状态/日志接口和定向单测；2026-07-09 已在测试/生产执行 SQL，生产后端发布后 `/health` 返回 200 且新任务接口返回预期 401；测试后端二进制已替换但启动卡在 MQTT `not Authorized`，HTTP `:9999` 未监听
+  - 文档：`docs/03-development/features/FEAT-0067-battery-warranty-expiry-recalculation/`
 - [ ] `review` **FEAT-0065** 版本更新记录后台管理
   - owner：payhon
   - 优先级：P1
@@ -158,6 +182,7 @@
   - 2026-07-02 更新：根据生产 MQTT 直连结论，UniApp 4G BMS 高级参数读取已优化为暂停轮询后不再继续排旧 `readAllStatus()` 子请求，MQTT 参数分组读取使用 5 秒单组超时，并保留 transport in-flight 请求不强制取消以避免普通 `0x03` 迟到短响应污染后续参数读取；待新包真机复测高级参数是否稳定数秒内显示
   - 2026-07-03 更新：根据设备端“无 MQTT/串口通讯 3 分钟后休眠，第二次指令唤醒”策略，UniApp 4G MQTT Socket 默认休眠阈值调整为 180 秒；参数分组首次展开和高级参数弹层加载前增加 2.5 秒轻量 `0x0100 qty=1` 唤醒 probe，probe 超时不阻断真实参数读取；类型检查与协议断言通过，待 3 分钟静置真机复测
   - 2026-07-07 更新：修复小程序 4G MQTT Socket 实时回包链路，`onMessage` 已兼容 `ArrayBuffer/TypedArray` 回包并避免非帧消息误断链；仪表盘/电芯页在 MQTT client 就绪后会主动恢复轮询，`readAllStatus()` 4G 单段超时改为 5 秒且旧轮询不会覆盖当前状态；后端 Socket 桥接补充普通帧 `ws_to_mqtt_rx/mqtt_tx_to_ws` 日志；同日修复参数设置单体分组缺失低温单体欠压两项导致 `0x0408~0x0410` 被拆段的问题，现合并为 `0x0408 qty=9` 读取，且 MQTT 参数读取全空会重试并保留可重试状态；根据 `_resources/fjia.json` 复核到同一参数区间存在秒级慢回包，将 MQTT 参数分组读取超时从 5 秒调整为 15 秒，并补充有效帧后带尾随字节的 Transport 断言；根据 `_resources/fjia2.json` 继续加固 `FrameCollector`，请求 echo/坏帧会丢弃错误起点后继续匹配真实回包，并补充真实帧回归断言；本次补充 4G MQTT Socket 上行回包置在线逻辑，真实读数成功后即使无主动上报也会刷新设备在线状态；待新包和后端发布后用 MQTTX/生产日志复测周期性读取、实时刷新、在线状态与单体/总压设置展开显示
+  - 2026-07-10 更新：按 P0 修复仪表盘/电芯页旧数据短暂覆盖问题；UniApp 增加实时优先、连续失败保护、session/request/轮询 generation/设备 ID/`last_report_ts` 仲裁，后端过滤 retained、为 bms-bridge 启用独立 clean/ordered 会话与同设备 FIFO 分片，将严格递增的桥接接收时间贯通到 current 单调 upsert，并增加 `snapshot_ts` 防止新摘要为旧整组快照背书；Go race 定向测试、UniApp 类型检查和仲裁断言已通过，待弱网真机及发布后时序观察
   - 文档：`docs/03-development/features/FEAT-0049-bms-4g-mobile-cloud-detail/`
 - [ ] `in_progress` **FEAT-0048** BMS 4G 通讯调试管理
   - owner：payhon

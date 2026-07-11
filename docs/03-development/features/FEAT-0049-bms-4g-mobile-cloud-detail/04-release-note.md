@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-07-07
+- last_updated: 2026-07-10
 - related_feature: FEAT-0049
 - version: v0.1.0
 
@@ -23,6 +23,11 @@
 - 4G BMS OTA 后端日志和通信调试日志新增 BOOT 包序号、期望 ACK 序号、ACK 对应包序号、重发次数和 MQTT message id，便于现场排查随机延迟。
 - Debug 模式 OTA 日志浮层中，APP 侧 BOOT 日志同步显示 16 位包序号、期望 ACK、ACK requested 和 ACK 对应数据包，复制日志时一并带出。
 - 4G BMS 设备通过 MQTT Socket 产生真实上行回包时，后端会刷新设备在线状态；即使当前没有主动遥测上报，移动端详情页实时读数成功后也会显示 4G 在线。
+- 仪表盘或电芯页已经显示实时数据后，单次 MQTT 读取超时不再切换到云端旧快照；连续失败超过保护窗口时才使用云端当前遥测兜底，实时恢复后立即切回。
+- 切换设备、离开页面或多个云端请求乱序返回时，旧会话和旧时间戳数据不会再覆盖当前设备页面。
+- 后端过滤 retained 上行并保证同一设备有序处理；迟到的旧遥测仍可进入历史表，但不能把当前值回退到更早时间。
+- `bms.snapshot` 现在携带独立 `snapshot_ts`；后端不会再让旧单键反向覆盖新快照。如果快照早于本次逐项 current 数据，仪表盘和电芯页按较新的逐项数据合成，不再把“某个摘要刚更新”误当成整组快照都新。
+- 进入参数/历史页暂停实时轮询后，在途云端 fallback 不再改变连接类型或干扰参数读取、OTA；页面卸载后的扫码、仪表重连和 relay 命令也不会复活旧会话。
 
 ## 发布范围
 - 后端 APP 电池接口。
@@ -38,6 +43,9 @@
 - UniApp 4G 详情实时读取成功后的在线状态同步。
 - UniApp 4G BMS OTA runtime options 数据包 ACK 超时。
 - UniApp Debug OTA 日志中的 BOOT 包序号字段。
+- UniApp 设备详情数据源仲裁与页面会话失效保护。
+- 后端 bms-bridge retained 过滤、独立 MQTT 投递配置、同设备 FIFO 分片、桥接接收时间透传与当前遥测单调 upsert。
+- 后端 APP 当前遥测 `snapshot_ts` 字段与移动端快照新鲜度判定。
 
 ## 回滚
 - 回滚后端 Socket WebSocket 桥接、UniApp/Web 详情页透传分支后，可恢复为主动上报兜底展示逻辑。
@@ -47,3 +55,5 @@
 - 如 3 秒数据包 ACK 超时导致蜂窝网络抖动场景下重发过于频繁，可单独调整 `MQTT_BMS_BOOT_PACKET_ACK_TIMEOUT_MS`；BLE BMS、仪表 OTA 和 BOOT 其他阶段无需同步回滚。
 - 如 App Debug 包序号字段造成日志过长，可单独回滚 `boot-ota.ts` 与 `uni-mqtt-socket-transport.ts` 中的 `packetIndexHex/expectedAckHex/requestedHex/ackForPacketHex` 日志增强，不影响 OTA 传输协议。
 - 如 4G 数据交互置在线在现场造成误判，可单独回滚后端 `MarkFourGBatteryOnlineByInteraction` 调用与 UniApp `readAllStatus()` 成功后的 `is_online` 同步；实时数据读取、参数读取和 OTA 透传协议不需要同步回滚。
+- 如移动端保护窗口不适配现场网络，可单独调整 `MQTT_CLOUD_FALLBACK_FAILURE_THRESHOLD` 与 `MQTT_REALTIME_STALE_BEFORE_FALLBACK_MS`，或回滚 `detail-data-arbiter` 接入；BLE、仪表、参数和 OTA 链路不依赖该仲裁逻辑。
+- 如 bridge 有序消费影响吞吐，可分别回滚 bridge 专用 `DeliveryOptions` 和按设备分片队列；主 MQTT adapter 默认参数未改变。当前遥测时间单调条件可独立回滚且不涉及数据库结构变更。
