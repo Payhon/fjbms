@@ -1,10 +1,10 @@
 # FEAT-0040 设备参数权限 Key 归一化与移动端参数显隐修复 - 实施日志
 
-- status: in_progress
+- status: review
 - owner: payhon
-- last_updated: 2026-04-15
+- last_updated: 2026-07-15
 - related_feature: FEAT-0040
-- version: v0.1.0
+- version: v0.2.0
 
 ## 1. 实施记录
 1. 对比移动端 `getParamPermissionKey()` 与后端设备参数权限树节点 value，确认双方口径不一致。
@@ -30,10 +30,13 @@
    - 旧 key 归一化
    - `factory:*` / `function:*` 规范 key 恢复
    - 权限树 key 唯一性与规范性
+8. 2026-07-15 根据终端用户截图复核移动端“单体设置”，确认 `LOW_TEMP_CELL_UV_ALARM_V`、`LOW_TEMP_CELL_UV_PROTECT_V` 已加入页面，但后端权限树遗漏对应 `40b`、`40c` 节点。
+9. 后端“单体设置”权限树已补齐 `40b`、`40c`，管理员可分别授权两项低温单体过放参数；未对已有机构配置做自动放权。
+10. 移动端抽取 `canAccessDeviceParam()` 权限判断，受限模式下未知参数 key 从默认放行改为默认拒绝，管理员 `allow_all=true` 行为保持不变。
+11. 新增 `param-permission.test.ts`，覆盖无权限隐藏、`40b/40c` 独立授权和未知 key fail-closed。
 
 ## 2. 待执行项
-- 运行定向 Go 测试并回填测试报告。
-- 让测试环境复现“后台取消勾选后移动端仍显示”的场景并验证修复结果。
+- 测试环境/真机验证后台分别勾选 `40b`、`40c` 后的移动端显隐结果。
 
 ## 3. 当前状态
-- 代码修复已完成，当前处于测试验证阶段。
+- 代码修复与自动化验证已完成，当前处于 review，待测试环境/真机验收。

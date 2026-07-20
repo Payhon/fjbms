@@ -185,3 +185,14 @@
 - [x] 2026-07-10 后端快照合并回归：覆盖比快照旧的单键 current 不得反向覆盖新快照，同时比快照新的单键仍可覆盖。
 - [ ] 2026-07-10 真机弱网回归：待使用包含本次修复的新包，在仪表盘/电芯页制造一次短暂读超时，确认页面保留最后实时值且不闪回旧快照；连续失败超过保护窗口后才进入云端兜底，实时恢复后立即切回。
 - [ ] 2026-07-10 发布后数据链路观察：确认 retained 上行记录为 `uplink_ignored`，同一设备当前遥测 `ts` 不倒退，并观察 bridge 分片队列无持续满载告警。
+- [x] 2026-07-20 UniApp 项目级类型检查：`cd fjbms-uniapp && pnpm exec tsc -p tsconfig.json --noEmit --pretty false` 通过。
+- [x] 2026-07-20 参数/历史页轮询策略断言：临时 CommonJS 编译并执行 `detail-polling-policy.test.ts` 通过，覆盖 MQTT 仪表盘正常轮询、MQTT 参数页和历史记录页 30 秒间隔与首轮 30 秒延时、BLE 参数页和历史记录页暂停，以及连接未就绪暂停。
+- [x] 2026-07-20 代码与文档空白检查：FEAT-0049 文档及本次 UniApp 文件 `git diff --check` 通过。
+- [ ] 2026-07-20 微信小程序真机保活复测：分别进入 4G BMS `设备详情 > 参数设置` 和 `设备详情 > 历史记录` 静置超过 3 分钟，通过 MQTTX 确认约每 30 秒出现一次状态读取及设备回包，顶部状态保持 4G 在线且设备不进入休眠。
+- [ ] 2026-07-20 参数读写并行场景复测：在参数页保活期间展开单体/总压/高级参数并执行一次参数写入，确认 30 秒状态读取只在串行队列中等待，不阻塞或污染参数响应。
+- [ ] 2026-07-20 历史读取并行场景复测：在历史记录页保活期间切换保护次数/状态记录并加载更多，确认 30 秒状态读取只在串行队列中等待，不阻塞或污染 `0x4C/0x4D` 历史响应。
+- [x] 2026-07-20 Web 电芯无效值回归：`cd frontend && pnpm exec tsx --test src/views/device/details/modules/bms-panel/cell-voltage.test.ts` 通过 4/4，覆盖全 `65535` 实时数组回退有效云端数组、实时/云端均无效时为空、部分无效项保序显示和字符串数值归一化。
+- [x] 2026-07-20 Web 定向 ESLint：`cd frontend && pnpm exec eslint src/views/device/details/modules/bms-panel/index.vue src/views/device/details/modules/bms-panel/cell-voltage.ts src/views/device/details/modules/bms-panel/cell-voltage.test.ts` 通过。
+- [x] 2026-07-20 Web 项目级类型检查：`cd frontend && pnpm typecheck` 通过。
+- [x] 2026-07-20 Web 生产构建：`cd frontend && pnpm build` 通过；仅输出项目既有的 `GridV2`、`ContextMenu` 自动组件命名冲突提示。
+- [ ] 2026-07-20 Web 浏览器现场复测：进入截图所示 4G BMS 设备详情电芯页，确认不再显示 `65.535 V`；若云端存在有效电芯数组则回退显示真实值，否则展示“暂无电芯数据”。

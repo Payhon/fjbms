@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-07-10
+- last_updated: 2026-07-20
 - related_feature: FEAT-0049
 - version: v0.1.0
 
@@ -27,7 +27,9 @@
 - 切换设备、离开页面或多个云端请求乱序返回时，旧会话和旧时间戳数据不会再覆盖当前设备页面。
 - 后端过滤 retained 上行并保证同一设备有序处理；迟到的旧遥测仍可进入历史表，但不能把当前值回退到更早时间。
 - `bms.snapshot` 现在携带独立 `snapshot_ts`；后端不会再让旧单键反向覆盖新快照。如果快照早于本次逐项 current 数据，仪表盘和电芯页按较新的逐项数据合成，不再把“某个摘要刚更新”误当成整组快照都新。
-- 进入参数/历史页暂停实时轮询后，在途云端 fallback 不再改变连接类型或干扰参数读取、OTA；页面卸载后的扫码、仪表重连和 relay 命令也不会复活旧会话。
+- 进入参数/历史页切换轮询策略后，在途云端 fallback 不再改变连接类型或干扰参数读取、历史读取和 OTA；页面卸载后的扫码、仪表重连和 relay 命令也不会复活旧会话。
+- 4G BMS 参数设置页和历史记录页改为每 30 秒低频读取一次设备状态，避免设备因约 3 分钟无通讯进入休眠；首轮保活读取延后 30 秒，不抢占刚进入 Tab 时的业务读取。对应 BLE Tab 保持暂停轮询。
+- Web 端 4G BMS 电芯页不再把协议无效值 `0xFFFF` 显示为 `65.535 V`；全无效实时数组会回退有效云端数组，部分无效项保留电芯序号并显示为 `-`。
 
 ## 发布范围
 - 后端 APP 电池接口。
@@ -46,6 +48,8 @@
 - UniApp 设备详情数据源仲裁与页面会话失效保护。
 - 后端 bms-bridge retained 过滤、独立 MQTT 投递配置、同设备 FIFO 分片、桥接接收时间透传与当前遥测单调 upsert。
 - 后端 APP 当前遥测 `snapshot_ts` 字段与移动端快照新鲜度判定。
+- UniApp 设备详情 Tab 轮询策略与 4G 参数/历史页 30 秒保活。
+- Web BMS 面板电芯电压无效值归一化与数据源回退。
 
 ## 回滚
 - 回滚后端 Socket WebSocket 桥接、UniApp/Web 详情页透传分支后，可恢复为主动上报兜底展示逻辑。
@@ -57,3 +61,5 @@
 - 如 4G 数据交互置在线在现场造成误判，可单独回滚后端 `MarkFourGBatteryOnlineByInteraction` 调用与 UniApp `readAllStatus()` 成功后的 `is_online` 同步；实时数据读取、参数读取和 OTA 透传协议不需要同步回滚。
 - 如移动端保护窗口不适配现场网络，可单独调整 `MQTT_CLOUD_FALLBACK_FAILURE_THRESHOLD` 与 `MQTT_REALTIME_STALE_BEFORE_FALLBACK_MS`，或回滚 `detail-data-arbiter` 接入；BLE、仪表、参数和 OTA 链路不依赖该仲裁逻辑。
 - 如 bridge 有序消费影响吞吐，可分别回滚 bridge 专用 `DeliveryOptions` 和按设备分片队列；主 MQTT adapter 默认参数未改变。当前遥测时间单调条件可独立回滚且不涉及数据库结构变更。
+- 如参数/历史页 30 秒状态读取影响业务操作时延，可单独回滚 `detail-polling-policy` 与 `useBatteryDetail` 的可配置间隔，恢复对应 Tab 暂停轮询；仪表盘、电芯页及后端无需同步回滚。
+- 如 Web 电芯无效值归一化与现场私有协议不兼容，可单独回滚 `cell-voltage.ts` 及 BMS 面板接入，不影响后端遥测、MQTT Socket 和 UniApp。

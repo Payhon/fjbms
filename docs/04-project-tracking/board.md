@@ -183,6 +183,8 @@
   - 2026-07-03 更新：根据设备端“无 MQTT/串口通讯 3 分钟后休眠，第二次指令唤醒”策略，UniApp 4G MQTT Socket 默认休眠阈值调整为 180 秒；参数分组首次展开和高级参数弹层加载前增加 2.5 秒轻量 `0x0100 qty=1` 唤醒 probe，probe 超时不阻断真实参数读取；类型检查与协议断言通过，待 3 分钟静置真机复测
   - 2026-07-07 更新：修复小程序 4G MQTT Socket 实时回包链路，`onMessage` 已兼容 `ArrayBuffer/TypedArray` 回包并避免非帧消息误断链；仪表盘/电芯页在 MQTT client 就绪后会主动恢复轮询，`readAllStatus()` 4G 单段超时改为 5 秒且旧轮询不会覆盖当前状态；后端 Socket 桥接补充普通帧 `ws_to_mqtt_rx/mqtt_tx_to_ws` 日志；同日修复参数设置单体分组缺失低温单体欠压两项导致 `0x0408~0x0410` 被拆段的问题，现合并为 `0x0408 qty=9` 读取，且 MQTT 参数读取全空会重试并保留可重试状态；根据 `_resources/fjia.json` 复核到同一参数区间存在秒级慢回包，将 MQTT 参数分组读取超时从 5 秒调整为 15 秒，并补充有效帧后带尾随字节的 Transport 断言；根据 `_resources/fjia2.json` 继续加固 `FrameCollector`，请求 echo/坏帧会丢弃错误起点后继续匹配真实回包，并补充真实帧回归断言；本次补充 4G MQTT Socket 上行回包置在线逻辑，真实读数成功后即使无主动上报也会刷新设备在线状态；待新包和后端发布后用 MQTTX/生产日志复测周期性读取、实时刷新、在线状态与单体/总压设置展开显示
   - 2026-07-10 更新：按 P0 修复仪表盘/电芯页旧数据短暂覆盖问题；UniApp 增加实时优先、连续失败保护、session/request/轮询 generation/设备 ID/`last_report_ts` 仲裁，后端过滤 retained、为 bms-bridge 启用独立 clean/ordered 会话与同设备 FIFO 分片，将严格递增的桥接接收时间贯通到 current 单调 upsert，并增加 `snapshot_ts` 防止新摘要为旧整组快照背书；Go race 定向测试、UniApp 类型检查和仲裁断言已通过，待弱网真机及发布后时序观察
+  - 2026-07-20 更新：针对 4G BMS 在参数页或历史记录页静置约 3 分钟后休眠的问题，UniApp 两个 Tab 均改为每 30 秒执行一次低频 `readAllStatus()` 保活，首轮延后 30 秒避免抢占参数或历史读取；仪表盘/电芯页保持默认轮询，对应 BLE Tab 继续暂停，策略断言、UniApp 类型检查与空白检查已通过，待微信小程序真机静置、参数读写及历史加载并行复测
+  - 2026-07-20 更新：修复 Web 端 4G BMS 电芯页将协议无效哨兵 `0xFFFF` 换算并显示成 `65.535 V`；实时电芯数组全无效时回退有效云端数组，两者均无有效值时展示空态，部分无效项保留序号显示 `-`；4 项定向断言、ESLint 和 Web 类型检查通过，待目标设备浏览器现场复测
   - 文档：`docs/03-development/features/FEAT-0049-bms-4g-mobile-cloud-detail/`
 - [ ] `in_progress` **FEAT-0048** BMS 4G 通讯调试管理
   - owner：payhon
@@ -220,11 +222,11 @@
   - 依赖：无
   - 进展：已开始实现 OpenAPI `pack_factory_name` 自动出厂、后台批量出厂接口，以及电池列表跨分页勾选缓存与批量操作联动
   - 文档：`docs/03-development/features/FEAT-0042-battery-factory-out-enhancement-and-cross-page-selection/`
-- [ ] `in_progress` **FEAT-0040** 设备参数权限 Key 归一化与移动端参数显隐修复
+- [ ] `review` **FEAT-0040** 设备参数权限 Key 归一化与移动端参数显隐修复
   - owner：payhon
   - 优先级：P1
   - 依赖：无
-  - 进展：已排查出设备参数权限树存在一批历史遗留的非标准 key（如 `403:feedback_delay`、`410:alarm_release`），与移动端按纯寄存器地址判断权限的逻辑不一致，导致部分参数在后台取消勾选后仍可见；当前已统一权限树 key、补充旧 key 兼容归一化，并补单测验证
+  - 进展：已统一历史非标准设备参数权限 key 并补充旧 key 兼容归一化；2026-07-15 根据终端用户截图补齐后台权限树遗漏的 `40b`、`40c` 两个低温单体过放参数权限项，移动端受限模式下未知参数 key 改为默认拒绝，并新增独立授权/无权限显隐回归用例；后端定向测试、UniApp TypeScript 检查和回归用例均通过，待测试环境/真机验收
   - 文档：`docs/03-development/features/FEAT-0040-device-param-permission-key-normalization/`
 - [ ] `in_progress` **FEAT-0037** 用户名字段、账号设置增强与后台用户表格展示
   - owner：payhon
