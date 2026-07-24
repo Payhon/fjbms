@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-04-28
+- last_updated: 2026-07-21
 - related_feature: FEAT-0046
 - version: v0.1.0
 
@@ -39,5 +39,6 @@
 - 2026-04-28：根据小程序仪表 OTA 成功界面但版本未变化日志，将仪表 OTA 改为 `0x53` 全部 ACK + 延迟 2s + `0x54 status=0` 的严格成功条件，复测 `cd fjbms-uniapp && pnpm exec tsc --noEmit`，通过。
 - 2026-04-28：借鉴旧版微信小程序 OTA 可用实现，蓝牙 BMS 与蓝牙仪表 OTA 均增加 `0x54` 300ms/600ms/900ms 补发；两者均要求 `0x54 status=0` 才判定成功，仪表额外兼容 `0xFD` Boot 回包源地址，复测 `cd fjbms-uniapp && pnpm exec tsc --noEmit`，通过。
 - 2026-04-28：优化 Android 仪表 `0x53` ACK 驱动发包速度，取消默认 ACK 后固定等待、降低最小帧间隔与 4KB 边界等待，并增加超时后的自动慢速保护，复测 `cd fjbms-uniapp && pnpm exec tsc --noEmit`，通过。
+- 2026-07-21：增加 BLE OTA 独占通讯会话并将蓝牙 BMS/仪表 `0x54` 收敛为单个 5s 严格应答窗口；静态检查 `cd fjbms-uniapp && pnpm exec tsc --noEmit --pretty false` 通过，待 Android、iOS 与微信小程序真机验证 OTA 启动等待和 `0x54 status=0` 收敛。
 - 待执行前端构建复测。
 - 待真机联调仪表 OTA 下载与写包流程。

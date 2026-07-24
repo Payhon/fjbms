@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-04-28
+- last_updated: 2026-07-21
 - related_feature: FEAT-0046
 - version: v0.1.0
 
@@ -43,3 +43,4 @@
 32. 根据 `_resources/ble-metric-upgrade-log-mp-02.txt` 复核小程序仪表 OTA“界面成功但版本未变化”问题：日志只显示 `0x54` 已发送，随后 `finalize assume success after timeout`，未收到协议要求的 `0x54 status=0` 返回。仪表 OTA 改为严格协议闭环：必须完成全部 `0x53` ACK 到 `requested == packetTotal`，等待 2s 后发送 `0x54`，且 `0x54` 必须返回 `status=0` 才显示成功；否则显示“固件数据包未完整确认”或“升级完成指令未收到设备确认”。
 33. 对照旧版微信小程序 `_resources/vendor.js` 的可用 OTA 状态机经验，补齐 OTA 完成阶段稳定性：全部 `0x53` ACK 后，蓝牙 BMS 与蓝牙仪表均会将 `0x54` 按 300ms/600ms/900ms 额外补发，并且都必须收到任意一次 `0x54 status=0` 才判定成功；不再把 finalize 超时或 BLE 断开收敛为成功。同时仪表 Boot 回包源地址兼容 `0x01/0xFC/0xFD`，避免不同 Bootloader 地址差异导致有效 ACK 被过滤。
 34. 按旧版小程序 `0x53` ACK 驱动发包经验优化仪表 Android OTA 速度：默认取消 ACK 后固定 `packetDelayMs`，最小帧间隔从 220ms 降为 100ms，4KB 边界等待从 1500ms 降为 300ms；若发生 `0x53` 超时重试，自动启用慢速保护参数（100ms 包间等待、1500ms 边界等待），兼顾稳定性与速度。
+35. 根据 `_resources/ble-metric-ota-log.md` 优化 OTA 首尾固定等待：蓝牙 OTA 开始前建立独占 Boot 会话，主动取消并清空遗留状态读取队列，升级期间拒绝新的非 Boot 请求；蓝牙 BMS 与仪表完成阶段改为单个 5s 应答窗口，在窗口内继续按 300ms/600ms/900ms 补发 `0x54`，禁用 iOS 超时后的替代写模式重试，并严格要求实际收到 `0x54 status=0`。
