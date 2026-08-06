@@ -1,10 +1,10 @@
 # FEAT-0049 BMS 4G 移动端云端详情链路 - 技术设计
 
-- status: in_progress
+- status: review
 - owner: payhon
-- last_updated: 2026-07-20
+- last_updated: 2026-07-25
 - related_feature: FEAT-0049
-- version: v0.1.0
+- version: v0.2.0
 
 ## 1. 后端接口
 - 新增 `GET /api/v1/app/battery/current-telemetry/:device_id`。
@@ -22,6 +22,10 @@
 - MQTT adapter 只在 `source=bms_bridge` 且时间不超过 adapter 接收时间 5 分钟时保留桥接时间，uplink 也只对 bridge metadata 透传该时间；普通 MQTT 设备继续使用原 storage 处理时刻。
 - `telemetry_current_datas` 的批量与逐条冲突更新仅接受 `EXCLUDED.ts` 不早于当前行的值，历史表仍保留迟到数据。
 - APP 当前遥测响应独立返回 `snapshot_ts`；后端只用 `item.ts >= snapshot_ts` 的逐 key current 覆盖快照。完整 `bms.snapshot` 只有自身时间不早于本次所有 current key 的最新时间时才可整体采用，否则移动端按逐 key current 合成状态。
+- 新增 `POST /api/v1/app/battery/interactive-snapshot`，请求为 `{ device_id, session_id, platform, snapshot }`。接口复用 APP 设备可见性校验，并要求设备具备 4G 能力。
+- 接口从 Redis 读取当前 `bms:mqtt_socket:owner:{device_id}`，严格匹配 `device_id/session_id/user_id/tenant_id` 且 owner 未过期；仅 Socket 建连、ping 或 APP 自报在线不能满足提交条件。
+- 主动读取快照序列化后写入 `telemetry_current_datas` 的独立键 `bms.mqtt_interactive_snapshot`，仅更新 current 行，不写 `telemetry_datas` 历史；时间戳使用后端接收时间并通过单调 upsert 防止倒退。
+- `GET current-telemetry` 增加 `interactive_snapshot`、`interactive_snapshot_ts`。该快照不与普通 current 字段合并；`last_report_ts` 取普通 current、`bms.snapshot` 与主动读取快照的最大服务端时间。
 
 ## 2. 移动端数据流
 - 详情页加载 `appBatteryDetail` 后判断 4G 能力：`bms_comm_type=2/3`，或存在 `comm_chip_id`。
@@ -41,6 +45,10 @@
 - 若返回 `bms.snapshot`，直接作为 `BmsStatus`；否则从当前遥测摘要键合成局部 `BmsStatus` 供仪表盘组件使用。
 - 兜底模式下详情页以固定间隔轮询当前遥测，保持面板数据刷新。
 - MQTT 实时读取 `readAllStatus()` 成功后，移动端同步将当前详情态 `is_online` 置为 `1`，使顶部状态立即显示 4G 在线；后端持久状态由 Socket 上行回包同步。
+- Socket `socket_ready` 中的 `session_id` 由 `UniMqttSocketBmsTransport` 保存并只读暴露；旧后端未返回该字段时不上报主动读取快照。
+- 每次 MQTT `readAllStatus()` 完整成功后，把同一份 `BmsStatus` 作为主动读取快照异步上报；上报不阻塞页面实时状态提交，也不进入 BMS Transport 串行命令队列。
+- 快照上报使用单 in-flight、latest-wins 队列：请求进行中产生的新状态只保留最新一份，请求结束后继续发送；切换设备/session、断开或页面销毁时清理待发送值，迟到请求结果不写页面。
+- 云端状态合成优先级为 `interactive_snapshot` > 时间有效的 `bms.snapshot` > 普通 current 合成。主动读取快照作为原子状态使用，不叠加后来到达的普通主动上报字段；不存在主动读取快照时保持原行为。
 - 详情页新增 `bmsDataLoading` 首帧读取状态：
   - 连接建立后、`status` 仍为空时显示仪表盘加载卡片；
   - 首帧 `readAllStatus()` 或云端 `bms.snapshot` 返回后隐藏加载态；

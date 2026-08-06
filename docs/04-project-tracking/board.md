@@ -14,6 +14,12 @@
 ## 模块泳道看板
 
 ### Mobile（`fjbms-uniapp/`）
+- [ ] `review` **FEAT-0070** 移动端设备最近连接排序与参数刷新
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0049、FEAT-0060
+  - 进展：已完成 4G 离线角标隐藏与标题空间释放、四个基础参数分组 `88rpx` 手动刷新/加载态/失败旧值保护，并补齐中英文文案；UniApp TypeScript、状态与刷新策略、详情轮询/仲裁回归和差异检查通过，待微信小程序、iOS、Android 真机验收
+  - 文档：`docs/03-development/features/FEAT-0070-mobile-device-recency-and-param-refresh/`
 - [ ] `review` **FEAT-0068** 移动端质保资料填写引导
   - owner：payhon
   - 优先级：P1
@@ -76,6 +82,12 @@
   - 文档：`docs/03-development/features/FEAT-0052-uniapp-device-detail-scan-i18n-login-ux/`
 
 ### Web（`frontend/`）
+- [ ] `review` **FEAT-0069** Web 电池列表状态记忆与批量调拨
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0042、FEAT-0045
+  - 进展：已完成会话级查询状态恢复与账号清理、跨分页批量调拨、部分失败保留重试项、角色目标矩阵、独立按钮权限和中英文文案；Frontend ESLint/typecheck/生产构建与后端定向测试通过，待浏览器多角色回归和目标数据库权限迁移核查
+  - 文档：`docs/03-development/features/FEAT-0069-web-battery-list-state-and-batch-transfer/`
 - [ ] `review` **FEAT-0067** BMS 电池质保截止日期补偿任务
   - owner：payhon
   - 优先级：P1
@@ -114,6 +126,24 @@
   - 文档：`docs/03-development/features/FEAT-0058-web-bms-admin-i18n/`
 
 ### Backend（`backend/`）
+- [ ] `review` **FEAT-0071** 第三方 MES 批量重新分配 PACK 厂
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0042、FEAT-0045、FEAT-0069
+  - 进展：已完成 `POST /api/v1/openapi/mes/battery/reassign-pack-factory`、按当前归属解析来源 PACK、逐台行锁事务、部分成功、幂等 `UNCHANGED`、双归属字段更新及双审计日志；定向和 race 测试通过，Swagger、三份接入文档与显式联调脚本已同步；全量测试仅被既有告警缓存与数据库环境用例阻断，待测试环境 MES 专用密钥和真实未投入使用板卡验收
+  - 文档：`docs/03-development/features/FEAT-0071-third-party-mes-pack-factory-reassignment/`
+- [ ] `review` **FEAT-0070** 移动端设备最近连接排序与参数刷新
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0013、FEAT-0049
+  - 进展：已新增 `devices.last_connected_at`、`sql/65.sql`/基线和 BLE 成功连接、4G 非 retained 真实交互写入；三种视图按最近通讯优先、空时间原关系时间回退、设备 ID 稳定排序；定向 service/api 测试通过，全量测试仅被既有告警缓存和数据库环境用例阻断，待真实 PostgreSQL 与设备验收
+  - 文档：`docs/03-development/features/FEAT-0070-mobile-device-recency-and-param-refresh/`
+- [ ] `review` **FEAT-0069** Web 电池列表状态记忆与批量调拨
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：FEAT-0042、FEAT-0045
+  - 进展：已完成 `POST /api/v1/battery/batch-transfer`、重复 ID 去重、逐台独立事务、部分成功失败明细、FEAT-0045 校验复用及 `sql/64.sql`/基线权限同步；定向测试通过，全量测试仅被既有告警缓存与数据库环境用例阻断，待真实 PostgreSQL 和浏览器多角色验收
+  - 文档：`docs/03-development/features/FEAT-0069-web-battery-list-state-and-batch-transfer/`
 - [ ] `review` **FEAT-0068** 移动端质保资料填写引导
   - owner：payhon
   - 优先级：P1
@@ -174,7 +204,7 @@
   - 依赖：FEAT-0044、FEAT-0045
   - 进展：已开始实现厂家“恢复出厂”单台操作，新增独立接口、生命周期入口、操作日志 `FACTORY_RESTORE` 与权限 SQL，待定向 Go/ESLint/前端构建校验及账号回归
   - 文档：`docs/03-development/features/FEAT-0050-battery-factory-restore-action/`
-- [ ] `in_progress` **FEAT-0049** BMS 4G 移动端云端详情链路
+- [ ] `review` **FEAT-0049** BMS 4G 移动端云端详情链路
   - owner：payhon
   - 优先级：P1
   - 依赖：FEAT-0048
@@ -185,6 +215,7 @@
   - 2026-07-10 更新：按 P0 修复仪表盘/电芯页旧数据短暂覆盖问题；UniApp 增加实时优先、连续失败保护、session/request/轮询 generation/设备 ID/`last_report_ts` 仲裁，后端过滤 retained、为 bms-bridge 启用独立 clean/ordered 会话与同设备 FIFO 分片，将严格递增的桥接接收时间贯通到 current 单调 upsert，并增加 `snapshot_ts` 防止新摘要为旧整组快照背书；Go race 定向测试、UniApp 类型检查和仲裁断言已通过，待弱网真机及发布后时序观察
   - 2026-07-20 更新：针对 4G BMS 在参数页或历史记录页静置约 3 分钟后休眠的问题，UniApp 两个 Tab 均改为每 30 秒执行一次低频 `readAllStatus()` 保活，首轮延后 30 秒避免抢占参数或历史读取；仪表盘/电芯页保持默认轮询，对应 BLE Tab 继续暂停，策略断言、UniApp 类型检查与空白检查已通过，待微信小程序真机静置、参数读写及历史加载并行复测
   - 2026-07-20 更新：修复 Web 端 4G BMS 电芯页将协议无效哨兵 `0xFFFF` 换算并显示成 `65.535 V`；实时电芯数组全无效时回退有效云端数组，两者均无有效值时展示空态，部分无效项保留序号显示 `-`；4 项定向断言、ESLint 和 Web 类型检查通过，待目标设备浏览器现场复测
+  - 2026-07-25 更新：4G BMS 当前 MQTT Socket 会话成功完成 `readAllStatus()` 后，UniApp 异步提交整组主动读取快照；后端按设备可见性、4G 类型及 Redis owner 的设备/会话/用户/租户/有效期二次校验，以服务端时间写入独立 current 键且不写历史；设备离线 fallback 现优先使用该原子快照，无快照时兼容原主动上报数据。后端定向测试、UniApp 类型检查与数据仲裁/Socket 会话回归通过；全量 Go 测试仍受既有未初始化缓存和缺少 `run_env`/数据库的环境型用例阻塞，待三端真机及发布后验证后转 `done`
   - 文档：`docs/03-development/features/FEAT-0049-bms-4g-mobile-cloud-detail/`
 - [ ] `in_progress` **FEAT-0048** BMS 4G 通讯调试管理
   - owner：payhon
@@ -202,7 +233,7 @@
   - owner：payhon
   - 优先级：P1
   - 依赖：FEAT-0041
-  - 进展：已完成 OTA 升级包 `device_kind` 模型、后台升级包管理双 TAB、APP 仪表升级包列表接口，以及 UniApp 蓝牙仪表详情页独立“选包后升级”卡片；本次继续根据 Android 10%/13%/95% 与 iOS 95% 日志加固仪表 OTA 写包节奏、4KB 边界等待与 finalize 成功收敛逻辑，并优化蓝牙扫描停止/超时状态复位、iOS 扫描进详情直连候选与取消旧连接后的锁等待；2026-04-27 新增开发者模式下仪表 OTA 端上调试日志与复制能力，并优化微信小程序主包体积；2026-04-28 根据微信小程序 95% 失败与误报成功日志，将仪表 OTA 收紧为全部 `0x53` ACK 后延迟 2s 再发 `0x54`，且必须收到 `0x54 status=0` 才显示成功；随后对齐旧版小程序经验，蓝牙 BMS 与仪表 `0x54` 均增加 300ms/600ms/900ms 补发，且都必须收到 `0x54 status=0` 才判定成功，仪表额外兼容 `0xFD` Boot 回包源地址；Android 仪表 `0x53` 改为 ACK 驱动低延迟传输并在超时后自动降速保护；2026-07-21 增加蓝牙 OTA 独占请求队列，避免启动前被状态读取阻塞，并将 BMS/仪表 `0x54` 收敛为单个 5s 严格应答窗口，待继续真机 OTA 回归
+  - 进展：已完成 OTA 升级包 `device_kind` 模型、后台升级包管理双 TAB、APP 仪表升级包列表接口，以及 UniApp 蓝牙仪表详情页独立“选包后升级”卡片；本次继续根据 Android 10%/13%/95% 与 iOS 95% 日志加固仪表 OTA 写包节奏、4KB 边界等待与 finalize 成功收敛逻辑，并优化蓝牙扫描停止/超时状态复位、iOS 扫描进详情直连候选与取消旧连接后的锁等待；2026-04-27 新增开发者模式下仪表 OTA 端上调试日志与复制能力，并优化微信小程序主包体积；2026-04-28 根据微信小程序 95% 失败与误报成功日志，将仪表 OTA 收紧为全部 `0x53` ACK 后发送 `0x54`，且必须收到 `0x54 status=0` 才显示成功；随后对齐旧版小程序经验，蓝牙 BMS 与仪表 `0x54` 均增加 300ms/600ms/900ms 补发，且都必须收到 `0x54 status=0` 才判定成功，仪表额外兼容 `0xFD` Boot 回包源地址；Android 仪表 `0x53` 改为 ACK 驱动低延迟传输并在超时后自动降速保护；2026-07-21 增加蓝牙 OTA 独占请求队列，避免启动前被状态读取阻塞，并将 BMS/仪表 `0x54` 收敛为单个 5s 严格应答窗口；2026-08-03 新增仪表透传BMS独立升级卡片，按现场UUID/型号匹配BMS包并显式向 `0x01` 执行标准保护板OTA；2026-08-05 将全部移动端OTA的非`0x54`应答收紧为450ms，`0x52 ACK -> 0x53`与末包ACK到`0x54`均为300ms，主动等待预算不超过600ms，模拟时序测试与UniApp类型检查通过；2026-08-06 将 BLE `0x54` 调整为800ms间隔、最多8次、6400ms单窗口，收到成功或拒绝应答均立即停止，MQTT/4G保持单发5s，待Android、iOS、微信小程序及4G/MQTT真机回归
   - 文档：`docs/03-development/features/FEAT-0046-meter-ota-packages-and-uniapp-flow/`
 - [ ] `in_progress` **FEAT-0045** 调拨目标收敛与门店上级组织防泄露
   - owner：payhon
@@ -398,11 +429,11 @@
   - 依赖：FEAT-0038
   - 进展：已开始统一“我的 / 设置”头像展示口径，抽取共用头像组件与 URL 解析逻辑，并将设置页头像修改流程改为“选图/拍照 -> 裁切 -> 上传保存”；待执行 `pnpm exec tsc --noEmit` 与运行态回归
   - 文档：`docs/03-development/features/FEAT-0043-uniapp-avatar-display-and-crop/`
-- [ ] `in_progress` **FEAT-0041** UniApp OTA 地址口径统一与仪表会话升级支持
+- [ ] `review` **FEAT-0041** UniApp OTA 地址口径统一与仪表会话升级支持
   - owner：payhon
   - 优先级：P1
   - 依赖：无
-  - 进展：已确认当前 OTA 主升级流程已区分仪表/ BMS，但 Boot 查询地址未严格统一，且仪表临时会话 OTA 入口被禁用；已统一 Boot 地址口径并补齐仪表会话 OTA 检查/升级链路；2026-06-29 补充有线仪表体验判断，仪表临时会话首帧成功读取到 BMS 状态后不再展示“仪表临时连接”扫码提示；2026-06-30 补充有线仪表未接 BMS 的失败接管体验，连续 3 次读取 BMS 状态失败后关闭 loading、回到主面板，并显示包含有线连接/供电检查建议和继续扫码入口的提示；UniApp TypeScript、代码空白检查和文档/看板空白检查已通过，待真机回归
+  - 进展：已统一 Boot 地址口径并补齐仪表会话 OTA 检查/升级链路；仪表临时会话首帧成功读取到 BMS 状态后不展示扫码提示，未接 BMS 时显示检查建议和继续扫码入口；2026-07-25 已将原连续 3 次失败判断替换为从蓝牙连接并开始读取起统一 10 秒截止时间，到期停止本轮轮询但保持 BLE，迟到响应由轮询代次拦截；TypeScript、9999/10000ms 策略、详情轮询/数据仲裁回归和差异检查通过，待微信小程序、iOS、Android 真机验收
   - 文档：`docs/03-development/features/FEAT-0041-uniapp-ota-addressing-and-instrument-session/`
 - [ ] `in_progress` **FEAT-0039** UniApp 设备详情高级参数出厂命令补齐与底部遮挡修复
   - owner：payhon

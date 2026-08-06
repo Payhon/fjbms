@@ -1,10 +1,10 @@
 # FEAT-0049 BMS 4G 移动端云端详情链路 - 测试报告
 
-- status: in_progress
+- status: review
 - owner: payhon
-- last_updated: 2026-07-10
+- last_updated: 2026-07-25
 - related_feature: FEAT-0049
-- version: v0.1.0
+- version: v0.2.0
 
 ## 测试用例
 - 后端：当前遥测接口可通过已绑定/组织可见设备查询数据。
@@ -196,3 +196,8 @@
 - [x] 2026-07-20 Web 项目级类型检查：`cd frontend && pnpm typecheck` 通过。
 - [x] 2026-07-20 Web 生产构建：`cd frontend && pnpm build` 通过；仅输出项目既有的 `GridV2`、`ContextMenu` 自动组件命名冲突提示。
 - [ ] 2026-07-20 Web 浏览器现场复测：进入截图所示 4G BMS 设备详情电芯页，确认不再显示 `65.535 V`；若云端存在有效电芯数组则回退显示真实值，否则展示“暂无电芯数据”。
+- [x] 2026-07-25 后端主动读取快照定向回归：`cd backend && go test ./internal/service ./internal/api ./router/apps -count=1` 通过；覆盖 Socket owner 的设备/会话/用户/租户/有效期匹配、主动快照与普通 current 隔离、服务端时间单调 upsert，只有 macOS SDK `IOMasterPort` 既有废弃警告。
+- [x] 2026-07-25 UniApp 项目级类型检查：`cd fjbms-uniapp && pnpm exec tsc -p tsconfig.json --noEmit --pretty false` 通过。
+- [x] 2026-07-25 UniApp 策略与 Transport 断言：临时 CommonJS 编译并执行 `detail-data-arbiter.test.ts`、`detail-polling-policy.test.ts`、`instrument-passthrough-policy.test.ts`、`uni-mqtt-socket-transport.wakeup.test.ts`，全部通过；覆盖主动读取快照优先级、无快照兼容 fallback、Socket `session_id` 获取/断开清理，以及既有轮询和仪表 10 秒等待策略。
+- [ ] 2026-07-25 后端全量 `go test ./...`：本功能相关包通过；仓库既有环境型测试未通过，`initialize/test.TestSetDevice` 因测试缓存未初始化产生 nil pointer，`project/test.TestDatebase` 因未设置 `run_env`/测试数据库先报“未知环境”后产生 nil pointer，均未进入本功能代码路径。
+- [ ] 2026-07-25 4G 真机与发布后验收：待在微信小程序、iOS、Android 使用真实设备确认在线交互成功后写入主动快照；随后使设备离线，确认 fallback 显示该快照；读取失败、HTTP 失败、Socket occupied、退出/换账号和旧会话迟到提交不得覆盖；无主动快照设备继续显示原主动上报数据。

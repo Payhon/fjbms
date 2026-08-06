@@ -1,10 +1,10 @@
 # FEAT-0049 BMS 4G 移动端云端详情链路 - 实现日志
 
-- status: in_progress
+- status: review
 - owner: payhon
-- last_updated: 2026-07-10
+- last_updated: 2026-07-25
 - related_feature: FEAT-0049
-- version: v0.1.0
+- version: v0.2.0
 
 ## 2026-04-27
 1. 新增 APP 当前遥测接口
@@ -268,3 +268,19 @@
    - 部分无效数组使用 `null` 保留原位置，页面将对应电芯显示为 `-`，不参与最高/最低高亮，避免压缩数组造成电芯编号错位。
 4. 回归保护
    - 新增 `cell-voltage.test.ts`，覆盖全无效实时数组回退、两侧全无效为空、部分无效保序和数值字符串归一化。
+
+## 2026-07-25
+1. 增加 4G APP 主动读取快照
+   - UniApp 在当前 MQTT Socket 会话的 `readAllStatus()` 完整成功后，异步提交本次整组 `BmsStatus`；BLE、仪表、参数读取和失败/超时响应不提交。
+   - Transport 从后端 `socket_ready` 控制消息保存 `session_id`，断开、错误或主动关闭时立即清空，避免旧会话继续上报。
+   - 上报采用单请求泵：同一时刻最多一个 HTTP 请求在途，轮询期间只保留最新待提交快照；失败仅记录日志，不阻塞实时读数和页面渲染。
+2. 增加后端会话鉴权和独立存储
+   - 新增 `POST /api/v1/app/battery/interactive-snapshot`，先复用 APP 设备可见性和 4G 类型校验，再严格匹配 Redis `bms:mqtt_socket:owner:{device_id}` 中的设备、会话、用户、租户和有效期。
+   - 使用后端接收时间将完整快照写入 `telemetry_current_datas` 独立键 `bms.mqtt_interactive_snapshot`，仅维护 current，不写历史表；upsert 只接受不早于现值的时间，防止迟到请求回退快照。
+   - `current-telemetry` 返回独立的 `interactive_snapshot` 和 `interactive_snapshot_ts`，不把该整包与普通逐项遥测混合。
+3. 调整离线 fallback 数据优先级
+   - 移动端云端状态按“APP 主动读取快照 > 有效普通 `bms.snapshot` > 普通 current 合成”选择。
+   - 无主动读取快照、旧版本客户端或主动快照接口失败时保持现有普通主动上报 fallback，接口新增字段为可选字段，不影响旧客户端。
+4. 数据与发布范围
+   - 本次不新增数据库表或字段，不修改主 MQTT 上报链路和历史遥测语义。
+   - 功能进入 `review`，待后端发布后使用真实 4G BMS 在微信小程序、iOS、Android 验证在线主动读取、离线 fallback、账号/会话切换和弱网失败行为。

@@ -1,10 +1,10 @@
 # FEAT-0049 BMS 4G 移动端云端详情链路 - 发布说明
 
-- status: in_progress
+- status: review
 - owner: payhon
-- last_updated: 2026-07-20
+- last_updated: 2026-07-25
 - related_feature: FEAT-0049
-- version: v0.1.0
+- version: v0.2.0
 
 ## 用户影响
 - 4G BMS 设备在移动端和 Web 端详情页优先使用 MQTT Socket 透传实时读取，仪表盘、电芯和参数数据与 BLE 解析链路保持一致。
@@ -30,6 +30,8 @@
 - 进入参数/历史页切换轮询策略后，在途云端 fallback 不再改变连接类型或干扰参数读取、历史读取和 OTA；页面卸载后的扫码、仪表重连和 relay 命令也不会复活旧会话。
 - 4G BMS 参数设置页和历史记录页改为每 30 秒低频读取一次设备状态，避免设备因约 3 分钟无通讯进入休眠；首轮保活读取延后 30 秒，不抢占刚进入 Tab 时的业务读取。对应 BLE Tab 保持暂停轮询。
 - Web 端 4G BMS 电芯页不再把协议无效值 `0xFFFF` 显示为 `65.535 V`；全无效实时数组会回退有效云端数组，部分无效项保留电芯序号并显示为 `-`。
+- 4G BMS 在线且移动端通过当前 MQTT Socket 会话成功完成主动读取后，后端会保存该次完整响应作为独立的最近交互快照；设备随后离线时，移动端优先显示这份快照。
+- 主动读取失败、超时、旧 Socket 会话、其他账号/租户或非 4G 设备不能更新交互快照；不存在交互快照时继续使用原有主动上报数据，不改变旧客户端行为。
 
 ## 发布范围
 - 后端 APP 电池接口。
@@ -50,6 +52,8 @@
 - 后端 APP 当前遥测 `snapshot_ts` 字段与移动端快照新鲜度判定。
 - UniApp 设备详情 Tab 轮询策略与 4G 参数/历史页 30 秒保活。
 - Web BMS 面板电芯电压无效值归一化与数据源回退。
+- 后端 APP 4G 主动读取快照接口、Socket owner/session 鉴权和 current-only 原子快照存储。
+- UniApp MQTT Socket 会话标识、主动读取快照异步上报和云端 fallback 数据源优先级。
 
 ## 回滚
 - 回滚后端 Socket WebSocket 桥接、UniApp/Web 详情页透传分支后，可恢复为主动上报兜底展示逻辑。
@@ -63,3 +67,4 @@
 - 如 bridge 有序消费影响吞吐，可分别回滚 bridge 专用 `DeliveryOptions` 和按设备分片队列；主 MQTT adapter 默认参数未改变。当前遥测时间单调条件可独立回滚且不涉及数据库结构变更。
 - 如参数/历史页 30 秒状态读取影响业务操作时延，可单独回滚 `detail-polling-policy` 与 `useBatteryDetail` 的可配置间隔，恢复对应 Tab 暂停轮询；仪表盘、电芯页及后端无需同步回滚。
 - 如 Web 电芯无效值归一化与现场私有协议不兼容，可单独回滚 `cell-voltage.ts` 及 BMS 面板接入，不影响后端遥测、MQTT Socket 和 UniApp。
+- 如主动读取快照在现场不符合预期，可先回滚 UniApp 的 `interactive_snapshot` 优先级和上报调用，立即恢复原主动上报 fallback；后端独立 current 键不会进入普通 `current` 合成，也不涉及数据库结构回滚。
