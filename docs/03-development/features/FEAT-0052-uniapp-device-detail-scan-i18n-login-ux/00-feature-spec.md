@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-05-19
+- last_updated: 2026-08-13
 - related_feature: FEAT-0052
 - version: v0.1.0
 
@@ -21,6 +21,8 @@
   4. 补齐本次涉及页面与小程序自定义 TabBar 的中英文文案。
   5. 登录守卫增加节流，避免重复跳登录页。
   6. 微信小程序环境下登录页与注册设置密码页的协议勾选默认未选中，必须由用户主动选择。
+  7. 仪表盘 SOC 保留整数位时直接截断小数，不使用四舍五入。
+  8. 修复扫描中返回首页后立即再次进入蓝牙搜索时，首页自动连接与扫描页争用系统 BLE discovery、触发 `10008/-30008 scanning too frequently` 的问题。
 
 ## 2. 范围
 ### In Scope
@@ -28,6 +30,11 @@
 - `fjbms-uniapp/pages/device-battery/components/params-tab.vue`
 - `fjbms-uniapp/common/lib/bms-protocol/client.ts`
 - `fjbms-uniapp/pages/device-provision/ble-scan.vue`
+- `fjbms-uniapp/common/ble/ble-discovery-coordinator.ts`
+- `fjbms-uniapp/common/ble/ble-scan-error-policy.ts`
+- `fjbms-uniapp/common/ble/ble-client-cache.ts`
+- `fjbms-uniapp/common/lib/bms-protocol/uni-ble-transport.ts`
+- `fjbms-uniapp/pages/home/home.vue`
 - `fjbms-uniapp/custom-tab-bar/`
 - `fjbms-uniapp/lang/zh-CN.ts`、`fjbms-uniapp/lang/en-US.ts`
 - `fjbms-uniapp/common/auth/ensure-login.ts`
@@ -51,13 +58,24 @@
 7. 未登录首次打开或点击 Add Device 时只触发一次登录跳转；微信小程序切换英文后进入 Home，底部 TabBar 保持英文。
 8. 首页蓝牙连接设备点击断开后单次操作即可更新为断开状态，不再要求二次点击。
 9. 微信小程序登录页、注册设置密码页首次进入时协议勾选为空；未勾选时不能提交，用户手动勾选后可继续原登录/注册流程。
+10. SOC 为 `77.5%` 时仪表盘显示 `77%`，不得四舍五入显示为 `78%`。
+11. 扫描中返回首页并立即再次进入蓝牙搜索时，手动扫描、首页自动连接扫描与通用 BLE transport 扫描必须全局串行，任意时刻最多存在一个 discovery 所有者。
+12. 页面 `onHide` 与 `onUnload` 的重复清理必须幂等；旧页面清理不得在新页面启动后关闭适配器或停止新扫描。
+13. 仅蓝牙确实不可用（错误码 `10001`）时提示进入系统蓝牙设置；`10008/-30008` 必须按“扫描操作过于频繁”处理并只做一次退避重试，不得误提示蓝牙未开启。
+14. “正在扫描”状态只能在 `startBluetoothDevicesDiscovery` 成功后展示；启动失败时不得产生虚假扫描状态。
+15. 蓝牙搜索页每次进入或从后台恢复时默认保持“已停止扫描”，不得自动发起扫描；只有用户点击“开始扫描”后才能启动 discovery。
+16. 扫描过程中未点击“停止扫描”而直接离开页面时必须自动停止 discovery；再次进入页面时按钮不得自动进入 Loading，也不得等待数秒后自行切换为扫描状态。
+17. 用户点击“开始扫描”时，只取消首页尚未完成的临时自动连接并快速释放全局 BLE 租约；不得断开已缓存的正常连接或详情页交互连接。
 
 ## 4. 风险与约束
 - 虚拟容量命令目标地址与普通参数写入不同，必须使用专用 targetAddress，避免影响默认 `0x01` 参数写入。
 - 微信小程序原生 `showActionSheet` 取消按钮受宿主语言影响，因此本次使用自定义弹层。
 - 登录守卫节流只抑制短时间重复导航，不能屏蔽用户后续主动进入登录页。
 - 协议默认勾选调整仅限微信小程序编译目标，其他端保持现有默认勾选行为以降低变更面。
+- BLE discovery 协调仅约束扫描资源，不改变设备名称/MAC/ServiceData 过滤、已绑定设备分流、连接协议、参数读写和 OTA 行为。
+- `10008/-30008` 自动恢复最多重试一次，避免无限重试进一步触发系统频率限制。
 
 ## 5. 回滚方案
 - 回滚 FEAT-0052 涉及的 UniApp 改动、协议文档更新与看板登记。
 - 若虚拟容量现场验证异常，优先禁用高级参数中的入口，保留受权限控制的只读 SOH 与展示优化。
+- 若全局扫描协调在特定端出现兼容问题，可回滚协调器接入和错误分类改动，恢复原页面级扫描流程；不得回滚本功能目录内其他已交付能力。
