@@ -19,6 +19,7 @@
 - 修正扫描错误提示：扫描频率限制不再误提示系统蓝牙未开启，并会在停止残留扫描后自动退避重试一次。
 - 蓝牙搜索页改为完全手动启动：进入页面默认保持“已停止扫描”，扫描中离开会自动停止，再次进入不会自动 Loading 或延迟后自行扫描。
 - 用户点击“开始扫描”时会立即取消首页尚未完成的临时自动连接等待并释放 BLE 租约；已缓存的正常连接和详情页交互连接不受影响。
+- 蓝牙仪表读取到后端 BMS 状态后，大扫码提示框会自动收起，顶部断开连接旁仍保留切换入口；点击入口可重新展开提示并扫码切换其他 BMS 板。
 
 ## 2. 影响范围
 - `fjbms-uniapp` 移动端。
@@ -32,6 +33,7 @@
 - [x] `cd fjbms-uniapp && pnpm dlx tsx common/ble/ble-scan-error-policy.test.ts`
 - [x] `cd fjbms-uniapp && pnpm dlx tsx common/lib/bms-protocol/uni-ble-transport-connect-cancel.test.ts`
 - [x] `cd fjbms-uniapp && pnpm dlx tsx common/home-device-status.test.ts`
+- [x] `cd fjbms-uniapp && pnpm dlx tsx pages/device-battery/meter-scan-handoff-policy.test.ts`
 - [x] `cd fjbms-uniapp && git diff --check`
 - [ ] `cd backend && go test ./internal/service -run 'TestNormalizeDeviceParamPermissionKeys|TestBuildDeviceParamPermissionTreeUsesCanonicalKeys' -count=1`
 - [ ] 微信小程序英文环境 Add Device 弹层验证。
@@ -42,6 +44,7 @@
 - [ ] 微信小程序真机连续 20 次“扫描中返回首页并立即再次进入”，并分别覆盖首页蓝牙自动连接开启/关闭。
 - [ ] Android、iOS App 扫描停止、立即二次扫描及选择设备连接回归。
 - [ ] 微信小程序验证首次进入、扫描中返回后再次进入、后台恢复均保持停止态，且点击开始扫描无约 5 秒等待。
+- [ ] 微信小程序、Android、iOS App 验证仪表读取 BMS 状态后大提示框自动收起、顶部入口显示，点击入口可重新展开并切换其他 BMS。
 
 ## 4. 回滚
 - 回滚 FEAT-0052 对应移动端提交与协议文档更新。

@@ -35,6 +35,7 @@
 26. 保留 `onHide/onUnload -> stopScan()`，扫描中直接返回首页仍会自动停止 discovery、解绑发现回调并释放全局租约。
 27. 根据 2026-08-13 真机截图补充微信运行时正数 `code=10008`，与已有 `-30008` 一并归类为扫描过于频繁，继续执行“停止残留扫描、退避、仅重试一次”的恢复流程。
 28. 首页自动连接显式标记为 `home_auto`；手动扫描只取消仍在执行的首页临时 transport，并为 `createBLEConnection` 增加主动取消通道，使手动扫描无需等待原生连接超时即可取得全局 BLE 租约，不影响已缓存连接和详情页交互连接。
+29. 将仪表扫码 handoff 能力与提示框展开状态解耦：新增显隐策略和断言测试，首次读取到后端 BMS 状态时自动收起大提示框并显示顶部入口；点击入口可重新展开提示框并继续扫码，后续状态轮询不会再次强制收起。
 
 ## 2. 已验证
 - `cd fjbms-uniapp && pnpm exec tsc --noEmit --pretty false`：通过。
@@ -55,6 +56,8 @@
 - `cd fjbms-uniapp && pnpm dlx tsx common/ble/ble-scan-error-policy.test.ts`：2026-08-13 通过，覆盖 `10008/-30008` 双形态频率限制错误。
 - `cd fjbms-uniapp && pnpm dlx tsx common/lib/bms-protocol/uni-ble-transport-connect-cancel.test.ts`：2026-08-13 通过，在途原生连接取消未等待 6.5 秒超时且租约可再次取得。
 - `cd fjbms-uniapp && pnpm exec tsc --noEmit --pretty false`、SFC 脚本解析及 `git diff --check`：2026-08-13 通过。
+- `cd fjbms-uniapp && pnpm dlx tsx pages/device-battery/meter-scan-handoff-policy.test.ts`：2026-08-13 通过，覆盖未读取状态的大提示、读取成功后的顶部入口、主动重新展开及禁用场景。
+- `cd fjbms-uniapp && pnpm exec tsc --noEmit --pretty false`、`detail.vue` SFC 脚本编译、根仓与 UniApp `git diff --check`：2026-08-13 通过。
 
 ## 3. 待验证
 - 在微信小程序英文环境确认自定义弹层取消按钮显示为 `Cancel`。
@@ -65,3 +68,4 @@
 - 在微信小程序真机连续执行至少 20 次“扫描中返回首页并立即再次进入蓝牙搜索”，确认每次均能发现设备且不再出现 `10008/-30008`。
 - 分别在首页蓝牙自动连接开启/关闭时验证二次扫描，并补充 Android、iOS App 真机回归；当前静态/逻辑测试不能替代真实 BLE 验收。
 - 验证普通进入、扫描中返回后再次进入、应用后台恢复三种场景均保持停止态，且未点击“开始扫描”时按钮不出现 Loading、不会延迟后自行扫描。
+- 在微信小程序、Android、iOS App 分别验证仪表读取后端 BMS 状态后大提示框自动收起、顶部入口显示；点击入口重新展开并扫码切换另一块 BMS 后，应重新读取新板状态。

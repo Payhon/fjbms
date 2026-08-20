@@ -2,7 +2,7 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-05-26
+- last_updated: 2026-08-15
 - related_feature: FEAT-0055
 - version: v0.1.0
 
@@ -28,3 +28,11 @@
 ## 4. 回滚说明
 - 回滚后端、WEB 和 UniApp 代码。
 - 停止使用 PACK 小程序配置表，保留数据以便后续恢复。
+
+## 5. 2026-08-15 默认小程序内容兼容热修
+- 修复租户级默认微信小程序用真实微信 AppID 打开隐私政策、用户协议时返回 `100404` 的问题。
+- 仅更新后端；不修改、不重新构建、不重新提交微信小程序和 WEB 前端。
+- 发布前备份生产后端二进制，发布后验证 `fjbms-backend`、`/health`、默认微信 AppID、主应用 ID、缺省 AppID 与未知 AppID。
+- 若生产验证异常，恢复备份二进制并重启 `fjbms-backend`。
+- 已于 2026-08-15 19:36 CST 更新生产后端；部署后二进制 SHA-256 为 `668606b2ac1fb4fbd98171b4fe4e80f246f3f2a9e460b628851195f236f94f04`。
+- 发布前备份：`/www/fjia/backups/fjbms/backend/backend_20260815_193611_runtime-appid-hotfix-pre.bin`；生产健康检查、默认小程序内容接口及 2 个已发布 PACK 小程序隐私政策接口均验证通过。

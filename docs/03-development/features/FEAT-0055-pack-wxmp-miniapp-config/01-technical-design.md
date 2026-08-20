@@ -2,7 +2,7 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-05-29
+- last_updated: 2026-08-15
 - related_feature: FEAT-0055
 - version: v0.1.0
 
@@ -65,6 +65,7 @@
 9. 我的 > 联系客服页通过当前微信 AppID 读取该小程序配置的 `contact_service` 内容。
 10. 新身份写入 `identifier = wx_appid + ':' + openid`，实现小程序隔离。
 11. APP 用户管理按 `user_identities` 判断来源：`PHONE/EMAIL` 归入 App 端，`WXMP_OPENID` 按 `identifier` 解析小程序 AppID。
+12. APP 内容相关接口统一通过运行时 AppID 解析应用：优先按 `apps.appid` 直接命中 APP/PACK 内容；未命中时，仅当该值匹配同租户 `wx_mp_apps.appid` 才回退租户首个主应用；未知 AppID 返回 `100404`。
 
 ## 4. 安全与权限
 - PACK 小程序配置接口必须登录 WEB 后台。
@@ -85,3 +86,4 @@
 - 未提交 `appid` 时继续使用现有 `wx_mp_apps` 租户级配置。
 - 历史 `WXMP_OPENID` 身份不迁移；旧小程序仍可按旧逻辑登录。
 - `apps` 记录已有 `tenant_id + appid` 唯一约束，可复用承载小程序内容。
+- 当前租户级 `wx_mp_apps` 未保存 `apps.id` 外键，本次兼容沿用公开内容接口既有“租户首个应用”回退语义；后续若一个租户需要多个非 PACK 主应用，应增加显式 `app_id` 关联替代顺序回退。

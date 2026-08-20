@@ -14,6 +14,7 @@
   - 英文语言下仍有参数项、微信小程序 Add Device 取消按钮等中文残留。
   - 未登录首次打开时多入口守卫可能连续跳转登录页。
   - 微信小程序登录/注册链路的用户协议与隐私政策勾选不得默认代用户同意。
+  - 蓝牙仪表读取到后端 BMS 状态后，扫码提示框与顶部入口会同时隐藏，导致用户无法继续扫码切换仪表当前连接的 BMS 板。
 - 目标：
   1. 设备详情顶部仪表只显示 SOC，左右进度条均使用 SOC。
   2. 高级参数展示只读 SOH，并支持虚拟容量按 AH 写入；只读 SOH 与虚拟容量入口均受设备参数权限控制。
@@ -23,6 +24,7 @@
   6. 微信小程序环境下登录页与注册设置密码页的协议勾选默认未选中，必须由用户主动选择。
   7. 仪表盘 SOC 保留整数位时直接截断小数，不使用四舍五入。
   8. 修复扫描中返回首页后立即再次进入蓝牙搜索时，首页自动连接与扫描页争用系统 BLE discovery、触发 `10008/-30008 scanning too frequently` 的问题。
+  9. 蓝牙仪表读取到后端 BMS 状态后自动收起大提示框，同时保留顶部扫码入口，允许用户再次展开提示并扫码切换其他 BMS 板。
 
 ## 2. 范围
 ### In Scope
@@ -35,6 +37,8 @@
 - `fjbms-uniapp/common/ble/ble-client-cache.ts`
 - `fjbms-uniapp/common/lib/bms-protocol/uni-ble-transport.ts`
 - `fjbms-uniapp/pages/home/home.vue`
+- `fjbms-uniapp/pages/device-battery/detail.vue`
+- `fjbms-uniapp/pages/device-battery/meter-scan-handoff-policy.ts`
 - `fjbms-uniapp/custom-tab-bar/`
 - `fjbms-uniapp/lang/zh-CN.ts`、`fjbms-uniapp/lang/en-US.ts`
 - `fjbms-uniapp/common/auth/ensure-login.ts`
@@ -66,6 +70,7 @@
 15. 蓝牙搜索页每次进入或从后台恢复时默认保持“已停止扫描”，不得自动发起扫描；只有用户点击“开始扫描”后才能启动 discovery。
 16. 扫描过程中未点击“停止扫描”而直接离开页面时必须自动停止 discovery；再次进入页面时按钮不得自动进入 Loading，也不得等待数秒后自行切换为扫描状态。
 17. 用户点击“开始扫描”时，只取消首页尚未完成的临时自动连接并快速释放全局 BLE 租约；不得断开已缓存的正常连接或详情页交互连接。
+18. 蓝牙仪表会话读取到后端 BMS 状态后，大提示框必须自动收起，顶部断开连接旁的扫码入口必须显示；点击入口后应切换到仪表盘并重新展开提示框，用户可继续扫码切换其他 BMS。`allow_scan_handoff=0`、普通 BMS 直连和云端会话不得显示该入口。
 
 ## 4. 风险与约束
 - 虚拟容量命令目标地址与普通参数写入不同，必须使用专用 targetAddress，避免影响默认 `0x01` 参数写入。
@@ -74,6 +79,7 @@
 - 协议默认勾选调整仅限微信小程序编译目标，其他端保持现有默认勾选行为以降低变更面。
 - BLE discovery 协调仅约束扫描资源，不改变设备名称/MAC/ServiceData 过滤、已绑定设备分流、连接协议、参数读写和 OTA 行为。
 - `10008/-30008` 自动恢复最多重试一次，避免无限重试进一步触发系统频率限制。
+- 仪表扫码提示仅在 BMS 状态从“未读取”切换为“已读取”时自动收起，避免用户主动重新展开后被后续状态轮询反复关闭。
 
 ## 5. 回滚方案
 - 回滚 FEAT-0052 涉及的 UniApp 改动、协议文档更新与看板登记。

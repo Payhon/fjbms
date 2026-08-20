@@ -14,6 +14,7 @@
 - 登录守卫在共享 `ensureLoggedIn` 中做短时间全局节流和页面栈判断。
 - 登录页与注册设置密码页通过平台编译条件设置协议初始值：`MP-WEIXIN` 为未勾选，非小程序保持已勾选。
 - BLE discovery 使用应用级异步租约统一串行化，扫描页、首页自动连接和通用 BLE transport 不再各自独占页面级队列。
+- 仪表扫码切换入口将“handoff 能力是否可用”与“提示框是否展开”解耦；读取到 BMS 状态只触发一次自动收起，顶部入口保持可发现并允许用户再次展开。
 
 ## 2. 关键实现
 - SOC 仪表：
@@ -56,6 +57,11 @@
   - 非微信小程序编译目标返回 `true`，避免扩大 App/H5 行为变化。
 - 首页蓝牙断开：
   - 用户主动断开时以释放本地 BLE 客户端和更新卡片通信态为准；底层断开命令失败时记录 warn，不再保留蓝牙态等待二次点击。
+- 仪表扫码切换：
+  - `meter-scan-handoff-policy.ts` 根据仪表会话、`allow_scan_handoff`、蓝牙连接状态、首帧读取状态、面板展开状态与当前 Tab，统一输出大提示框和顶部入口的显隐结果。
+  - BMS 状态未就绪时维持现有首帧读取等待；读取成功后即使读取状态尚未完全收尾，扫码入口也按“状态已就绪”保持可用。
+  - `detail.vue` 精确监听 `meterHasBmsStatus`，仅在 `false -> true` 时将提示框收起；用户点击顶部入口后仍沿用 `openMeterPanel()`，切换到仪表盘并重新展开提示框。
+  - 现有二维码类型校验、`0xFC` 仪表目标 MAC 配置、断开重连和轮询恢复流程不变。
 - 小程序 TabBar：
   - Home `onShow` 主动刷新自定义 TabBar 文案后再设置选中态，避免语言切换后跨 Tab 恢复中文。
 
@@ -66,6 +72,7 @@
 - 设备参数权限树新增只读 SOH 与虚拟容量节点，不新增后端接口或数据库字段。
 - 协议勾选初始化只影响首次进入页面的默认值，不改变用户手动勾选、取消勾选和提交前校验逻辑。
 - 全局租约只保护 discovery，不接管既有 BLE 连接请求队列和 OTA 独占队列；设备过滤与广播 MAC 解析保持不变。
+- `allow_scan_handoff=0`、普通 BMS 直连和云端会话继续隐藏扫码切换入口；不新增路由参数、翻译键或协议命令。
 
 ## 4. 验证
 - 静态校验：`cd fjbms-uniapp && pnpm exec tsc --noEmit --pretty false`
@@ -73,5 +80,6 @@
 - BLE discovery 租约断言：`cd fjbms-uniapp && pnpm dlx tsx common/ble/ble-discovery-coordinator.test.ts`
 - BLE 扫描错误分类断言：`cd fjbms-uniapp && pnpm dlx tsx common/ble/ble-scan-error-policy.test.ts`
 - BLE 在途连接取消断言：`cd fjbms-uniapp && pnpm dlx tsx common/lib/bms-protocol/uni-ble-transport-connect-cancel.test.ts`
+- 仪表扫码入口显隐断言：`cd fjbms-uniapp && pnpm dlx tsx pages/device-battery/meter-scan-handoff-policy.test.ts`
 - 后端权限树单测：`cd backend && go test ./internal/service -run 'TestNormalizeDeviceParamPermissionKeys|TestBuildDeviceParamPermissionTreeUsesCanonicalKeys' -count=1`
-- 人工抽测：设备详情、高级参数 SOH/虚拟容量权限显隐、高级参数写入、扫描中返回首页后立即再次进入 BLE 扫描、英文语言、小程序 Add Device、未登录首次打开、微信小程序登录/注册协议默认未勾选。
+- 人工抽测：设备详情、高级参数 SOH/虚拟容量权限显隐、高级参数写入、扫描中返回首页后立即再次进入 BLE 扫描、仪表读取 BMS 状态后提示框自动收起与顶部入口重新展开、英文语言、小程序 Add Device、未登录首次打开、微信小程序登录/注册协议默认未勾选。

@@ -2,7 +2,7 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-05-29
+- last_updated: 2026-08-15
 - related_feature: FEAT-0055
 - version: v0.1.0
 
@@ -32,6 +32,11 @@
 - [~] 前端 typecheck：`cd frontend && pnpm typecheck` 在当前 macOS 下因脚本使用 Windows 风格 `set NODE_OPTIONS=...` 返回 0；额外执行 `pnpm exec vue-tsc --noEmit --skipLibCheck`，仓库存在大量既有类型错误；按本次新增/修改文件路径过滤后未输出匹配错误。
 - [x] UniApp TypeScript 校验：`cd fjbms-uniapp && pnpm exec tsc --noEmit --skipLibCheck --pretty false`，通过。
 - [ ] 微信开发者工具/真机小程序回归。
+- [x] 默认小程序运行时 AppID 解析定向测试：`cd backend && go test ./internal/service -run 'TestResolveRuntimeApp|TestGetPackWxMpConfigMissingReturnsEmptyConfig|TestPackFactoryUserCanOnlyManageOwnWxMpConfig' -count=1`，通过。
+- [x] 后端相关包回归：`cd backend && go test ./internal/service ./internal/api ./router/apps -count=1`，通过。
+- [~] 后端全量测试：`cd backend && go test ./... -count=1`；本次涉及的 `internal/service`、`internal/api`、`router/apps` 均通过，全量仍受既有环境测试阻塞：`initialize/test.TestSetDevice` 未初始化依赖导致空指针，`test.TestDatebase` 缺少 `run_env`/本地数据库配置后空指针。
+- [x] 生产接口回归：2026-08-15 发布后，`fjbms-backend` 为 `active (running)`，服务本机 `GET http://127.0.0.1:9999/health` 返回 `code=200`；默认租户微信 AppID `wxea563e4e504e24c7`、UniApp 主应用 ID `__UNI__40EADE1` 和缺省 AppID 的隐私政策/用户协议均返回 `code=200`，未知 AppID 保持返回 `100404`。
+- [x] 生产 PACK 路径回归：从生产库选取 2 条 `OPEN` 且已发布隐私政策的 PACK AppID，请求隐私政策均返回 `code=200`、完整内容长度一致，确认 PACK 独立应用直接解析路径未受影响。
 
 ## 4. 缺陷与风险
 - 已修复：测试环境 PACK 厂“小程序配置”弹窗首次打开时，因后端将“未配置”当作资源不存在返回 `100404`，导致前端展示“未知错误”。
@@ -41,6 +46,7 @@
 - 需要在 PACK 厂小程序中验证“联系客服”显示该小程序独立 `contact_service` 内容，“关于我们”厂商信息显示关联 PACK 厂机构名称，用户协议和隐私政策跳转后显示该小程序独立内容。
 - 需要配置真实 AppSecret 后验证微信 code2session、登录注册自动创建用户、绑定手机号流程。
 - 前端全量 `vue-tsc` 当前仍受仓库既有类型问题阻塞，非本功能新增阻塞项。
+- 默认租户微信 AppID 的内容读取修复无需重新发布小程序；仍需在现有小程序版本中点击隐私政策/用户协议做最终页面验收。
 
 ## 5. 结论
-- 后端定向测试和 UniApp TypeScript 校验通过，功能进入联调/验收阶段。上线前仍需完成微信小程序运行态回归。
+- 后端兼容解析、相关包测试和生产接口回归均已通过；无需重新发布移动端微信小程序。现有微信小程序页面点击仍作为最终真机/UI 验收边界。

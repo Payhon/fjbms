@@ -2,7 +2,7 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-05-29
+- last_updated: 2026-08-15
 - related_feature: FEAT-0055
 - version: v0.1.0
 
@@ -45,3 +45,10 @@
 7. WEB PACK 厂小程序配置弹框的“文案内容”新增“联系客服”配置项，复用现有 `contact_service` 内容 Key，可按小程序独立保存和发布。
 8. runtime 接口为 PACK 小程序补充 `org_name`，UniApp 我的 > 关于我们页优先展示小程序关联 PACK 厂机构名称。
 9. UniApp 关于我们页的用户协议、隐私政策和联系客服页继续按当前微信 AppID 读取关联小程序内容，确保 PACK 小程序显示独立文案配置。
+
+## 2026-08-15
+1. 定位默认租户微信小程序协议页失败：UniApp 会传真实微信 AppID，而 APP 内容接口只按 `apps.appid` 查询；默认政策内容挂在 UniApp 主应用 ID 下，导致返回 `100404`。PACK 小程序保存配置时会创建同微信 AppID 的 `apps` 记录，因此未受影响。
+2. 后端新增统一运行时 AppID 解析：优先直接命中 `apps.appid`；若未命中且 AppID 属于当前租户 `wx_mp_apps`，则复用租户默认应用；未知 AppID 继续返回不存在。
+3. 将兼容解析应用到单页内容、FAQ、反馈创建和反馈列表过滤，避免默认小程序其他内容入口出现相同问题。
+4. 新增定向测试，覆盖主应用 ID、PACK 微信 AppID、租户级微信 AppID、空 AppID 公开页回退和未知 AppID 拒绝。
+5. 本次不修改 UniApp 代码，不需要重新提交微信小程序版本；生产发布仅更新后端二进制。
