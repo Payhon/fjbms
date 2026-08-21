@@ -2,7 +2,7 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-06-04
+- last_updated: 2026-08-20
 - related_feature: FEAT-0012
 - version: v0.1.0
 
@@ -12,6 +12,7 @@
 - 新增异步导出任务、固定下载路由与导出通知 WS。
 - 新增按钮权限：`bms_battery_history_export`。
 - 优化宽表字段：页面宽表与宽表导出不再包含 JSON 结构字段及 `balancingOn/bms.snapshot/protectCount/protectOn/vPackV`。
+- 统一历史查询页面和 Excel 导出的双语表头，动态字段使用 `中文 / English (identifier)` 格式，缺失模型名称时自动回退到 identifier。
 
 ## 2. 升级步骤
 1. 执行数据库补丁：`backend/sql/42.sql`。
@@ -21,6 +22,7 @@
 ## 3. 回归建议
 - 验证 31 天内查询与导出均可用，超限提示正确。
 - 验证宽表页面和宽表 Excel 表头均已隐藏 JSON 结构字段及内部冗余字段。
+- 验证长表/宽表在线表头与 Excel 第一行均显示中英文，并覆盖中文名称、英文名称及名称缺失场景。
 - 验证导出任务仅创建人可见并接收通知。
 - 验证下载成功后任务从“未下载列表”消失。
 

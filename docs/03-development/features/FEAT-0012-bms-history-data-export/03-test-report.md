@@ -2,7 +2,7 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-06-04
+- last_updated: 2026-08-20
 - related_feature: FEAT-0012
 - version: v0.1.0
 
@@ -25,6 +25,10 @@
   - 结果：通过（2026-06-04），覆盖宽表字段过滤 helper。
 - [ ] 手工链路：创建任务 -> 完成通知 -> 消息提醒 -> 下载 -> 列表移除
   - 结果：待联调环境执行。
+- [x] 双语表头 helper：已知 identifier、中文名称、英文名称、缺失名称和数据类型标签
+  - 结果：`cd backend && go test ./internal/service` 通过（2026-08-20）。
+- [ ] 在线表格与 Excel 表头一致性
+  - 结果：待联调环境分别导出长表/宽表并打开文件核验。
 
 ## 3. 风险记录
 - 宽表列数量依赖时间窗口与设备上报维度，建议验收时覆盖高维 key 设备。

@@ -2,7 +2,7 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-06-04
+- last_updated: 2026-08-20
 - related_feature: FEAT-0012
 - version: v0.1.0
 
@@ -32,6 +32,7 @@
 5. 下载成功后任务标记为已下载，并从“已完成未下载”列表移除。
 6. 导出文件有效期 7 天，超时后不可下载。
 7. 宽表视图与宽表导出不展示 JSON 结构字段及内部冗余字段（如 `bms.snapshot`、`balancingOn`、`protectOn`、`protectCount`、`vPackV`）；长表保留原始明细。
+8. 历史查询页面与 Excel 导出表头统一采用 `中文 / English` 双语格式；动态宽表字段保留原始 identifier 作为技术标识。
 
 ## 4. 验收标准
 1. 菜单可见：具备权限用户可在 BMS/电池管理下看到「历史数据」。
@@ -40,6 +41,7 @@
 4. 异步导出：点击导出后返回任务号并提示“导出任务已生成”。
 5. 通知链路：任务完成后前端收到 WS 消息，顶部消息图标闪烁。
 6. 下载链路：通过固定路由 `GET /api/v1/battery/history/export/download?task_id=...` 成功下载并标记已下载。
+7. 表头一致：长表固定列、数据类型标签、宽表动态列及 Excel 表头均显示中英文；动态字段名称缺失时仍能使用 identifier 生成非空标题。
 
 ## 5. 风险与约束
 - 历史查询来源包含高频遥测，宽表在大范围查询时列数较多，需限制时间窗口与分页。

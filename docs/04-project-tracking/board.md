@@ -335,7 +335,7 @@
   - owner：payhon
   - 优先级：P1
   - 依赖：FEAT-0010
-  - 进展：已完成前后端与 SQL 实现，已完成定向编译与静态检查，待联调验收（导出任务全链路）
+  - 进展：已完成前后端与 SQL 实现，补齐历史查询和 Excel 导出的统一中英文表头、动态字段标题及缺失名称兜底；后端定向测试通过，待联调验收（导出任务全链路与在线/文件表头一致性）
   - 文档：`docs/03-development/features/FEAT-0012-bms-history-data-export/`
 - [ ] `in_progress` **FEAT-0012** 电芯品牌管理 + PACK电池型号管理（行内增删改）
   - owner：payhon

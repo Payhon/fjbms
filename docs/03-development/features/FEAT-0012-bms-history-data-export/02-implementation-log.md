@@ -2,7 +2,7 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-06-04
+- last_updated: 2026-08-20
 - related_feature: FEAT-0012
 - version: v0.1.0
 
@@ -29,3 +29,4 @@
 18. 根据测试反馈继续收紧左右区块中间的折叠控制条：中缝宽度缩至 8px，折叠按钮与图标同步缩小，减少对内容区的视觉侵占。
 19. 根据测试反馈将中缝折叠按钮进一步弱化为“悬浮细把手”样式：细长胶囊形态、轻边框与浅阴影，仅在 hover 时增强反馈，降低按钮感。
 20. 根据宽表字段优化反馈，后端新增宽表列过滤规则并复用于宽表查询和宽表导出：隐藏 `balancingOn`、`bms.snapshot`、`protectCount`、`protectOn`、`vPackV` 及 JSON 结构字段，长表保持原始明细不变。
+21. 统一历史记录在线查询与 Excel 导出的中英文表头：新增后端动态列 `display_name`、双语固定列和数据类型标签，并让 Excel 与在线宽表复用同一标题生成规则；补充已知 BMS 字段、中文/英文模型名称及缺失名称兜底。
