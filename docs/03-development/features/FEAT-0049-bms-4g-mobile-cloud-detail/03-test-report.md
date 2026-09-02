@@ -2,9 +2,9 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-07-25
+- last_updated: 2026-09-02
 - related_feature: FEAT-0049
-- version: v0.2.0
+- version: v0.2.4
 
 ## 测试用例
 - 后端：当前遥测接口可通过已绑定/组织可见设备查询数据。
@@ -26,6 +26,8 @@
 - 后端：Socket WebSocket 首包使用数据库 UUID 鉴权，实际 MQTT topic 使用 `devices.device_number`。
 - 后端：APP 电池路由注册 `/api/v1/app/battery/socket/ws`。
 - UniApp：有当前遥测但无 `cell.voltagesMv` 时，仪表盘有摘要数据，电芯 Tab 显示明确空态。
+- UniApp：扫码进入 4G/4G+BLE 详情后立即显示在线，60 秒内无任何匹配有效回包且后端仍离线时才显示离线；普通详情入口与 BLE-only 设备不启用宽限。
+- UniApp：只有当前 MQTT 请求匹配的有效帧刷新扫码在线保护；控制消息、心跳、非法帧、意外帧和旧会话迟到帧不得刷新。
 
 ## 当前结果
 - [x] `go test ./internal/bmsbridge ./internal/bms/protocol ./internal/bms/status ./internal/service`：通过。
@@ -188,8 +190,8 @@
 - [x] 2026-07-20 UniApp 项目级类型检查：`cd fjbms-uniapp && pnpm exec tsc -p tsconfig.json --noEmit --pretty false` 通过。
 - [x] 2026-07-20 参数/历史页轮询策略断言：临时 CommonJS 编译并执行 `detail-polling-policy.test.ts` 通过，覆盖 MQTT 仪表盘正常轮询、MQTT 参数页和历史记录页 30 秒间隔与首轮 30 秒延时、BLE 参数页和历史记录页暂停，以及连接未就绪暂停。
 - [x] 2026-07-20 代码与文档空白检查：FEAT-0049 文档及本次 UniApp 文件 `git diff --check` 通过。
-- [ ] 2026-07-20 微信小程序真机保活复测：分别进入 4G BMS `设备详情 > 参数设置` 和 `设备详情 > 历史记录` 静置超过 3 分钟，通过 MQTTX 确认约每 30 秒出现一次状态读取及设备回包，顶部状态保持 4G 在线且设备不进入休眠。
-- [ ] 2026-07-20 参数读写并行场景复测：在参数页保活期间展开单体/总压/高级参数并执行一次参数写入，确认 30 秒状态读取只在串行队列中等待，不阻塞或污染参数响应。
+- [ ] 2026-07-20 历史记录页真机保活复测：进入 4G BMS `设备详情 > 历史记录` 静置超过 3 分钟，通过 MQTTX 确认约每 30 秒出现一次状态读取及设备回包，顶部状态保持 4G 在线且设备不进入休眠。
+- 说明：原 2026-07-20 参数页 30 秒真机验收项已被 2026-08-21 参数页 10 秒验收项替代，不再按旧周期执行。
 - [ ] 2026-07-20 历史读取并行场景复测：在历史记录页保活期间切换保护次数/状态记录并加载更多，确认 30 秒状态读取只在串行队列中等待，不阻塞或污染 `0x4C/0x4D` 历史响应。
 - [x] 2026-07-20 Web 电芯无效值回归：`cd frontend && pnpm exec tsx --test src/views/device/details/modules/bms-panel/cell-voltage.test.ts` 通过 4/4，覆盖全 `65535` 实时数组回退有效云端数组、实时/云端均无效时为空、部分无效项保序显示和字符串数值归一化。
 - [x] 2026-07-20 Web 定向 ESLint：`cd frontend && pnpm exec eslint src/views/device/details/modules/bms-panel/index.vue src/views/device/details/modules/bms-panel/cell-voltage.ts src/views/device/details/modules/bms-panel/cell-voltage.test.ts` 通过。
@@ -201,3 +203,20 @@
 - [x] 2026-07-25 UniApp 策略与 Transport 断言：临时 CommonJS 编译并执行 `detail-data-arbiter.test.ts`、`detail-polling-policy.test.ts`、`instrument-passthrough-policy.test.ts`、`uni-mqtt-socket-transport.wakeup.test.ts`，全部通过；覆盖主动读取快照优先级、无快照兼容 fallback、Socket `session_id` 获取/断开清理，以及既有轮询和仪表 10 秒等待策略。
 - [ ] 2026-07-25 后端全量 `go test ./...`：本功能相关包通过；仓库既有环境型测试未通过，`initialize/test.TestSetDevice` 因测试缓存未初始化产生 nil pointer，`project/test.TestDatebase` 因未设置 `run_env`/测试数据库先报“未知环境”后产生 nil pointer，均未进入本功能代码路径。
 - [ ] 2026-07-25 4G 真机与发布后验收：待在微信小程序、iOS、Android 使用真实设备确认在线交互成功后写入主动快照；随后使设备离线，确认 fallback 显示该快照；读取失败、HTTP 失败、Socket occupied、退出/换账号和旧会话迟到提交不得覆盖；无主动快照设备继续显示原主动上报数据。
+- [x] 2026-08-21 UniApp 项目级类型检查：`cd fjbms-uniapp && pnpm exec tsc -p tsconfig.json --noEmit --pretty false` 通过。
+- [x] 2026-08-21 扫码在线策略断言：临时 CommonJS 编译并执行 `scan-four-g-online-policy.test.ts` 通过，覆盖非扫码不启用、立即在线、60 秒边界、有效回包续期、超时后恢复和跨 session 拒绝。
+- [x] 2026-08-21 路由与 Transport 断言：`scan-routing.test.js` 通过扫码直达、UUID 绑定和 BLE 配网来源透传；`uni-mqtt-socket-transport.wakeup.test.ts` 通过，确认意外有效帧不触发回调、匹配当前请求的有效帧只触发一次。
+- [x] 2026-08-21 参数页保活策略断言：执行 `pnpm dlx tsx pages/device-battery/detail-polling-policy.test.ts` 通过，覆盖 4G MQTT 参数页首轮及后续间隔均为 10 秒且小于 15 秒休眠阈值、历史页保持 30 秒、BLE 参数/历史页及连接未就绪状态继续暂停。
+- [x] 2026-08-21 参数页保活静态回归：UniApp TypeScript 检查、设备详情 Vue SFC 编译及子仓空白检查通过；策略继续复用原串行 `readAllStatus()` 生命周期，没有新增并发读取循环。
+- [ ] 2026-08-21 微信小程序真机/MQTTX 验收：扫码进入后确认顶部立即在线且后台持续下发；完全无回包时约 60 秒转离线，第 55 秒返回匹配帧时保持在线，普通首页点击同一离线设备仍立即显示离线。
+- [ ] 2026-08-21 参数页真机/MQTTX 验收：进入 4G BMS `设备详情 > 参数设置` 后不操作并静置至少 1 分钟，确认约每 10 秒出现一轮状态读取且持续有有效回包，设备不在 15 秒进入休眠；在保活临界点展开参数分组并执行一次写入，确认所有指令串行且响应不串包。
+- [ ] 2026-08-21 Android/iOS 回归：确认公共详情逻辑、BLE-only 设备、4G 参数页 10 秒保活及历史页 30 秒串行保活无行为回退。
+- [x] 2026-08-28 OTA 900ms策略断言：`pnpm dlx tsx common/lib/bms-protocol/boot-ota-runtime-options.test.ts` 通过，确认BLE与MQTT/4G共享的 `0x50`～`0x53` 应答窗口为900ms，超时后220ms重发缓冲及 `0x54` 策略未变。
+- [x] 2026-08-28 OTA 时序与类型检查：`pnpm dlx tsx common/lib/bms-protocol/boot-ota-timing.test.ts`、`pnpm exec tsc --noEmit --pretty false` 通过。
+- [ ] 2026-08-28 真机成功率验证：待微信小程序Android、iOS、BLE BMS/仪表及4G/MQTT BMS使用同一固件多轮升级，记录失败百分比、包序号、ACK RTT与重发次数。
+- [x] 2026-09-02 OTA 600ms策略断言：`pnpm dlx tsx common/lib/bms-protocol/boot-ota-runtime-options.test.ts` 通过，确认BLE与MQTT/4G共享的 `0x50`～`0x53` 应答窗口为600ms，超时后220ms重发缓冲及 `0x54` 策略未变。
+- [ ] 2026-09-02 真机成功率验证：待微信小程序Android、鸿蒙、iOS、BLE BMS/仪表及4G/MQTT BMS使用同一固件多轮升级，记录失败百分比、包序号、ACK RTT与重发次数。
+- [x] 2026-08-30 扫码 handoff 来源断言：`pnpm dlx tsx common/device-provision/detail-handoff.test.ts` 通过，覆盖扫码来源随 handoff 保存/消费、消费后不残留及手动配网不误标为扫码。
+- [x] 2026-08-30 扫码在线定向回归：`scan-four-g-online-policy.test.ts`、`scan-routing.test.js` 与 UniApp 项目级 TypeScript 检查通过；普通详情、BLE-only、60 秒边界和扫码各级路由语义保持不变。
+- [x] 2026-08-30 小程序编译与轮询回归：详情/配网页 SFC script 编译、MQTT Transport 匹配回包断言、详情轮询策略及 HBuilderX 5.24 微信小程序编译通过；编译仅提示项目未配置 uniCloud 服务空间，不影响本地小程序产物生成。
+- [ ] 2026-08-30 微信小程序真机/MQTTX 验收：分别覆盖已绑定设备直达、UUID 绑定后跳转、扫码 BLE 配网 handoff 三条路径；确认进入 4G 仪表盘即显示在线、无有效回包约 60 秒转离线、有效回包续期，随后从首页普通进入同一离线设备仍立即显示离线。

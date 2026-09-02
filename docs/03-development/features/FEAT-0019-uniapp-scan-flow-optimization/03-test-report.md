@@ -2,7 +2,7 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-05-25
+- last_updated: 2026-08-30
 - related_feature: FEAT-0019
 - version: v0.1.0
 
@@ -15,6 +15,8 @@
 - 仪表临时 BLE 会话详情与二次扫码绑定 BMS
 - 设备详情页蓝牙 BMS 首帧读取慢响应、自动恢复与人工重试入口
 - APP 端扫码入口相册二维码识别
+- 二维码、蓝牙搜索与设备列表详情来源区分
+- 发现入口详情退出时的引用归零断连与扫描租约串行
 
 ## 2. 测试环境
 - 当前 Codex 桌面执行环境
@@ -62,6 +64,14 @@
 - 通过：`useAddDeviceActionSheet.ts` 已移除 `uni.scanCode` 的 `onlyFromCamera: true` 限制，APP 端扫码入口可同时使用摄像头扫码和系统相册二维码图片识别。
 - 通过：相册二维码识别结果未新增分叉逻辑，仍复用现有 MAC/UUID 解析、已添加设备直达、BMS 添加、仪表临时会话与 UUID 绑定分流规则。
 - 通过：扫码入口中英文文案已更新为“扫码/相册识别 / Scan or Album”，iOS 相册权限说明已补充设备二维码图片用途。
+- 通过：详情来源策略断言覆盖 `scan / ble_search / default` 规范化、路由来源优先、handoff 回退、仅发现入口立即断连，以及 `ble_search` 不触发二维码专用 4G 在线宽限。
+- 通过：二维码与蓝牙搜索来源可分别贯穿已绑定详情、仪表临时详情、BMS 配网向导和 `provision -> detail` handoff；首页与组织设备列表路由保持无来源参数。
+- 通过：缓存释放断言确认默认详情释放后连接仍保留在缓存中；发现入口只有最后一个引用释放时才断连，共享引用不会被强制清零。
+- 通过：缓存释放断言确认发现入口断连会等待已有 discovery lease，断连完成并释放租约前后续扫描不能越过。
+- 通过：BLE OTA 运行态会阻止发现入口立即断连策略，维持原有延迟清理边界。
+- 通过：`pnpm exec tsc --noEmit --pretty false`。
+- 通过：`detail.vue`、`params-tab.vue`、`ble-scan.vue`、`provision-wizard.vue`、`uuid-bind.vue` 的 Vue SFC parse、script 与 template 编译。
+- 通过：`detail-entry-source.test.ts`、`detail-handoff.test.ts`、`ble-client-cache-release.test.ts`、`ble-discovery-coordinator.test.ts`、`scan-four-g-online-policy.test.ts`、`ble-scan-entry-policy.test.ts`、`ble-search-entry-route.test.js`、`scan-routing.test.js`。
 
 ## 4. 缺陷与风险
 - 尚未完成真机蓝牙联调，以下场景仍需设备侧验证：
@@ -85,6 +95,9 @@
   - 仪表详情页二次扫码后 `configureMeterMac` 的协议写入和设备刷新时序；
   - APP 与微信小程序扫码 API 在不同机型上的体验一致性。
   - iOS/Android APP 端扫码组件中的相册入口展示、相册权限弹窗文案，以及选择二维码图片后的识别成功率。
+  - 微信小程序 Android/iOS 从二维码或蓝牙搜索进入 BLE 详情后直接返回，目标设备是否可在一个或几个广播周期内重新出现在搜索结果中；需同时记录 `discovery-entry disconnect` 与下一次 `discovery started` 时序。
+  - 微信小程序 Android/iOS 从首页进入同一详情后直接返回，30 秒暖连接是否仍可被首页或再次进入详情复用。
+  - 配网 handoff 进入详情时是否仍先复用已有 BLE 会话，且只在之后退出详情时按发现来源关闭。
 
 ## 5. 结论
-- 当前代码实现与静态校验已完成，建议进入真机联调/验收阶段。
+- 当前代码实现、策略/缓存断言、TypeScript 与 SFC 静态校验已完成；真实广播恢复速度和两端小程序生命周期仍待 Android/iOS 真机验收。

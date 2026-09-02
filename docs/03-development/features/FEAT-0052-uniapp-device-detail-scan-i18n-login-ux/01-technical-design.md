@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-08-13
+- last_updated: 2026-08-31
 - related_feature: FEAT-0052
 - version: v0.1.0
 
@@ -13,7 +13,10 @@
 - 微信小程序自定义 TabBar 使用自绘 ActionSheet，避免原生取消按钮语言不可控。
 - 登录守卫在共享 `ensureLoggedIn` 中做短时间全局节流和页面栈判断。
 - 登录页与注册设置密码页通过平台编译条件设置协议初始值：`MP-WEIXIN` 为未勾选，非小程序保持已勾选。
+- 登录页仅在微信小程序编译目标展示顶部返回箭头，并根据页面栈在返回上一页与首页访客态之间确定退出路径。
 - BLE discovery 使用应用级异步租约统一串行化，扫描页、首页自动连接和通用 BLE transport 不再各自独占页面级队列。
+- 底部“＋ > 搜索”通过内部参数请求导航级一次性自动扫描，扫描页使用消费标记和页面可见代次阻断重复或迟到启动。
+- 扫描列表将实时设备数据与稳定设备 ID 顺序分离，通过可测试的调度器限制重排频率，并在触摸期间锁定顺序。
 - 仪表扫码切换入口将“handoff 能力是否可用”与“提示框是否展开”解耦；读取到 BMS 状态只触发一次自动收起，顶部入口保持可发现并允许用户再次展开。
 
 ## 2. 关键实现
@@ -32,10 +35,20 @@
 - 扫描信号：
   - `signalLevel` 按 `>= -80`、`>= -85`、`>= -90`、`>= -95`、否则 0 格映射。
 - 扫描生命周期：
+  - 每次 `startScan()` 经串行队列确认页面/session 有效后、申请 BLE 租约及启动 discovery 前调用既有 `clearList()`，同时清空 `rows`、`orderedDeviceIds` 并取消排序定时器/触摸锁。普通首次自动扫描、扫码首次自动匹配和按钮重新扫描共用该入口；无 Service 过滤降级和频率限制重试只调用内部 discovery 方法，不再次清空本轮结果。
+  - 采用每轮清空方案后，`hasResolvedAdvMacRows` 不会再被上轮 MAC 置为真；本轮无有效 MAC 时仍可按既有 1.5 秒策略降级。停止或超时继续保留列表供选择，下次开始才清空；不引入历史分组、扫描轮次字段或新翻译文案。
   - `common/ble/ble-discovery-coordinator.ts` 提供 FIFO 全局租约；租约覆盖 `startBluetoothDevicesDiscovery` 到对应 `stopBluetoothDevicesDiscovery` 的完整周期，释放操作幂等。
   - 扫描页在取得租约后才初始化/启动 discovery，启动成功后再设置 `isScanning=true`；退出时停止 discovery 后释放租约。
   - 扫描页 `onHide/onUnload` 复用同一个清理 Promise，不再由卸载回调直接关闭全局蓝牙适配器。
-  - 扫描页 `onShow` 只刷新页面尺寸、已绑定设备列表和扫码模式分流，不调用 `startScan()`；普通进入、返回后再次进入及后台恢复均保持停止态，由用户点击按钮显式启动扫描。
+  - UniApp ActionSheet 与微信自定义 TabBar 的“搜索”使用 `auto_start=1&entry_source=ble_search`；相机扫码匹配继续使用 `mode=qr&mac=...&entry_source=scan`。页面策略对未消费的二维码模式及合法的规范化目标 MAC 默认自动启动，对普通模式仍要求 `auto_start=1`，不混用两种来源。
+  - 扫描页 `onLoad` 解析自动启动请求；首次 `onShow` 立即消费该请求，在已绑定设备刷新和扫码分流完成后才调用 `startScan()`。`onHide/onUnload` 递增页面可见代次并取消待启动任务，后台恢复和旧异步任务不得再次启动。
+  - 刷新绑定列表后的所有动作（包括已绑定扫码跳转）先核对页面可见性、登录守卫和可见代次；旧页面任务不得在用户离开后抢占导航。沿用现有请求等待顺序，不扩展网络策略。
+  - 绑定列表刷新期间用户点击搜索按钮时取消待执行的自动任务，避免用户手动停止后被迟到任务重新开启。
+  - 普通搜索超时为 15 秒，二维码目标匹配仍为 30 秒；两种模式继续复用 1.5 秒无有效广播 MAC 时的无 Service UUID 过滤降级。
+  - `rows` Map 继续接收每个有效广播并实时替换设备数据；`orderedDeviceIds` 单独控制渲染顺序，已有设备数据更新不换位，新设备立即追加末尾。
+  - 排序调度器首次脏标记后等待 2,000ms，同一窗口内后续 RSSI 更新复用现有任务；排序保持二维码目标优先、有效 RSSI 降序、无效 RSSI 置后和同值稳定顺序。
+  - `scroll-view` 的 `touchstart` 暂停调度，`touchend/touchcancel` 设置 600ms 保护窗口；恢复时间同时受 2 秒最小排序间隔约束，不增加列表移动动画。
+  - 停止或超时时在未触摸场景立即刷新最终顺序；清空、页面隐藏、卸载及 session 结束取消调度器，已清理任务不得修改后续会话。
   - 首页维护显式可见态；设备列表请求在首页隐藏后才返回时不得重新启动自动连接。`onHide` 同时调用 `invalidateBleConnectAttempts()`；正在执行的自动连接扫描最迟在下一次 250ms 活跃性检查中进入 `finally`、停止 discovery 并释放租约。
   - `connectBleClient()` 区分 `home_auto` 与交互式连接来源；用户点击开始扫描时仅取消仍在执行的首页临时 transport。`UniBleBmsTransport` 的 `createBLEConnection` 等待支持主动取消，使租约无需等到原生连接超时才释放；已成功缓存的连接与详情页交互连接不在取消集合内。
   - `ble-client-cache.ts` 与 `uni-ble-transport.ts` 的 discovery 同样取得全局租约，防止跨模块扫描重叠。
@@ -51,6 +64,11 @@
   - 当前页已是登录页时不导航。
   - 页面栈已有登录页且普通 navigateTo 时不重复压栈。
   - 1200ms 内重复触发只执行首次导航。
+- 登录退出：
+  - `pages/login/login.vue` 的返回入口使用 `MP-WEIXIN` 条件编译，视觉沿用登录子页面现有圆形返回按钮。
+  - 点击时读取当前页面栈；深度大于 1 时调用 `navigateBack({ delta: 1 })`，失败回退首页。
+  - 页面栈仅有登录页时直接 `switchTab('/pages/home/home')`；若宿主拒绝切换 Tab，则以 `reLaunch('/pages/home/home')` 兜底。
+  - 返回处理不修改 token、用户状态或协议勾选，不调用登录或微信授权接口。
 - 协议勾选：
   - `pages/login/login.vue` 与 `pages/login/register-password.vue` 使用 `getInitialAgreementChecked()` 初始化 `agree`。
   - 微信小程序编译目标返回 `false`，要求用户主动勾选《用户协议》和《隐私政策》后才能提交。
@@ -71,15 +89,24 @@
 - 自定义 Add Device 弹层仅替换小程序自定义 TabBar 内的原生 ActionSheet，不影响 App 端 `useAddDeviceActionSheet`。
 - 设备参数权限树新增只读 SOH 与虚拟容量节点，不新增后端接口或数据库字段。
 - 协议勾选初始化只影响首次进入页面的默认值，不改变用户手动勾选、取消勾选和提交前校验逻辑。
+- 登录返回入口只影响微信小程序；App、H5 等编译目标的登录页结构和导航行为保持不变。
 - 全局租约只保护 discovery，不接管既有 BLE 连接请求队列和 OTA 独占队列；设备过滤与广播 MAC 解析保持不变。
-- `allow_scan_handoff=0`、普通 BMS 直连和云端会话继续隐藏扫码切换入口；不新增路由参数、翻译键或协议命令。
+- `allow_scan_handoff=0`、普通 BMS 直连和云端会话继续隐藏扫码切换入口；仪表扫码链路不新增翻译键或协议命令。
+- 新增内部路由参数 `auto_start=1`，只控制本次普通搜索页导航的一次性自动启动，不作为相机扫码来源，不修改后端接口、BLE 协议或设备过滤规则。
+- 二维码自动启动使用现有 `mode=qr + mac`，因此底部 TabBar 与其他扫码入口无需分别增加参数；共享页面在微信小程序、Android/iOS App 中采用相同策略。已绑定设备、仪表临时详情、UUID 绑定路径以及 FEAT-0019 的详情退出连接策略不变。
+- 列表排序调度只改变渲染顺序刷新频率；实时 RSSI/名称/MAC 数据、二维码目标自动进入、15/30 秒扫描时长及选择设备后的连接链路保持不变。
 
 ## 4. 验证
+- 跨轮扫描列表回归：`cd fjbms-uniapp && node pages/device-provision/ble-scan-restart.test.js`，运行实际页面扫描/停止/超时/广播更新逻辑和排序器，原生 BLE 使用桩；覆盖自动停止后再开始、旧设备消失、新 RSSI 排序、降级恢复、同轮降级不清空、手动停止、页面失效和失败重试。
 - 静态校验：`cd fjbms-uniapp && pnpm exec tsc --noEmit --pretty false`
 - SOC 展示规则断言：`cd fjbms-uniapp && pnpm dlx tsx common/soc-display.test.ts`
 - BLE discovery 租约断言：`cd fjbms-uniapp && pnpm dlx tsx common/ble/ble-discovery-coordinator.test.ts`
 - BLE 扫描错误分类断言：`cd fjbms-uniapp && pnpm dlx tsx common/ble/ble-scan-error-policy.test.ts`
+- BLE 搜索入口策略断言：`cd fjbms-uniapp && pnpm dlx tsx pages/device-provision/ble-scan-entry-policy.test.ts`
+- BLE 搜索入口路由断言：`cd fjbms-uniapp && node common/device-provision/ble-search-entry-route.test.js`
+- BLE 扫码页面生命周期模拟：`cd fjbms-uniapp && node pages/device-provision/ble-scan-auto-start.test.js`，运行实际页面生命周期与入口策略，模拟刷新延迟、返回/后台、登录拦截、已绑定跳转、按钮操作与新导航实例；不作为原生 BLE 真机验收。
+- BLE 扫描列表排序断言：`cd fjbms-uniapp && pnpm dlx tsx pages/device-provision/ble-scan-list-order-policy.test.ts`
 - BLE 在途连接取消断言：`cd fjbms-uniapp && pnpm dlx tsx common/lib/bms-protocol/uni-ble-transport-connect-cancel.test.ts`
 - 仪表扫码入口显隐断言：`cd fjbms-uniapp && pnpm dlx tsx pages/device-battery/meter-scan-handoff-policy.test.ts`
 - 后端权限树单测：`cd backend && go test ./internal/service -run 'TestNormalizeDeviceParamPermissionKeys|TestBuildDeviceParamPermissionTreeUsesCanonicalKeys' -count=1`
-- 人工抽测：设备详情、高级参数 SOH/虚拟容量权限显隐、高级参数写入、扫描中返回首页后立即再次进入 BLE 扫描、仪表读取 BMS 状态后提示框自动收起与顶部入口重新展开、英文语言、小程序 Add Device、未登录首次打开、微信小程序登录/注册协议默认未勾选。
+- 人工抽测：设备详情、高级参数 SOH/虚拟容量权限显隐、高级参数写入、底部“＋ > 搜索”自动启动与 15 秒停止、多设备列表 2 秒稳定排序、触摸/滚动暂停重排、扫描中直接选择并连接、扫描中返回首页后立即再次进入、后台恢复、仪表扫码入口、英文语言、小程序 Add Device、未登录首次打开、微信小程序登录/注册协议默认未勾选，以及登录页从 `navigateTo`、`redirectTo`、`reLaunch`/直接启动三类入口返回。

@@ -2,7 +2,7 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-05-25
+- last_updated: 2026-08-30
 - related_feature: FEAT-0019
 - version: v0.1.0
 
@@ -101,6 +101,20 @@
   - transport 继续保留 soft-timeout 快速放行，避免请求队列被原生桥接层卡死；
   - 同时将“继续等待 notify”的日志改为每次连接仅记录一次 info 级 callback latency diagnostic，避免轮询期间持续刷出 timeout 告警干扰问题判断。
 
+### 3.6 详情来源与退出断连策略
+- 新增统一详情来源类型：
+  - `scan`：二维码扫码或相册二维码识别；
+  - `ble_search`：蓝牙搜索列表选中设备；
+  - `default`：首页、组织设备列表、普通深链及其他未标记入口。
+- `ble-scan.vue` 的手动搜索模式在进入已绑定 BMS 详情、仪表临时详情或 BMS 配网向导时统一透传 `ble_search`；二维码匹配模式继续透传 `scan`。
+- `provision-wizard.vue` 与 `detail-handoff.ts` 保留上述来源，避免配网成功重定向详情后丢失退出策略。
+- `detail.vue` 在处理仪表临时会话之前先解析页面来源；云端详情同时合并显式路由来源与一次性 handoff 来源。现有 4G 在线宽限继续只判断 `source === 'scan'`，不将 `ble_search` 纳入。
+- 页面只在 `onUnload` 时应用来源策略，不在 `onHide` 时断连：
+  - `scan / ble_search` -> 释放当前详情引用；引用数归零时立即关闭 BLE；
+  - `default` -> 继续调用普通 `releaseBleClient()`，引用数归零后等待既有 30 秒空闲清理。
+- 参数页将 BLE OTA 运行态上送详情页；若页面卸载时 OTA 仍在运行，则不启用发现入口立即断连，继续沿用既有延迟清理，避免本次策略主动切断固件传输。
+- 缓存层提供“释放并在空闲时断连”的原子操作，不复用会强制把 `refCount` 清零的人工断开接口；断连期间持有现有 BLE discovery lease，原生关闭设置 1.2 秒 best-effort 上限，并在释放 lease 前留出短暂广播恢复窗口，使随后启动的扫描自然排队且不会因原生回调缺失永久阻塞。
+
 ## 4. 仪表临时会话模式
 ### 4.1 路由参数
 - `session_mode=instrument`
@@ -125,3 +139,6 @@
 - `cd fjbms-uniapp && pnpm exec tsc --noEmit`
 - 搜索回归：确认 `fjbms-uniapp` 业务逻辑中不再存在裸 `AA/AC` 设备类型判断。
 - 手工验证扫码入口分流、BLE 扫描卡片点击分流、BMS 绑定后跳转、绑定成功后详情页首连时延、仪表临时详情和二次扫码绑定流程。
+- 策略断言覆盖来源规范化、显式路由与 handoff 合并、仅发现入口立即断连、`ble_search` 不触发 4G 扫码在线宽限。
+- 缓存断言覆盖默认释放仍保留 30 秒清理、发现入口释放仅在 `refCount` 归零时关闭，以及立即断连完成前后续扫描租约不得越过。
+- 微信小程序 Android/iOS 真机重点验证：二维码/蓝牙搜索详情返回后可在一个或几个广播周期内重新发现；首页详情返回后仍可复用暖连接；配网 handoff 首次进入详情不被提前断开。

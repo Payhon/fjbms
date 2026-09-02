@@ -2,9 +2,9 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-03-12
+- last_updated: 2026-08-21
 - related_feature: FEAT-0013
-- version: v0.1.0
+- version: v0.1.1
 
 ## 1. 方案概览
 - 以“设备激活/绑定”和“首页可见性”解耦为核心思路：
@@ -112,6 +112,12 @@
   - `device_number`
   - `ble_mac`
 
+### 3.5 首页长按管理事件与设备 ID 防线
+- 设备卡片根节点只监听原生 `longpress`，并使用 `.stop` 阻止该原生事件继续冒泡。
+- 卡片向父页面发送独立的 `manage` 自定义事件，避免在微信小程序编译产物中同时出现父子同名 `bindlongpress`。
+- 父页面仅接受包含有效 `id` 的设备对象；原生事件对象、空值以及字符串 `undefined`、`null`、`[object Object]` 均视为无效目标。
+- 页面和 `service/device.ts` 在调用 `/api/v1/app/device/unbind` 前分别解析并校验设备 ID，无效 ID 只提示失败或拒绝 Promise，不发起网络请求。
+
 ## 4. 安全与权限
 - `END_USER` 仅能查看和操作自己的绑定设备。
 - `ORG_USER` 的 `org_added` 仅能操作自己的添加记录。
@@ -126,6 +132,8 @@
   - 新增“机构添加不激活、不记激活日志”测试。
 - UniApp：
   - 类型检查。
+  - 长按管理事件命名与设备 ID 校验策略测试。
+  - 微信小程序编译产物核对：卡片根节点为 `catchlongpress`，父页面为 `bindmanage`。
   - 视图切换图标显示/隐藏与模式持久化验证。
   - 首页筛选弹层交互验证。
   - 不同模式下卡片菜单动作验证。

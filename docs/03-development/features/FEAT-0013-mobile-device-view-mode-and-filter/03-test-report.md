@@ -2,15 +2,16 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-03-12
+- last_updated: 2026-08-21
 - related_feature: FEAT-0013
-- version: v0.1.0
+- version: v0.1.1
 
 ## 1. 测试范围
 - 终端用户添加设备、绑定激活与首页筛选。
 - 机构用户添加设备、首页模式切换与首页筛选。
 - 激活日志与激活统计口径修正。
 - 大列表场景下首页分页与服务端筛选可用性。
+- OpenHarmony 微信长按设备卡片后的管理事件负载与解绑 `device_id` 校验。
 
 ## 2. 已执行验证
 - [x] 后端编译级验证：
@@ -19,6 +20,12 @@
 - [x] UniApp 类型检查：
   - [x] `cd fjbms-uniapp && pnpm exec tsc --noEmit`
   - 结果：通过。
+- [x] 首页设备动作 ID 策略测试：
+  - [x] `cd fjbms-uniapp && pnpm dlx tsx common/home-device-action.test.ts`
+  - 结果：通过；有效 ID 正常返回，原生 `longpress` 事件对象以及空值、`undefined`、`null`、`[object Object]` 均被拒绝。
+- [x] HBuilderX 微信小程序编译：
+  - [x] `/Applications/HBuilderX.app/Contents/MacOS/cli launch mp-weixin --project /Users/payhon/work2025/project/fjbms/fjbms-uniapp --compile true --continue-on-error false`
+  - 结果：编译成功；产物确认卡片根节点为 `catchlongpress`、父页面为 `bindmanage`，不再存在父子同名 `bindlongpress`。编译过程仍提示既有 uniCloud 本地服务空间未配置及 BLE UA 检测警告，与本次事件修复无关。
 - [ ] 后端单元/集成测试：
   - [ ] `END_USER` 添加设备后写绑定关系并激活。
   - [ ] `ORG_USER` 添加设备后仅写添加记录，不激活。
@@ -33,6 +40,7 @@
   - [ ] 机构用户“我添加的设备”筛选：添加日期/序列号/MAC 地址。
   - [ ] 机构用户“终端用户绑定设备”筛选：名称/序列号/MAC 地址。
   - [ ] 机构用户“终端用户绑定设备”模式下无解绑/移除操作。
+  - [ ] OpenHarmony 微信真机长按设备卡片并解绑，确认请求携带真实 UUID 且返回 `code=200`。
 
 ## 3. 执行结果与阻塞
 - `cd backend && go test ./...`
@@ -43,6 +51,7 @@
 ## 4. 缺陷与风险
 - UniApp 当前仅执行 `tsc`，仓库未接入 `vue-tsc`，因此 SFC 模板层面的静态校验覆盖有限，仍需真机或 HBuilderX 编译验证。
 - 需重点关注大列表性能、BLE 扫描页已添加设备过滤策略以及模式切换后的缓存一致性。
+- OpenHarmony 微信的代码与编译产物验证已完成，但尚未在用户真机上执行修复后解绑，因此真实设备闭环仍待发布版本复测。
 
 ## 5. 结论
 - 当前处于开发进行中，编译级验证已通过，完整联调与业务验收待数据库环境和真机验证完成后回填。

@@ -2,9 +2,9 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-07-25
+- last_updated: 2026-09-02
 - related_feature: FEAT-0049
-- version: v0.2.0
+- version: v0.2.4
 
 ## 1. 后端接口
 - 新增 `GET /api/v1/app/battery/current-telemetry/:device_id`。
@@ -55,20 +55,28 @@
   - 断开连接、离线或切换到非仪表盘 Tab 时不展示仪表盘加载态。
 - 详情页轮询策略由当前 Tab、连接类型、client 就绪状态统一计算：
   - 仪表盘/电芯页使用默认实时轮询间隔；
-  - 4G MQTT 参数设置页与历史记录页使用 30 秒低频轮询，进入 Tab 后的首轮状态读取延后 30 秒，避免阻塞参数自动读取或历史记录读取；
+  - 4G MQTT 参数设置页使用 10 秒轮询，进入 Tab 后的首轮状态读取延后 10 秒，在现场确认的约 15 秒休眠阈值前产生设备通讯；
+  - 4G MQTT 历史记录页继续使用 30 秒低频轮询，进入 Tab 后的首轮状态读取延后 30 秒，避免抢占历史记录读取；
   - BLE 参数设置页与 BLE 历史记录页继续暂停状态轮询；
-  - 参数、历史业务读取和低频状态读取继续复用 Transport 串行队列，不并发下发设备指令。
+  - 参数、历史业务读取和状态读取继续复用 Transport 串行队列；下一轮仅在本轮 `readAllStatus()` 结束后调度，不并发下发设备指令。
 - 参数设置页基础分组采用“先读数据，后展开”：
   - 单体设置、总压设置、电流设置、温度设置首次点击时仅显示分组标题右侧加载图标；
   - 对应分组 `readParamsByKeys()` 完成后再设置展开状态；
   - 已加载分组后续展开/收起不再重复读取。
+- 相机扫码路径统一携带 `entry_source=scan`，UUID 绑定和 BLE 配网中间页继续透传；首页卡片、组织设备列表和手动 BLE 搜索不携带该标记。
+- 扫码 BLE 配网成功保存 `DeviceDetailHandoff` 时同步保存一次性的 `entrySource=scan`；详情页以显式路由参数或本次 handoff 来源任一命中作为扫码入口，消费 handoff 后不影响后续普通详情。
+- `loadById()` 在详情基础信息确认具备 4G 能力后启动扫码在线宽限，起点使用本次详情 session generation 与设备 ID；60 秒内页面以在线样式展示并隐藏连接遮罩，但不调用后端连接状态上报。
+- `loadById()` 的普通云端详情分支与 handoff 快速分支统一调用幂等的在线宽限入口：handoff 已带 `bmsCommType=2/3` 时立即启动；交接信息不足时，在异步详情接口补全 4G 能力后补启动；同一 session 不重复重置 60 秒起点。
+- `UniMqttSocketBmsTransport` 在 `_handleFrame()` 完成当前 pending 请求匹配后触发可选回调；控制消息、心跳、非法帧和意外帧不会触发。详情页用该回调刷新当前扫码 session 的最近有效交互时间。
+- 扫码在线覆盖以“详情确认 4G 的时间”或“最近一次匹配有效回包时间”为锚点，保护期固定 60 秒；到期后回退后端 `is_online`，后续有效回包仍可恢复本页在线。设备切换和页面卸载清理定时器，迟到回调需同时匹配原 Transport 与 session。
+- 在线宽限复用仪表盘/电芯页现有串行 `readAllStatus()` 轮询，不新增并发循环；参数页使用 10 秒保活，历史页继续使用 30 秒低频策略。
 
 ## 3. 4G BMS OTA 数据流
 - 参数页 BMS OTA 入口对 `connType=mqtt` 开放，但仍要求 `props.client` 已就绪，离线或仅云端兜底模式不执行 OTA。
 - OTA 包检查继续使用 BMS OTA 包接口；4G BMS 不复用 FEAT-0051 的 4G 模块升级包。
 - OTA 目标地址按设备类型先判定：BMS 设备使用 `0x01`，仪表设备使用 `0xFC`。
 - 4G BMS OTA 通过 `UniMqttSocketBmsTransport.request()` 发送 BOOT 帧，协议命令与蓝牙 BMS OTA 一致。
-- MQTT 透传 OTA 使用独立运行参数：更长的包 ACK/收尾超时、最小帧间隔、包间延迟和页边界延迟，以适配蜂窝网络与 MQTT 转发链路。
+- 本轮验证将共享非完成帧应答窗口设为600ms，`0x50`～`0x53` 在BLE与MQTT/4G同步生效；MQTT仍保留40ms最小帧间隔、超时后自适应降速、页边界等待以及单发5秒 `0x54` 应答窗口。
 - Socket Transport 的 BOOT 响应匹配兼容 finalize `0x54` 收到数据包 ACK `0x53` 的旧设备行为，并兼容仪表 BOOT 回包源地址 `0xFD`。
 
 ## 4. Web 端数据流
@@ -87,4 +95,4 @@
 - BLE-only 设备维持现有主动连接和状态上报逻辑。
 - 4G+BLE 设备在详情页优先使用 4G MQTT 透传实时读取。
 - 用户侧连接状态在 `connType=mqtt` 时统一显示 4G 图标与“已连接”；内部仍保留 `realtime`、`cloud_fallback`、`offline` 数据源状态用于逻辑分支。
-- 参数/历史页 4G 低频轮询、对应 BLE Tab 暂停轮询、仪表会话、BLE 暖连接、BMS OTA 与 Socket owner 互斥逻辑不参与云端状态仲裁；切换轮询策略时通过 polling generation 阻断旧读取结果。
+- 参数页 4G 10 秒保活、历史页 4G 30 秒低频轮询、对应 BLE Tab 暂停轮询、仪表会话、BLE 暖连接、BMS OTA 与 Socket owner 互斥逻辑不参与云端状态仲裁；切换轮询策略时通过 polling generation 阻断旧读取结果。

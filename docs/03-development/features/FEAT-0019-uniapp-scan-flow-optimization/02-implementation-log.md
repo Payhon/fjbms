@@ -2,7 +2,7 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-05-25
+- last_updated: 2026-08-30
 - related_feature: FEAT-0019
 - version: v0.1.0
 
@@ -195,3 +195,16 @@
 - 同步入口文案与权限说明：
   - `lang/zh-CN.ts`、`lang/en-US.ts` 和 `custom-tab-bar/i18n.js` 将扫码入口文案从“摄像头扫码 / Camera Scan”调整为“扫码/相册识别 / Scan or Album”；
   - `manifest.json` 的 `NSPhotoLibraryUsageDescription` 补充“选择设备二维码图片完成扫码添加”用途，避免 iOS 权限说明与新增能力不一致。
+
+## 2026-08-30
+- 按详情入口区分 BLE 退出行为：
+  - 新增 `common/device-provision/detail-entry-source.ts`，统一规范化 `scan / ble_search / default`，并将“发现入口退出是否立即断连”和“二维码 4G 在线宽限”拆成两个独立策略；
+  - 二维码扫码继续使用 `entry_source=scan`，蓝牙搜索入口使用独立 `entry_source=ble_search`，首页、组织设备列表及未标记深链继续落入 `default`；
+  - `ble-scan.vue` 的已绑定 BMS、仪表临时会话和 BMS 配网三条点击分支均透传当前发现来源；`provision-wizard.vue`、`uuid-bind.vue` 和 `detail-handoff.ts` 同步保留来源。
+- 优化发现入口详情返回后的 BLE 释放：
+  - `detail.vue` 在 `onLoad` 早期记录来源，并在 `onUnload` 将是否立即断连传给 `useBatteryDetail.dispose()`；`onHide` 行为不变，切后台或被子页面覆盖不会触发新增断连；
+  - `ble-client-cache.ts` 新增原子“释放并在引用归零时断连”操作；仍有其他持有者时只递减引用，不复用会强制清零 `refCount` 的人工断开接口；
+  - 立即断连持有全局 BLE discovery lease，原生关闭使用 1.2 秒 best-effort 上限，并在关闭后保留 250ms 广播恢复窗口，使返回搜索页后的扫描等待断连完成且不会因原生回调缺失永久阻塞；
+  - 默认入口继续调用原 `releaseBleClient()` 并保持 30 秒空闲清理，不影响首页返回后的暖连接复用。
+- 保留 OTA 安全边界：
+  - 参数页将 OTA 运行态通知详情页；发现入口在 BLE OTA 运行中卸载时不启用新增立即断连，继续沿用既有延迟清理，避免本次优化主动中止固件传输。

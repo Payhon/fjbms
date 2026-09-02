@@ -2,9 +2,9 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-08-06
+- last_updated: 2026-09-02
 - related_feature: FEAT-0046
-- version: v0.1.0
+- version: v0.1.2
 
 ## 1. 自动化验证
 - [x] `cd backend && go test ./internal/service/...`
@@ -25,7 +25,7 @@
 - [ ] 仪表自身 `0xFC`、透传BMS `0x01`、直接BMS `0x01` 三条链路互不影响。
 - [ ] 透传 BMS 必须收到全部 `0x53` ACK 和真实 `0x54 status=0` 才成功。
 - [x] 模拟 Boot transport 验证有效 `0x52` ACK 到首个 `0x53`、最后一个 `0x53` ACK 到 `0x54` 均为约 300ms 且不超过700ms。
-- [x] 时序策略断言 `0x50`～`0x53` 应答超时450ms、超时重发缓冲220ms、ACK后主动等待预算600ms；BLE `0x54` 最多8次、间隔800ms、单窗口6400ms，MQTT/4G保持单次发送和5000ms窗口。
+- [x] 时序策略断言 `0x50`～`0x53` 应答超时600ms、超时重发缓冲220ms、ACK后主动等待预算600ms；BLE `0x54` 最多8次、间隔800ms、单窗口6400ms，MQTT/4G保持单次发送和5000ms窗口。
 
 ## 3. 待补充
 - 2026-04-21：已复测 `cd backend && go test ./internal/service/...`，通过。
@@ -50,6 +50,8 @@
 - 2026-08-03：后端透传身份解析与升级包匹配定向测试通过；UniApp `pnpm exec tsc --noEmit --pretty false` 通过。策略脚本覆盖卡片门控、UUID规范化/降级请求和 `0x01` Boot查询帧，真机验收仍待执行。
 - 2026-08-05：新增 OTA 时序常量与模拟 Boot transport 测试，临时编译后两项定向测试通过；`pnpm exec tsc --noEmit --pretty false` 与 UniApp `git diff --check` 通过。Android、iOS、微信小程序和4G/MQTT真实设备的700ms时序仍待验收。
 - 2026-08-06：BLE `0x54` 时序常量断言与模拟 transport 场景通过：无应答时首发加7次补发共8次且不启动第二轮，`status=0` 提前应答会清理剩余定时器，非零状态会立即失败并清理定时器；MQTT/4G仍为单次发送和5000ms窗口。`pnpm dlx tsx common/lib/bms-protocol/boot-ota-runtime-options.test.ts`、`pnpm dlx tsx common/lib/bms-protocol/boot-ota-timing.test.ts`、`pnpm exec tsc --noEmit --pretty false`、UniApp及文档 `git diff --check` 均通过。真机BLE发送时间戳仍待验收。
+- 2026-08-28：BLE与MQTT/4G共享非完成帧应答超时调整为900ms；`pnpm dlx tsx common/lib/bms-protocol/boot-ota-runtime-options.test.ts`、`pnpm dlx tsx common/lib/bms-protocol/boot-ota-timing.test.ts`、`pnpm exec tsc --noEmit --pretty false` 均通过。Android、iOS、微信小程序及4G/MQTT真实设备成功率仍待客户验证。
+- 2026-09-02：BLE与MQTT/4G共享非完成帧应答超时由900ms调整为600ms；定向时序断言和类型检查通过，Android、鸿蒙、iOS、微信小程序及4G/MQTT真机成功率继续待客户验证。
 - 待执行前端构建复测。
 - 待真机联调仪表 OTA 下载与写包流程。
 - 待 Android、iOS、微信小程序分别验证仪表透传 BMS OTA 全流程以及升级后版本变化。

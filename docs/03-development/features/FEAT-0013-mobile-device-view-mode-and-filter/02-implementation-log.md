@@ -2,9 +2,9 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-03-12
+- last_updated: 2026-08-21
 - related_feature: FEAT-0013
-- version: v0.1.0
+- version: v0.1.1
 
 ## 日志
 1. 2026-03-12 方案确认
@@ -53,3 +53,8 @@
 10. 2026-03-12 蓝牙搜索页布局优化
    - 现象：蓝牙搜索过程中，顶部雷达动画区域会随着页面滚动离开视口，导致“扫描效果不显示”的体验问题；同时设备列表区域高度不固定。
    - 修复：`fjbms-uniapp/pages/device-provision/ble-scan.vue` 已调整为纵向固定布局，顶部雷达区、提示区与操作按钮固定显示，仅设备列表区域独立滚动，列表容器高度由页面剩余空间自动固定。
+11. 2026-08-21 生产回归修复：OpenHarmony 微信长按解绑提交 `device_id="undefined"`
+   - 生产 `operation_logs` 中 `/api/v1/app/device/unbind` 共 144 条：123 条成功，21 条失败；失败请求全部为 `{"device_id":"undefined"}`，响应全部为 `100002 / binding not found`。其中 OpenHarmony 微信 18 条、Android 2 条、iPhone 1 条，OpenHarmony 的 18 条集中于同一用户。
+   - 根因：`device-card.vue` 在根节点监听原生 `longpress`，同时向父页面发送同名 `longpress` 自定义事件；微信小程序编译产物形成子组件原生 `bindlongpress` 与父组件自定义 `bindlongpress` 同名链路，OpenHarmony 微信会把不含设备 `id` 的原生事件对象交给父页。
+   - 修复：卡片根节点改为 `@longpress.stop`，自定义事件改名为 `manage`；父页改为 `@manage`，并在打开管理菜单、页面调用解绑接口及 `service/device.ts` 发出请求前通过 `resolveHomeDeviceActionId()` 分层校验设备 ID。
+   - 防线：空值、`undefined`、`null`、`[object Object]` 及原生长按事件对象均不得触发解绑请求。
