@@ -1,10 +1,35 @@
 # FEAT-0049 BMS 4G 移动端云端详情链路 - 测试报告
 
-- status: review
+- status: in_progress
 - owner: payhon
-- last_updated: 2026-09-02
+- last_updated: 2026-09-12
 - related_feature: FEAT-0049
-- version: v0.2.4
+- version: v0.2.11
+
+## 2026-09-12 动态ACK超时本地验证
+
+- 结果：累计27项本地脚本通过（原26项回归加新增可控时钟测试），不是硬件验收。覆盖Boot时序/运行参数/动态超时、实际BLE/MQTT transport、BLE能力与取消、MQTT响应匹配/唤醒/fjia2、缓存释放、OTA页面会话、仪表恢复、日志、OTA目标策略、轮询以及扫描/参数/4G兼容路径。
+- 可控时钟：0x50～0x53无ACK在0/800/1250/1700ms发送、2150ms耗尽；0x54在0/5000/5450/5900ms发送、6350ms耗尽。首发799ms、完成4999ms和重发449ms收到ACK即结束等待，无残留定时器。用户补充的完成重发450ms已覆盖，非每次5秒。
+- 验证同包重试、三次共享恢复预算、status=3重复ACK、status=1重新准备及其800/450重试、所有非ACK错误立即失败、0x50与4G进入Boot的耗尽兼容。模拟1151 ACK后300ms页保护，1152丢ACK仍重发1152，不叠加页等待；64/128/256/512/1024字节页边界回归通过。
+- 页面真实SFC处理函数验证BLE/MQTT五种命令的首次与重发timeoutMs均透传，旧450ms上限不再截断800ms；零宽限不调度Android读探测，非零宽限的底层兼容测试仍保留。
+- TypeScript检查与params-tab.vue/detail.vue的SFC脚本和模板编译通过；根仓库和UniApp的git diff --check通过。未修改普通连接超时或BLE会话恢复逻辑。
+- Android/iOS微信小程序不退出进程连续20次、App三链路、4G连续20次和实际版本/弱信号验证仍待完成，保持in_progress。未提交、推送或部署。
+
+新增时序测试无需安装依赖，在fjbms-uniapp目录执行：
+
+```sh
+node -e 'const fs=require("fs"),ts=require("typescript");require.extensions[".ts"]=(m,f)=>m._compile(ts.transpileModule(fs.readFileSync(f,"utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,f);require("./common/lib/bms-protocol/boot-ota-dynamic-timeout.test.ts")'
+pnpm exec tsc --noEmit --pretty false
+git diff --check
+```
+
+
+## 2026-09-10 BLE OTA 恢复兼容边界
+
+- FEAT-0046新增的关闭屏障、原生断连订阅和30秒/最多两次恢复仅应用于BLE。共享详情页的MQTT连接、云端回退、参数轮询、后台命令转发及OTA协议策略不作调整。
+- MQTT/4G仍使用670ms同包重试、300ms页保护、完整数据ACK门槛和单发5秒完成窗口；既有工作区修改保留，本轮未再次修改MQTT transport或共享Boot引擎。
+- Boot/运行参数/transport及MQTT响应匹配、唤醒、fjia2和页面会话回归通过；新断言确认MQTT不会进入BLE恢复。真机4G/App及iOS/Android冒烟仍待完成，保持in_progress。
+- 发布和回滚只涉及FEAT-0046本轮移动端差异，无后端/数据库/接口/依赖变更；本轮不提交、推送或部署。
 
 ## 测试用例
 - 后端：当前遥测接口可通过已绑定/组织可见设备查询数据。
@@ -26,7 +51,7 @@
 - 后端：Socket WebSocket 首包使用数据库 UUID 鉴权，实际 MQTT topic 使用 `devices.device_number`。
 - 后端：APP 电池路由注册 `/api/v1/app/battery/socket/ws`。
 - UniApp：有当前遥测但无 `cell.voltagesMv` 时，仪表盘有摘要数据，电芯 Tab 显示明确空态。
-- UniApp：扫码进入 4G/4G+BLE 详情后立即显示在线，60 秒内无任何匹配有效回包且后端仍离线时才显示离线；普通详情入口与 BLE-only 设备不启用宽限。
+- UniApp：扫码或首页列表进入 4G/4G+BLE 详情后立即显示在线，60 秒内无任何匹配有效回包且后端仍离线时才显示离线；组织设备列表、手动 BLE 搜索与 BLE-only 设备不启用宽限。
 - UniApp：只有当前 MQTT 请求匹配的有效帧刷新扫码在线保护；控制消息、心跳、非法帧、意外帧和旧会话迟到帧不得刷新。
 
 ## 当前结果
@@ -208,15 +233,60 @@
 - [x] 2026-08-21 路由与 Transport 断言：`scan-routing.test.js` 通过扫码直达、UUID 绑定和 BLE 配网来源透传；`uni-mqtt-socket-transport.wakeup.test.ts` 通过，确认意外有效帧不触发回调、匹配当前请求的有效帧只触发一次。
 - [x] 2026-08-21 参数页保活策略断言：执行 `pnpm dlx tsx pages/device-battery/detail-polling-policy.test.ts` 通过，覆盖 4G MQTT 参数页首轮及后续间隔均为 10 秒且小于 15 秒休眠阈值、历史页保持 30 秒、BLE 参数/历史页及连接未就绪状态继续暂停。
 - [x] 2026-08-21 参数页保活静态回归：UniApp TypeScript 检查、设备详情 Vue SFC 编译及子仓空白检查通过；策略继续复用原串行 `readAllStatus()` 生命周期，没有新增并发读取循环。
-- [ ] 2026-08-21 微信小程序真机/MQTTX 验收：扫码进入后确认顶部立即在线且后台持续下发；完全无回包时约 60 秒转离线，第 55 秒返回匹配帧时保持在线，普通首页点击同一离线设备仍立即显示离线。
+- [ ] 2026-08-21 微信小程序真机/MQTTX 验收：扫码进入后确认顶部立即在线且后台持续下发；完全无回包时约 60 秒转离线，第 55 秒返回匹配帧时保持在线。
 - [ ] 2026-08-21 参数页真机/MQTTX 验收：进入 4G BMS `设备详情 > 参数设置` 后不操作并静置至少 1 分钟，确认约每 10 秒出现一轮状态读取且持续有有效回包，设备不在 15 秒进入休眠；在保活临界点展开参数分组并执行一次写入，确认所有指令串行且响应不串包。
 - [ ] 2026-08-21 Android/iOS 回归：确认公共详情逻辑、BLE-only 设备、4G 参数页 10 秒保活及历史页 30 秒串行保活无行为回退。
 - [x] 2026-08-28 OTA 900ms策略断言：`pnpm dlx tsx common/lib/bms-protocol/boot-ota-runtime-options.test.ts` 通过，确认BLE与MQTT/4G共享的 `0x50`～`0x53` 应答窗口为900ms，超时后220ms重发缓冲及 `0x54` 策略未变。
 - [x] 2026-08-28 OTA 时序与类型检查：`pnpm dlx tsx common/lib/bms-protocol/boot-ota-timing.test.ts`、`pnpm exec tsc --noEmit --pretty false` 通过。
 - [ ] 2026-08-28 真机成功率验证：待微信小程序Android、iOS、BLE BMS/仪表及4G/MQTT BMS使用同一固件多轮升级，记录失败百分比、包序号、ACK RTT与重发次数。
 - [x] 2026-09-02 OTA 600ms策略断言：`pnpm dlx tsx common/lib/bms-protocol/boot-ota-runtime-options.test.ts` 通过，确认BLE与MQTT/4G共享的 `0x50`～`0x53` 应答窗口为600ms，超时后220ms重发缓冲及 `0x54` 策略未变。
+- [x] 2026-09-02 OTA 450ms策略断言：临时编译执行 `boot-ota-runtime-options.test.ts` 与 `boot-ota-timing.test.ts` 通过，确认BLE与MQTT/4G共享应答窗口为450ms、重发等待220ms、总节拍670ms，`0x54` 策略未变。
+- [ ] 2026-09-02 MQTT/4G冒烟回归：使用真实设备完成一次升级，确认450ms窗口下数据包ACK、重发及升级后版本变化。
 - [ ] 2026-09-02 真机成功率验证：待微信小程序Android、鸿蒙、iOS、BLE BMS/仪表及4G/MQTT BMS使用同一固件多轮升级，记录失败百分比、包序号、ACK RTT与重发次数。
 - [x] 2026-08-30 扫码 handoff 来源断言：`pnpm dlx tsx common/device-provision/detail-handoff.test.ts` 通过，覆盖扫码来源随 handoff 保存/消费、消费后不残留及手动配网不误标为扫码。
 - [x] 2026-08-30 扫码在线定向回归：`scan-four-g-online-policy.test.ts`、`scan-routing.test.js` 与 UniApp 项目级 TypeScript 检查通过；普通详情、BLE-only、60 秒边界和扫码各级路由语义保持不变。
 - [x] 2026-08-30 小程序编译与轮询回归：详情/配网页 SFC script 编译、MQTT Transport 匹配回包断言、详情轮询策略及 HBuilderX 5.24 微信小程序编译通过；编译仅提示项目未配置 uniCloud 服务空间，不影响本地小程序产物生成。
-- [ ] 2026-08-30 微信小程序真机/MQTTX 验收：分别覆盖已绑定设备直达、UUID 绑定后跳转、扫码 BLE 配网 handoff 三条路径；确认进入 4G 仪表盘即显示在线、无有效回包约 60 秒转离线、有效回包续期，随后从首页普通进入同一离线设备仍立即显示离线。
+- [ ] 2026-08-30 微信小程序真机/MQTTX 验收：分别覆盖已绑定设备直达、UUID 绑定后跳转、扫码 BLE 配网 handoff 三条路径；确认进入 4G 仪表盘即显示在线、无有效回包约 60 秒转离线、有效回包续期。
+- [x] 2026-09-02 首页在线宽限定向回归：详情来源断言、首页/组织列表路由静态断言、60 秒策略、扫码路由、MQTT Transport 匹配回包断言及 UniApp 项目级 TypeScript 检查通过；首页来源启用宽限，组织列表、手动 BLE 搜索和未标记入口保持原行为。
+- [ ] 2026-09-02 首页入口真机/MQTTX 验收：从首页列表进入离线 4G/4G+BLE 设备详情后立即显示“4G 在线”，无匹配有效回包约 60 秒转离线；组织设备列表进入仍直接按后端状态显示，BLE-only 行为不变。
+
+## 2026-09-03 OTA定向回归
+
+本节是本日前轮“同包重发”方案的本地验证历史；下一节是随后执行但已撤销的超时推进试验，现行策略见2026-09-04回归门槛。通过仅代表本地自动化结果；前轮共享清单见 [FEAT-0046测试报告](../FEAT-0046-meter-ota-packages-and-uniapp-flow/03-test-report.md#4-2026-09-03-本轮本地验证)。
+
+- [x] `pnpm dlx tsx common/lib/bms-protocol/boot-ota-transport.test.ts`：使用实际MQTT Socket transport的connect/onMessage链路模拟，449/500/669ms ACK均被同一请求接收；无ACK时本轮约672ms重发，旧ACK不推进或回退。覆盖纯hex/JSON消息、混合普通/坏帧、分段ACK、完成阶段旧ACK和空ACK拒绝、普通请求取消/排队拒绝/结束恢复。
+- [x] `pnpm dlx tsx common/lib/bms-protocol/boot-ota-runtime-options.test.ts` 与 `pnpm dlx tsx common/lib/bms-protocol/boot-ota-timing.test.ts`：450ms+220ms、ACK后进度、有界恢复、设备指定包长和严格完成条件通过，4G仍单发 `0x54`、5秒窗口。
+- [x] `pnpm dlx tsx pages/device-battery/ota-session.test.js` 与 `pnpm dlx tsx pages/device-battery/detail-polling-policy.test.ts`：执行实际页面函数和Vue批量watch，cloud/instrument及BLE/MQTT会话OTA时均暂停轮询，成功/失败后恢复，4G参数页恢复10秒保活；屏幕保护与独占清理通过。
+- [x] 普通通讯回归：`pnpm dlx tsx common/lib/bms-protocol/uni-mqtt-socket-transport-response-match.test.ts`、`pnpm dlx tsx common/lib/bms-protocol/uni-mqtt-socket-transport.wakeup.test.ts`、`pnpm dlx tsx common/lib/bms-protocol/uni-mqtt-socket-transport-fjia2-repro.test.ts` 均通过。
+- [x] `pnpm exec tsc --noEmit --pretty false`，以及已安装 `@vue/compiler-sfc` 对详情/参数页script/template编译通过。
+- [ ] Android微信小程序与App各连续20次真实4G升级，至少一次弱网，核对升级后版本；同时观察OTA中无普通查询、结束后10秒保活恢复，记录包序号、ACK RTT及重发。真实蜂窝延迟超过670ms仍可能触发重试。
+- [ ] iOS 4G完整升级冒烟、现场MQTTX/后端日志联调；本轮未执行后端/管理端构建、HBuilderX打包或发布，硬件验收前保持 `in_progress`。
+
+## 2026-09-03 客户超时推进试验
+
+当时执行的完整13项本地回归与命令见 [FEAT-0046历史试验报告](../FEAT-0046-meter-ota-packages-and-uniapp-flow/03-test-report.md#5-2026-09-03-客户超时推进试验)。
+
+- [x] 实际MQTT transport接模拟Socket，首/中/末包无ACK分别约671/670/672ms后推进下一包，不原包重发；收到设备补包请求可回退恢复，超时不伪造确认进度。
+- [x] 所有数据ACK缺失时仍尝试最终真实CRC32校验，`0x54` 超时与非零状态均失败，仅真实 `status=0` 成功；迟到/重复ACK、分段/坏帧、独占清理与普通通讯回归通过。
+- [x] MQTT数据最小帧间隔、包间/4KB等待均0，准备ACK后立即首包；单发5s完成窗口不变。日志内存缓冲、手动复制、结束保存和页面finally恢复验证通过。
+- [x] 13项脚本、TypeScript与详情/参数SFC编译通过；未执行后端、数据库、协议或依赖变更。
+- [ ] Android微信小程序/App各连续20次4G升级、每组至少一次弱网与版本变化，iOS冒烟及MQTTX/后端联调待验收；超时推进可能最终CRC失败，不据本地模拟承诺成功率。未提交、推送、打包或部署，保持 `in_progress`。
+
+## 2026-09-04 4G OTA最新回归门槛
+
+本节取代上一节的超时推进策略；上一节仅作为已执行但已撤销的试验记录。共享失败证据与完整测试矩阵见 [FEAT-0046测试报告](../FEAT-0046-meter-ota-packages-and-uniapp-flow/03-test-report.md#6-2026-09-04-页边界失败复盘与最新验收)。
+
+- [x] MQTT实际transport模拟首/中/末包ACK缺失，断言约670ms后发送相同序号和载荷，未收到合法 `requested` 前不改变发送游标、确认进度或UI进度；同包达到有界上限后明确失败。
+- [x] 覆盖设备 `requested` 正常前进、重复、回退、`status=3`纠正、非法范围及反复无进展，断言下一包唯一由合法设备游标决定，不能因MQTT发布成功或ACK超时自行递增。
+- [x] 覆盖64/128/256/512/1024字节包档位的4KB边界，断言确认整页后等待300ms再发下一页首包；同一页首包重试不重复等待，设备回退后重新跨越边界会再次保护；BLE与MQTT/4G均为 `minFrameIntervalMs=0`、`packetDelayMs=0`，普通包仍由ACK驱动且无额外固定等待。
+- [x] 覆盖末包ACK缺失，断言不得发送 `0x54`；确认 `requested == packetTotal` 后才等待300ms发送真实CRC32完成帧。`0x54 status=0`成功，非零、超时、Socket断连均失败，不能复用BLE完成后断连兼容。
+- [x] 验证OTA独占期间无普通状态读取和休眠唤醒补发插入，WebSocket ping保持；成功、失败、取消后释放独占并按当前Tab恢复10秒参数保活或其他轮询。
+- [x] 验证1585个 `0x53` 数据包保留1585条紧凑结构化 ACK，每条含 `seq/status/requested/RTT`；Boot 层不重复记录 `0x53` 完整十六进制，transport 层完整十六进制只保留首包、末包、4KB边界包、同包重试和异常；会话头未因包数丢失，手动复制和finally集中保存可用。
+- [x] 已执行共享Boot时序/运行参数/BLE与MQTT实际transport、普通响应匹配、wakeup、fjia2样例、OTA页面会话、轮询策略、日志精简、TypeScript与详情/参数SFC编译及 `git diff --check`；全部通过。
+- [ ] 真机门槛：Android微信小程序和App各连续成功20次4G BMS OTA，每组至少一次弱网并核对升级后版本；同步采集App、MQTTX/后端与硬件串口的序号/页边界/ACK RTT/重试证据。iOS 4G至少一次完整冒烟；全部完成前保持 `in_progress`。
+
+## 2026-09-04 Android BLE修复的4G回归边界
+
+- [x] 已确认BLE响应写、原生回调与450ms读取探测未进入MQTT transport；4G运行参数仍为450+220ms、同序重发、300ms页保护和单发5秒完成窗口。
+- [x] 已执行MQTT实际transport、Boot运行参数/时序、普通响应、wakeup、fjia2及页面OTA会话回归；全部通过。
+- [ ] 真机门槛不变：Android微信小程序/App各20次4G OTA、至少一次弱网并核对版本，iOS 4G至少一次完整冒烟；未完成前保持 `in_progress`。

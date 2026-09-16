@@ -1,10 +1,25 @@
 # FEAT-0049 BMS 4G 移动端云端详情链路 - 技术设计
 
-- status: review
+- status: in_progress
 - owner: payhon
-- last_updated: 2026-09-02
+- last_updated: 2026-09-12
 - related_feature: FEAT-0049
-- version: v0.2.4
+- version: v0.2.11
+
+## 2026-09-12 OTA动态超时兼容边界（当前生效）
+
+- MQTT/4G明确纳入新时序：0x50～0x53首次800ms、最多3次450ms重发；0x54首次5000ms、最多3次450ms重发。原单发完成与670ms数据窗口由此取代。
+- 控制命令与数据重试不叠加；0x50及4G的0x51耗尽超时后继续兼容保留；0x52/0x53耗尽失败，不得进入完成。只有实际完成ACK可使4G升级成功。
+- 保留300ms页保护、ACK游标及完整数据门槛。Socket transport、普通读取/唤醒/轮询、云端接口、连接恢复与数据库不变；BLE恢复不扩展至MQTT。
+- 无依赖或对外API变更，不提交/推送；真机4G连续20次、交替版本及弱信号验收待完成，保持in_progress。历史日期记录不代表当前时序。
+
+
+## 2026-09-10 BLE OTA 恢复兼容边界
+
+- FEAT-0046新增的关闭屏障、原生断连订阅和30秒/最多两次恢复仅应用于BLE。共享详情页的MQTT连接、云端回退、参数轮询、后台命令转发及OTA协议策略不作调整。
+- MQTT/4G仍使用670ms同包重试、300ms页保护、完整数据ACK门槛和单发5秒完成窗口；既有工作区修改保留，本轮未再次修改MQTT transport或共享Boot引擎。
+- Boot/运行参数/transport及MQTT响应匹配、唤醒、fjia2和页面会话回归通过；新断言确认MQTT不会进入BLE恢复。真机4G/App及iOS/Android冒烟仍待完成，保持in_progress。
+- 发布和回滚只涉及FEAT-0046本轮移动端差异，无后端/数据库/接口/依赖变更；本轮不提交、推送或部署。
 
 ## 1. 后端接口
 - 新增 `GET /api/v1/app/battery/current-telemetry/:device_id`。
@@ -63,12 +78,12 @@
   - 单体设置、总压设置、电流设置、温度设置首次点击时仅显示分组标题右侧加载图标；
   - 对应分组 `readParamsByKeys()` 完成后再设置展开状态；
   - 已加载分组后续展开/收起不再重复读取。
-- 相机扫码路径统一携带 `entry_source=scan`，UUID 绑定和 BLE 配网中间页继续透传；首页卡片、组织设备列表和手动 BLE 搜索不携带该标记。
+- 相机扫码路径统一携带 `entry_source=scan`，UUID 绑定和 BLE 配网中间页继续透传；首页卡片携带 `entry_source=home`，组织设备列表和手动 BLE 搜索不携带在线宽限来源。
 - 扫码 BLE 配网成功保存 `DeviceDetailHandoff` 时同步保存一次性的 `entrySource=scan`；详情页以显式路由参数或本次 handoff 来源任一命中作为扫码入口，消费 handoff 后不影响后续普通详情。
-- `loadById()` 在详情基础信息确认具备 4G 能力后启动扫码在线宽限，起点使用本次详情 session generation 与设备 ID；60 秒内页面以在线样式展示并隐藏连接遮罩，但不调用后端连接状态上报。
+- `loadById()` 在详情基础信息确认具备 4G 能力且来源为 `scan` 或 `home` 后启动在线宽限，起点使用本次详情 session generation 与设备 ID；60 秒内页面以在线样式展示并隐藏连接遮罩，但不调用后端连接状态上报。
 - `loadById()` 的普通云端详情分支与 handoff 快速分支统一调用幂等的在线宽限入口：handoff 已带 `bmsCommType=2/3` 时立即启动；交接信息不足时，在异步详情接口补全 4G 能力后补启动；同一 session 不重复重置 60 秒起点。
 - `UniMqttSocketBmsTransport` 在 `_handleFrame()` 完成当前 pending 请求匹配后触发可选回调；控制消息、心跳、非法帧和意外帧不会触发。详情页用该回调刷新当前扫码 session 的最近有效交互时间。
-- 扫码在线覆盖以“详情确认 4G 的时间”或“最近一次匹配有效回包时间”为锚点，保护期固定 60 秒；到期后回退后端 `is_online`，后续有效回包仍可恢复本页在线。设备切换和页面卸载清理定时器，迟到回调需同时匹配原 Transport 与 session。
+- 扫码/首页在线覆盖以“详情确认 4G 的时间”或“最近一次匹配有效回包时间”为锚点，保护期固定 60 秒；到期后回退后端 `is_online`，后续有效回包仍可恢复本页在线。设备切换和页面卸载清理定时器，迟到回调需同时匹配原 Transport 与 session。
 - 在线宽限复用仪表盘/电芯页现有串行 `readAllStatus()` 轮询，不新增并发循环；参数页使用 10 秒保活，历史页继续使用 30 秒低频策略。
 
 ## 3. 4G BMS OTA 数据流
@@ -76,8 +91,15 @@
 - OTA 包检查继续使用 BMS OTA 包接口；4G BMS 不复用 FEAT-0051 的 4G 模块升级包。
 - OTA 目标地址按设备类型先判定：BMS 设备使用 `0x01`，仪表设备使用 `0xFC`。
 - 4G BMS OTA 通过 `UniMqttSocketBmsTransport.request()` 发送 BOOT 帧，协议命令与蓝牙 BMS OTA 一致。
-- 本轮验证将共享非完成帧应答窗口设为600ms，`0x50`～`0x53` 在BLE与MQTT/4G同步生效；MQTT仍保留40ms最小帧间隔、超时后自适应降速、页边界等待以及单发5秒 `0x54` 应答窗口。
-- Socket Transport 的 BOOT 响应匹配兼容 finalize `0x54` 收到数据包 ACK `0x53` 的旧设备行为，并兼容仪表 BOOT 回包源地址 `0xFD`。
+- 共享非完成帧应答窗口保持450ms，`0x53` 通过内部 `bootAckGraceMs=220` 在缓冲期保留pending与Boot解码，迟到ACK仍可立即结束本次等待；满670ms仍无匹配ACK时清理本次pending并重发相同序号和数据，不重复叠加第二次220ms。首包、中途、末包均适用，本地游标、确认水位和进度在超时时保持不变；断连、取消或发送失败仍立即终止。
+- `0x52` 有效ACK后立即开始数据发送；BLE与MQTT/4G数据阶段均设置 `minFrameIntervalMs=0`、`packetDelayMs=0`，普通包无额外固定等待。以设备确认的 `requested * packetSize` 计算4KB边界，每确认完整一页后等待300ms再发送下一页首包；同一页首包超时重发不重复等待，设备回退后重新跨越边界时再次保护。结束后恢复普通通讯原间隔。
+- `0x53` 应答必须匹配地址、命令和CRC，合法 `requested` 是唯一发送游标；`status=0` 与 `status=3` 均按设备游标确认前进或有界回退，不以本地发送次数推断已写入。非法范围或反复无进展失败；超时不更新确认进度。只有 `requested == packetTotal` 才能等待300ms发送真实固件CRC32的 `0x54`。`0x54` 不被残留 `0x53` 提前结束，MQTT/4G只接受真实完成命令且 `status=0` 才成功；仪表回包源地址 `0xFD` 兼容不变。
+- 复用 BLE 的 `beginExclusiveBootSession/endExclusiveBootSession` 生命周期，在 MQTT 内取消普通 pending 与 wakeup timer，拦截新入队及已排队非 Boot 命令，并有界排空队列。WebSocket ping 不受影响，后端 owner 不变。
+- 详情页轮询策略增加全会话OTA守卫，修复 `sessionMode=cloud` 时watch在暂停后重新启动10秒保活的问题；结束后在finally释放独占并恢复当前Tab策略。具体共享状态机约束见FEAT-0046 v0.1.7。
+- Socket 上行同时接受 JSON `hex` 和纯十六进制文本；修复后者已识别却仍落入无条件 return 的问题。后端仍原样透传，不改桥接接口。普通迟到回包与坏 CRC 帧不能堵塞同批 Boot ACK 的解析。
+- 与BLE共用Boot日志缓冲：最近6000条内存追加，每个 `0x53` 数据包保留一条包含 `seq/status/requested/RTT` 的紧凑结构化 ACK；删除 Boot 层重复的 `0x53` 完整十六进制记录，transport 层完整十六进制只保留首包、末包、4KB边界包、同包重试和异常。结束后集中保存/发布；手动复制读取当前内存，不逐包全量同步缓存，不新增后端接口或依赖；硬退出可能丢失未保存日志。
+- 旧版源码和新失败日志共同确认ACK驱动、同包重发及完整数据确认是安全边界；9月3日超时自动下一包试验已撤销。MQTT/4G不适用BLE设备重启断连兼容，必须收到真实 `0x54 status=0` 并完成升级后版本验收。
+- Android BLE显式响应写、原生GATT回调和 `readBLECharacteristicValue` 探测不得下沉到共享Boot引擎或MQTT transport；本轮4G/MQTT代码与运行参数不变，仅执行回归防止BLE改动造成共享逻辑退化。
 
 ## 4. Web 端数据流
 - 后台 BMS 面板进入 4G 设备详情后自动建立 MQTT Socket 透传，使用与移动端一致的 BMS 协议解析。
