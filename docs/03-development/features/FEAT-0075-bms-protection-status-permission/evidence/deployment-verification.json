@@ -1,0 +1,145 @@
+{
+  "test": {
+    "database_backup": "/panel/project/fjiacloud/backup/backend/feat0075-20260928_141309/permissions.dump",
+    "database_backup_sha256": "38ad361a01a0c6a627aaf8eb674f83b1948d5452a5dda121deb049ee543de25b",
+    "backend_backup": "/panel/project/fjiacloud/backup/backend/feat0075-20260928_141309/fjbms.before-update",
+    "backend_before_sha256": "b917ed0ab3543e5249c44025bddcfda7e112306df5666b52ce5c76fc97c016d7",
+    "config_sha256": "91873a0942be49529d695ed05006d62f571c74692d1a91ad61bfe601ffa33364",
+    "sql_files": [
+      "66.sql",
+      "67.sql"
+    ],
+    "sql_sha256": {
+      "66.sql": "0ab96456dce2529fbdd020fbbfe0c4696f816909e62181fa86e3213adfd0aa8d",
+      "67.sql": "b9cec5cd2fb0bbef0dd3fe59e6c8c7c72b9b21916c9b302fb211dfe503f92ba7"
+    },
+    "permissions_snapshot": "4|77dd678c943f72aa964b97d9a31b803f",
+    "database_updated": true,
+    "existing_grants_unchanged": true,
+    "existing_binding_data_unchanged": true,
+    "backend_action": "updated and restarted earlier; retained without another restart",
+    "last_error": "test: backend did not become healthy after update",
+    "backend_sha256": "a27e66e1afc2baec59f0c9dd441b03c70dc5df10c422f678358ae2881238a664",
+    "backend_health": "000",
+    "config_unchanged": true,
+    "backend_blocker": "Pre-existing MQTT not Authorized: runtime points to pbsmart broker 127.0.0.1:1883 with Java HTTP authenticator; no shared-broker settings changed",
+    "frontend_backup": "/panel/project/fjiacloud/backup/frontend/frontend_20260928_141309.tar.gz",
+    "frontend_index_sha256": "b9e1281ff438ae65ff4c98d65b9a3e437f1ea42eaf379aefa3ad6f0f9aa6ba53",
+    "applications_updated": true,
+    "verified": false,
+    "static_and_sql_verified": true,
+    "permission_endpoint_anonymous": "000",
+    "permission_node": "app_device_detail_protection_status|BMS保护状态|app_mobile_permissions|4",
+    "permission_chunks": [
+      {
+        "path": "assets/index-DRiC8rXq.js",
+        "sha256": "50bea3e781a87eb9eaf404ae5b5e243a893bfe8f7a6f44de85ba7638e2768324"
+      }
+    ],
+    "verified_at": "2026-09-28 14:30:03",
+    "public_verification": {
+      "base_url": "https://fjbms.yz6688.cn",
+      "checked_at": "2026-09-28T14:30:56+08:00",
+      "index_http_status": 200,
+      "index_sha256": "b9e1281ff438ae65ff4c98d65b9a3e437f1ea42eaf379aefa3ad6f0f9aa6ba53",
+      "permission_assets": [
+        {
+          "path": "assets/index-DRiC8rXq.js",
+          "status": 200,
+          "sha256": "50bea3e781a87eb9eaf404ae5b5e243a893bfe8f7a6f44de85ba7638e2768324"
+        }
+      ],
+      "permission_endpoint_anonymous_status": 502
+    },
+    "frontend_backup_sha256": "59888f999ebf4081e15d4fc242beb07d30ffbec2533b2047532d3fb07ef45d54",
+    "frontend_backup_contains_index": true,
+    "database_backup_format_verified": true,
+    "runtime": {
+      "MainPID": "3617484",
+      "exe": "/panel/project/fjiacloud/backend/fjbms"
+    },
+    "deployment_result": "SQL 66/67, backend binary and Web updated; runtime verification blocked by pre-existing MQTT not Authorized",
+    "browser_smoke": {
+      "page": "https://fjbms.yz6688.cn/login?redirect=/home",
+      "title": "登录-FJIA Cloud",
+      "api_errors": "logo/sys_function/login/captcha HTTP 502",
+      "authenticated_permission_acceptance": "pending"
+    },
+    "required_information": "Correct fjbms test MQTT Broker address or existing configuration file path requested from user"
+  },
+  "prod": {
+    "database_backup": "/www/fjia/backups/fjbms/backend/feat0075-20260928_141309/permissions.dump",
+    "database_backup_sha256": "14e0c05a4d068cb00c8ea85d86844c54bb5af4a43827585451c4e6a9f6f9382b",
+    "backend_backup": "/www/fjia/backups/fjbms/backend/feat0075-20260928_141309/fjbms.before-update",
+    "backend_before_sha256": "a27e66e1afc2baec59f0c9dd441b03c70dc5df10c422f678358ae2881238a664",
+    "config_sha256": "a77af5df38017133a4014b192591aa75d8986c735a200483d5ef362ea68cef3f",
+    "sql_files": [
+      "67.sql"
+    ],
+    "sql_sha256": {
+      "67.sql": "b9cec5cd2fb0bbef0dd3fe59e6c8c7c72b9b21916c9b302fb211dfe503f92ba7"
+    },
+    "permissions_snapshot": "4|ff72cf869f2224ca79761edeb0f2cffa",
+    "database_updated": true,
+    "existing_grants_unchanged": true,
+    "existing_binding_data_unchanged": true,
+    "backend_action": "already identical; retained without restart",
+    "backend_sha256": "a27e66e1afc2baec59f0c9dd441b03c70dc5df10c422f678358ae2881238a664",
+    "backend_health": "200",
+    "config_unchanged": true,
+    "frontend_backup": "/www/fjia/backups/fjbms/frontend/frontend_20260928_141309.tar.gz",
+    "frontend_index_sha256": "e49ba14638a43974ab829c16dc3646d58b15167e99bf6ec444b5b538ac6681cf",
+    "applications_updated": true,
+    "verified": true,
+    "static_and_sql_verified": true,
+    "permission_endpoint_anonymous": "401",
+    "permission_node": "app_device_detail_protection_status|BMS保护状态|app_mobile_permissions|4",
+    "permission_chunks": [
+      {
+        "path": "assets/index-DtLMpDTk.js",
+        "sha256": "b8598e45f13850f39e7a4802ffa32f0c4bcd74306ac14b10cfe98716e97ea4b7"
+      }
+    ],
+    "verified_at": "2026-09-28 14:29:35",
+    "public_verification": {
+      "base_url": "https://cloud.fjiaenergy.com",
+      "checked_at": "2026-09-28T14:30:57+08:00",
+      "index_http_status": 200,
+      "index_sha256": "e49ba14638a43974ab829c16dc3646d58b15167e99bf6ec444b5b538ac6681cf",
+      "permission_assets": [
+        {
+          "path": "assets/index-DtLMpDTk.js",
+          "status": 200,
+          "sha256": "b8598e45f13850f39e7a4802ffa32f0c4bcd74306ac14b10cfe98716e97ea4b7"
+        }
+      ],
+      "permission_endpoint_anonymous_status": 401
+    },
+    "frontend_backup_sha256": "8422c50ac5503899ea8211da28c2a871d1865fa16bb697bfa42d27eaa20ef0d0",
+    "frontend_backup_contains_index": true,
+    "database_backup_format_verified": true,
+    "runtime": {
+      "MainPID": "649159",
+      "ActiveState": "active",
+      "SubState": "running",
+      "ActiveEnterTimestamp": "Thu 2026-09-24 20:41:15 CST"
+    },
+    "deployment_result": "SQL 67 and Web updated; backend already matches release artifact and retained; runtime verification passed",
+    "browser_smoke": {
+      "page": "https://cloud.fjiaenergy.com/login?redirect=/home",
+      "title": "登录-富嘉 BMS 云平台",
+      "console_errors": 0,
+      "authenticated_permission_acceptance": "pending"
+    }
+  },
+  "delivery_scope": {
+    "recorded_at": "2026-09-28T14:34:49+08:00",
+    "sql_backend_web": [
+      "test",
+      "prod"
+    ],
+    "mobile_release": false,
+    "git_commit_or_push": false,
+    "feature_status": "review"
+  }
+}
