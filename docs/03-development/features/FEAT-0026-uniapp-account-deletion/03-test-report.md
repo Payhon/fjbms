@@ -2,7 +2,7 @@
 
 - status: review
 - owner: payhon
-- last_updated: 2026-06-24
+- last_updated: 2026-09-24
 - related_feature: FEAT-0026
 - version: v0.1.0
 
@@ -25,6 +25,7 @@
   - 结果：通过
   - 静态自检：已完成受影响页面与服务封装检查
   - 真机/小程序联调：待执行
+  - 2026-09-24 英文弹窗修复：中英文原生弹窗按钮词条长度静态校验通过，`pnpm exec tsc -p tsconfig.json --noEmit --pretty false` 通过；微信小程序真机确认/取消链路待复测。
 
 ## 4. 缺陷与风险
 - 若线上存在未纳入本次清理范围的用户关联表，可能残留历史痕迹数据，需要后续补充。
