@@ -1,8 +1,8 @@
 # FEAT-0008 UniApp 蓝牙信号展示与手动断开连接优化 - 实施日志
 
-- status: in_progress
+- status: review
 - owner: payhon
-- last_updated: 2026-03-04
+- last_updated: 2026-09-28
 - related_feature: FEAT-0008
 - version: v0.1.0
 
@@ -46,3 +46,8 @@
    - `backend/internal/service/device_provision.go`
    - `backend/internal/service/app_battery.go`
    - 后端统一归一化 BLE MAC；对于尾部补零/历史异常值支持修复写回，避免污染 `device_batteries.ble_mac`。
+12. 2026-09-28 按用户要求将蓝牙自动连接默认关闭：
+   - `pages/my/my.vue`：开关初值、首次存储读取和清除缓存后的恢复兜底均改为 `false`。
+   - `pages/home/home.vue`：自动连接判断在缺失或无效存储值时返回关闭。
+   - 保留既有布尔存储兼容、用户切换写入和清除缓存保留偏好的流程，仅调整四处默认值。
+   - TypeScript、两页微信小程序/APP 分支的 Vue 脚本与模板编译、15 类存储值及手动开关的实际 handler 模拟通过；待 Android/iOS/微信小程序真机验收，未打包发布。
