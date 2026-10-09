@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-08-31
+- last_updated: 2026-09-28
 - related_feature: FEAT-0052
 - version: v0.1.0
 
@@ -42,6 +42,8 @@
   - 扫描页 `onHide/onUnload` 复用同一个清理 Promise，不再由卸载回调直接关闭全局蓝牙适配器。
   - UniApp ActionSheet 与微信自定义 TabBar 的“搜索”使用 `auto_start=1&entry_source=ble_search`；相机扫码匹配继续使用 `mode=qr&mac=...&entry_source=scan`。页面策略对未消费的二维码模式及合法的规范化目标 MAC 默认自动启动，对普通模式仍要求 `auto_start=1`，不混用两种来源。
   - 扫描页 `onLoad` 解析自动启动请求；首次 `onShow` 立即消费该请求，在已绑定设备刷新和扫码分流完成后才调用 `startScan()`。`onHide/onUnload` 递增页面可见代次并取消待启动任务，后台恢复和旧异步任务不得再次启动。
+  - 2026-09-28：已绑定目标自动跳转同样要求本次 `shouldAutoStart && autoStartPending`，复用首次入口消费标记；绑定后从详情返回时即使绑定列表已经更新，也只能留在扫描页，不能再自动进入详情触发连接。
+  - 自动匹配沿用 `navigated` 标记；手动 `selectDevice` 同时设置该标记并取消待执行自动任务。当前页面已选择设备后，手动扫描只更新列表，点击设备仍按现有已绑定、仪表或向导路由连接；新页面实例重新取得首次匹配机会。
   - 刷新绑定列表后的所有动作（包括已绑定扫码跳转）先核对页面可见性、登录守卫和可见代次；旧页面任务不得在用户离开后抢占导航。沿用现有请求等待顺序，不扩展网络策略。
   - 绑定列表刷新期间用户点击搜索按钮时取消待执行的自动任务，避免用户手动停止后被迟到任务重新开启。
   - 普通搜索超时为 15 秒，二维码目标匹配仍为 30 秒；两种模式继续复用 1.5 秒无有效广播 MAC 时的无 Service UUID 过滤降级。

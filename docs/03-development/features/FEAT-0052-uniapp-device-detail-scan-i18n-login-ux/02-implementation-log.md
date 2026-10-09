@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-08-31
+- last_updated: 2026-09-28
 - related_feature: FEAT-0052
 - version: v0.1.0
 
@@ -52,8 +52,13 @@
 
 42. 2026-08-31 按用户选择采用“重新开始自动清理上轮列表”方案：在 `startScan()` 的页面/session 校验之后复用 `clearList()`，只清理扫描结果、显示顺序和排序调度状态。超时/手动停止保留结果，同一轮无 Service 过滤降级不清空，绑定缓存、详情连接和扫码来源策略不变。
 43. 新增 `ble-scan-restart.test.js`，使用实际扫描入口、停止、超时、广播处理与排序器配合假时钟/原生 BLE 桩验证跨轮行为；修改前在再次开始后仍有 2 条旧数据处失败，修改后通过。
+44. 2026-09-28 根据微信录屏定位扫码返回重连：首次扫描和自动匹配已被消费，但绑定成功后返回触发 `onShow`，原已绑定目标分支仍无条件跳转详情，详情初始化随即重连。为该分支增加 `shouldAutoStart && autoStartPending` 条件，不新增跨页状态。
+45. 手动选择设备时消费已有 `navigated` 标记并取消待执行自动任务，返回后重新扫描只更新列表，用户仍可点击设备连接；首次匹配、首次已绑定直达和新一次扫码继续可用。
+46. 扩展既有生命周期测试，执行实际自动匹配、设备选择和页面显示处理器，模拟绑定列表从未绑定变为已绑定；修改前在“返回不得重定向”断言失败（实际 1、期望 0），修复后全部通过。
 
 ## 2. 已验证
+- 2026-09-28 返回体验增量：二维码生命周期、扫描列表重启、扫码/搜索入口路由、扫描入口与详情来源共 6 组回归通过；`pnpm exec tsc --noEmit --pretty false` 与扫描页 SFC 脚本/模板编译通过。
+- 2026-09-28：HBuilderX 5.26 微信小程序仅编译成功，开发产物确认已绑定目标首次入口条件和手动选择的导航标记；uniCloud 本地服务空间缺失提示未阻断前端编译。未提交、推送、上传或发布。
 - 2026-08-31 重新扫描增量：`node pages/device-provision/ble-scan-restart.test.js`、二维码生命周期与两组入口路由回归、排序/入口/租约/错误分类/详情来源共 5 组策略断言、`pnpm exec tsc --noEmit --pretty false` 和扫描页 SFC 脚本/模板编译通过。HBuilderX 5.24 微信小程序仅编译成功，产物确认新一轮入口包含 `clearList()`；根仓与 UniApp `git diff --check` 通过。uniCloud 本地服务空间缺失提示未阻断前端编译，未上传或发布。
 - 2026-08-31：HBuilderX 5.24 微信小程序仅编译成功，产物确认含二维码目标 MAC 自动启动分支和页面可见代次检查；根仓与 UniApp `git diff --check` 通过。编译前提示 uniCloud 本地服务空间不存在，但未阻断编译；本次未上传或发布。
 - 2026-08-31：`node pages/device-provision/ble-scan-auto-start.test.js`、`node common/device-provision/ble-search-entry-route.test.js`、`node common/device-provision/scan-routing.test.js` 均通过。
@@ -91,6 +96,7 @@
 - 使用微信开发者工具 Stable 2.02.2608040 与 `miniprogram-automator` 运行本地编译产物：2026-08-22 通过；`navigateTo`、`redirectTo` 和直接 `reLaunch` 三类登录页入口点击返回箭头后均进入首页。整改截图保存为 `~/Desktop/fjbms-wechat-login-return-2026-08-22.png`，未执行预览上传或审核提交。
 
 ## 3. 待验证
+- 2026-09-28 增量：微信小程序 Android/iOS 真机按反馈录屏执行“未绑定 BMS 扫码 -> 绑定成功 -> 详情主动断开 -> 返回扫描页”，确认保持停止态、不再次进入详情或连接；直接返回、重复显示、后台恢复、手动重扫与点击设备、新一次扫码同步验证，并在 Android/iOS App 冒烟。本机 `adb devices -l` 无设备，`xcrun devicectl list devices` 列出的手机均不可用，未执行真机蓝牙验收。
 - 微信小程序 Android/iOS 真机“自动停止 -> 不清空直接开始”反复验证：旧列表自动消失、本轮设备按新 RSSI 排序；设备移远/断电后不残留在新一轮，手动停止保留列表，启动失败展示错误且可重试。Android/iOS App 同步回归共享页面行为。
 - 微信小程序 Android/iOS 真机从底部“＋ > 扫码”识别未绑定 BMS MAC，确认无需点击即可扫描、命中目标后停止扫描再进入向导；蓝牙关闭/拒绝授权时沿用提示和手动重试，返回/后台不重复启动，新一次扫码可重新自动启动。
 - Android/iOS App 回归共享扫码策略；保留首页 30 秒暖连接与发现入口退出断连行为。本轮生命周期模拟使用假的 BLE 与绑定列表，不能替代真实原生蓝牙验证。

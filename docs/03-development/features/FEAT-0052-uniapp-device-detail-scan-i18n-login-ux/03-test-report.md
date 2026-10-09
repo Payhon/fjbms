@@ -2,7 +2,7 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-08-31
+- last_updated: 2026-09-28
 - related_feature: FEAT-0052
 - version: v0.1.0
 
@@ -20,6 +20,7 @@
 - `10008/-30008`、`10001`、`10012` 扫描错误分类及提示策略。
 - 底部搜索入口的一次性自动启动、页面可见代次保护及 15/30 秒分模式超时。
 - 二维码模式按合法目标 MAC 首次自动启动，及其与普通搜索、已绑定直达和异步页面退出的隔离。
+- 扫码绑定后返回扫描页不再自动跳转或连接，手动重扫只更新列表、点击设备继续连接，新扫码实例仍可自动匹配。
 - 自动停止后不手动清空而再次开始时，新一轮自动清理旧设备、排序状态和旧 MAC 对扫描降级的影响。
 - 蓝牙仪表读取后端 BMS 状态后的扫码提示框自动收起、顶部切换入口保留与重新展开。
 
@@ -136,7 +137,20 @@
    - 命令：二维码生命周期模拟、搜索/扫码路由断言；使用 `pnpm dlx tsx` 执行排序、入口、discovery 租约、扫描错误分类与详情来源断言；`pnpm exec tsc --noEmit --pretty false`、扫描页 SFC 脚本与模板编译、根仓与 UniApp `git diff --check`。HBuilderX 微信小程序仅编译命令同第 28 项。
    - 结果：2026-08-31 全部通过，HBuilderX 5.24 编译约 8.5 秒，产物确认 session 有效性检查后先 `clearList()` 再申请租约与扫描。uniCloud 本地服务空间缺失提示未阻断编译；未上传或发布。原生扫描、设备广播和微信真机体验仍需独立验收。
 
+31. 扫码连接后返回页面的导航回归
+   - 命令：`cd fjbms-uniapp && node pages/device-provision/ble-scan-auto-start.test.js`。
+   - 方法：运行实际 `upsertDevice/selectDevice/onShow` 等处理器，使用 BLE 和绑定列表桩模拟首次匹配及绑定完成后返回，不操作真实设备或详情页原生断连。
+   - 覆盖：绑定列表由未绑定变为已绑定后返回不重定向、不重启扫描；重复显示及后台恢复；自动匹配或手动选择后重扫只更新列表；点击已绑定设备直达详情；新实例再次自动匹配；首次已绑定直达只消费一次；手动操作阻止迟到刷新抢占导航；既有非法 MAC、登录、退出和失败重试场景。
+   - 结果：2026-09-28 先在修改前复现“返回重定向次数实际 1、期望 0”，修改后通过。该回归证明扫描页不依赖是否手动断开的跨页状态，实际断连和硬件连接行为仍待真机验收。
+32. 返回体验增量静态与编译检查
+   - 命令：`node pages/device-provision/ble-scan-restart.test.js`、`node common/device-provision/scan-routing.test.js`、`node common/device-provision/ble-search-entry-route.test.js`、`pnpm dlx tsx pages/device-provision/ble-scan-entry-policy.test.ts`、`pnpm dlx tsx common/device-provision/detail-entry-source.test.ts`、`pnpm exec tsc --noEmit --pretty false`；使用本地 `@vue/compiler-sfc` 编译扫描页脚本和模板。
+   - 微信编译：`/Applications/HBuilderX.app/Contents/MacOS/cli launch mp-weixin --project /Users/payhon/work2025/project/fjbms/fjbms-uniapp --compile true --continue-on-error false`。
+   - 结果：2026-09-28 全部通过，HBuilderX 5.26 前端编译成功；`unpackage/dist/dev/mp-weixin/pages/device-provision/ble-scan.js` 确认 `shouldAutoStart && autoStartPending` 及 `selectDevice` 消费 `navigated`。uniCloud 本地服务空间不存在提示未阻断前端编译；未上传或发布。
+   - 真机条件：`adb devices -l` 未发现 Android 手机，`xcrun devicectl list devices` 中 iPhone 均为 `unavailable`，本轮未执行微信小程序真机或 Android/iOS App 蓝牙冒烟。
+
 ## 3. 人工验证清单
+- [ ] 2026-09-28 增量：微信小程序按录屏完成未绑定 BMS 扫码、绑定、详情主动断开并返回，保持停止扫描且无详情自动跳转或重连；未主动断开直接返回同样成立。
+- [ ] 返回后重复显示、切后台恢复及手动重新扫描不自动连接；点击设备可连接，新一次扫码仍自动匹配；Android/iOS App 各完成共享流程冒烟。
 - [ ] 自动扫描停止后，不点“清空列表”直接点“开始扫描”，旧结果立即清空，本轮重新发现的设备按当前信号排序；手动停止保留本轮结果。
 - [ ] 上轮强信号设备移远或断电后不残留在新一轮；本轮无有效 MAC 时仍可降级重扫，降级过程不丢失本轮已展示设备。
 - [ ] 关闭蓝牙后重新开始：旧列表清空、错误提示正常、可手动重试；Android/iOS App 和微信小程序分别验证。
@@ -184,3 +198,10 @@
 - 定时器假时钟断言不能替代微信小程序、Android、iOS 对原生触摸事件顺序、滚动和 BLE 广播密度的真实验证。
 - 本次已完成源码、逻辑断言与 SFC 语法校验；未在本机连接真实 BLE 设备，因此不能将上述结果视为 Android、iOS 或微信小程序真机闭环。
 - 仪表扫码入口本次复用既有二维码校验和目标 MAC 配置流程；显隐测试通过不能替代扫码切换后端 BMS 的真实设备验证。
+
+
+## 2026-10-09 Git 交付前复核
+
+- 重新运行扫码自动启动/返回、扫描重启、入口策略、扫码路由和详情来源回归，均通过。
+- UniApp TypeScript 及扫描页在微信小程序和 App 分支的 SFC 脚本/模板编译通过。
+- 本轮按用户授权拆分 Git 提交并推送；未重新打包/发布移动端、部署服务或操作数据库，真机验收和功能状态保持原记录。
