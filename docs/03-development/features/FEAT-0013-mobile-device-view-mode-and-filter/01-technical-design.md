@@ -2,9 +2,9 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-08-21
+- last_updated: 2026-09-28
 - related_feature: FEAT-0013
-- version: v0.1.1
+- version: v0.1.3
 
 ## 1. 方案概览
 - 以“设备激活/绑定”和“首页可见性”解耦为核心思路：
@@ -76,6 +76,12 @@
 - 不复用 `unbind`，避免“移除首页可见性”与“解绑设备”概念混淆。
 
 ## 3. 关键流程
+### 3.0 终端用户设备自定义名称
+- 执行 `backend/sql/66.sql`，在 `device_user_bindings` 新增可空 `custom_name varchar(255)`；业务备注 `remark` 保持原用途，`devices.name` 保持设备原始名称。
+- 兼容旧版移动端：终端用户调用现有 `PUT /api/v1/device` 且只提交 `id`、`name` 时，后端校验租户与当前用户绑定关系后，仅写入 `custom_name`。机构/管理员原有设备档案更新行为不变。
+- `self_bound` 列表、名称筛选和终端用户设备详情使用 `COALESCE(NULLIF(TRIM(dub.custom_name), ''), NULLIF(TRIM(d.name), ''), d.device_number)` 的显示口径；机构视图仍使用设备档案名称。
+- 解绑/后台强制解绑删除绑定行时，自定义名称同步消失；重新绑定创建的新行不携带历史名称。历史上已覆盖 `devices.name` 的记录需按可信来源定向恢复，不做无依据的批量重置。
+
 ### 3.1 终端用户添加设备
 1. 前端发起扫码/蓝牙添加。
 2. 后端识别 `user_kind=END_USER`。
@@ -118,6 +124,12 @@
 - 父页面仅接受包含有效 `id` 的设备对象；原生事件对象、空值以及字符串 `undefined`、`null`、`[object Object]` 均视为无效目标。
 - 页面和 `service/device.ts` 在调用 `/api/v1/app/device/unbind` 前分别解析并校验设备 ID，无效 ID 只提示失败或拒绝 Promise，不发起网络请求。
 
+### 3.6 解绑/移除后同步扫码快照
+- 微信自定义 TabBar 通过 `__BOUND_DEVICES_SNAPSHOT__` 判断 MAC/UUID 是否已添加；原 store 的 `removeByDeviceId()` 只删除内存列表，导致解绑后扫码仍命中旧设备 ID，跳过重新添加。旧详情请求因绑定已不存在而失败，后续 BLE 连接不会启动。
+- 在 `store/bound-devices.ts` 的 `removeByDeviceId()` 过滤列表后，复用 `syncBoundDeviceSnapshot(this.list)` 写回快照；其他设备的 MAC、UUID 与 ID 保持一致。
+- 首页终端用户解绑和机构用户移除均在接口成功后调用现有 `removeDeviceFromView()`，统一消费该 store 动作；接口失败或用户取消时不删除列表和快照。
+- 继续沿用原扫码路由：已添加设备直达详情，已移除 BMS 的 MAC 进入 `ble-scan?mode=qr`，UUID 进入 `uuid-bind`。扫码页自动入口仍遵循 FEAT-0052 的一次性规则，BLE 断连策略保持现有行为。
+
 ## 4. 安全与权限
 - `END_USER` 仅能查看和操作自己的绑定设备。
 - `ORG_USER` 的 `org_added` 仅能操作自己的添加记录。
@@ -132,6 +144,7 @@
   - 新增“机构添加不激活、不记激活日志”测试。
 - UniApp：
   - 类型检查。
+  - 执行实际 Pinia store、首页解绑/移除 handler 与微信 TabBar 扫码 handler 的隔离回归，覆盖成功/失败/取消、MAC/UUID、保留其他设备及两种用户各三轮重复添加。
   - 长按管理事件命名与设备 ID 校验策略测试。
   - 微信小程序编译产物核对：卡片根节点为 `catchlongpress`，父页面为 `bindmanage`。
   - 视图切换图标显示/隐藏与模式持久化验证。
@@ -150,3 +163,4 @@
   - `ORG_USER` 默认 `org_added`
 - 激活日志查询逻辑需增加 `END_USER` 过滤，避免将机构用户“仅添加”误算为激活。
 - 当前首页缓存与逐条遥测查询策略不适合大列表场景，FEAT-0013 落地时需同步切换为分页与服务端筛选，避免机构用户性能退化。
+- v0.1.3 仅复用共享 store 的现有本地存储同步能力，微信小程序、Android/iOS 共用代码；不新增接口、数据库迁移、路由参数或全局状态。

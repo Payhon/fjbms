@@ -2,9 +2,9 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-08-21
+- last_updated: 2026-09-28
 - related_feature: FEAT-0013
-- version: v0.1.1
+- version: v0.1.3
 
 ## 日志
 1. 2026-03-12 方案确认
@@ -58,3 +58,20 @@
    - 根因：`device-card.vue` 在根节点监听原生 `longpress`，同时向父页面发送同名 `longpress` 自定义事件；微信小程序编译产物形成子组件原生 `bindlongpress` 与父组件自定义 `bindlongpress` 同名链路，OpenHarmony 微信会把不含设备 `id` 的原生事件对象交给父页。
    - 修复：卡片根节点改为 `@longpress.stop`，自定义事件改名为 `manage`；父页改为 `@manage`，并在打开管理菜单、页面调用解绑接口及 `service/device.ts` 发出请求前通过 `resolveHomeDeviceActionId()` 分层校验设备 ID。
    - 防线：空值、`undefined`、`null`、`[object Object]` 及原生长按事件对象均不得触发解绑请求。
+12. 2026-09-24 修复终端用户解绑重绑后仍显示旧自定义名称
+   - 根因：首页改名复用通用设备更新接口，直接覆盖 `devices.name`；解绑只删除 `device_user_bindings` 行。
+   - 后端按真实用户类型分流旧版改名请求：终端用户仅可提交 `id`、`name`，验证租户和绑定关系后写入 `device_user_bindings.custom_name`；管理员/机构用户的原设备更新路径保持原样。
+   - 新增 `backend/sql/66.sql`，绑定自定义名称与后台激活流程使用的 `remark` 业务备注隔离；`self_bound` 列表、名称筛选和终端用户设备详情优先取 `custom_name`，解绑或后台强制解绑删除绑定行后自动清除。
+   - 新增 SQLite 服务层回归用例，覆盖双用户名称隔离、业务备注不受影响、无绑定改名被拒、解绑与重绑后恢复原名。历史已覆盖 `devices.name` 的设备仍需按可信原始记录定向修复。
+13. 2026-09-24 生产发布
+   - 发布前生产库有 586 条绑定、`remark` 非空 0 条；源代码确认后台激活流程会写入 `remark`，因此改用独立的 `custom_name` 列。
+   - 先执行 `backend/sql/66.sql`，验证新增列为可空 `varchar(255)`；原绑定行保持不变。
+   - 备份生产旧二进制至 `/www/fjia/backups/fjbms/backend/fjbms.pre-custom-name.20260924_202435`，旧 SHA-256 为 `32f46978df515c41c05ea91326587d7a7c9a6da00cc92b09ce1ca3147403b981`。
+   - 更新后端并重启 `fjbms-backend`；新 SHA-256 为 `a27e66e1afc2baec59f0c9dd441b03c70dc5df10c422f678358ae2881238a664`，与本地 Linux/amd64 构建一致。
+   - 历史操作日志确认至少两台仍存在的设备已由旧改名接口覆盖 `devices.name`，现有设备表及日志未保留更名前的名称；未在缺乏可信原名时批量改写生产数据。
+14. 2026-09-28 修复解绑后再次扫码误入旧详情
+   - 只读诊断复现：解绑后首页和 Pinia 列表已删除设备，但微信 TabBar 使用的 `__BOUND_DEVICES_SNAPSHOT__` 仍保留旧设备；再次扫码直达旧详情，绑定校验失败，未进入重新添加或 BLE 连接。
+   - 用户确认修复后先补充功能规格；在 `removeByDeviceId()` 增加一行现有快照同步调用，同时覆盖首页解绑和机构用户移除。
+   - 新增 `store/bound-devices-snapshot.test.js`，执行实际 store、首页动作与微信扫码 handler；两种用户各三轮重复添加/移除、失败/异常/取消、MAC/UUID 路由和保留其他设备均通过。移除该同步调用的负向对照稳定复现快照残留。
+   - 原扫码生命周期及路由回归、TypeScript 检查、HBuilderX 5.26 微信小程序编译通过；编译产物已包含同步调用。
+   - 保留已有未提交修改；本次未提交、推送或发布，微信及 Android/iOS 真机 BLE 闭环待验收。
