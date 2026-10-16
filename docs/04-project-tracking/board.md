@@ -241,6 +241,9 @@
   - 进展：已开始实现厂家“恢复出厂”单台操作，新增独立接口、生命周期入口、操作日志 `FACTORY_RESTORE` 与权限 SQL，待定向 Go/ESLint/前端构建校验及账号回归
   - 文档：`docs/03-development/features/FEAT-0050-battery-factory-restore-action/`
 - [ ] `in_progress` **FEAT-0049** BMS 4G 移动端云端详情链路
+  - 2026-10-16 Git 交付：按功能拆分后端广播、Web 静默请求/owner 握手/共享快照、移动端文案提交；归档两份协议原始资料。后端定向测试、Web 8 项断言及队列自检、受影响文件 ESLint、Web 构建、UniApp 类型检查通过；修正测试替身新增的 5 条类型问题后，显式类型检查与 HEAD 只读基线均为 1781 条既有诊断，无新增。各仓库当前已在默认主分支（Web 为 master，其余 main），无需额外分支合并；真机双端验收仍待完成，本轮不部署或发布。
+  - 2026-10-09 生产发布：仅更新后端二进制和 Web 静态产物，未发布 UniApp、配置、SQL 或 BMS Bridge；线上校验和与本地一致，`fjbms-backend` active、`NRestarts=0`，本机/公网健康检查和公网首页均为 HTTP 200。旧后端和 Web 已备份，真实 4G 板双端验收仍待完成。
+  - 2026-10-09：保留每台设备唯一 MQTT 透传 owner，补齐 Web owner session/完整快照上报、后端当前遥测广播和 Web 共享快照优先展示；非 owner 仅共享查看，参数/控制/OTA继续独占。Web 8 项断言、前端/UniApp类型检查和后端定向测试通过，待后台浏览器+微信小程序+真实4G板双端验收。
   - 2026-09-12：MQTT/4G OTA同步800/450ms数据与5000/450ms完成策略、最多3次超时重发；普通Socket/轮询不变，4G真机连续升级验收待完成。
   - owner：payhon
   - 优先级：P1

@@ -2,9 +2,44 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-09-12
+- last_updated: 2026-10-16
 - related_feature: FEAT-0049
-- version: v0.2.11
+- version: v0.2.12
+
+## 2026-10-16 Git 交付前复核
+
+- 后端 `go test ./internal/service ./internal/api ./router/apps`、修改文件 gofmt 与差异格式检查通过。
+- Web owner 握手、占用拒绝、共享快照选择及电芯回退共 8 项测试通过；额外执行实际上报队列的隔离自检，单请求在途、最新值合并、失败恢复、旧 transport 与空 session 拒绝均通过。
+- Web 受影响文件 ESLint 为 0 error：8 条原有未使用参数 warning，测试替身回调类型声明另有 4 条同类 warning；`pnpm build` 成功。UniApp `pnpm exec tsc --noEmit --pretty false` 通过。
+- 显式类型检查发现测试替身使用原生 WebSocket 回调时引入 5 条 `this` 类型诊断，已将替身改为普通事件回调声明；修正后重新运行 8 项测试与测试文件 ESLint 均通过。显式 `vue-tsc --noEmit --skipLibCheck --pretty false` 及 HEAD 源码只读基线均为 1781 条诊断，按文件位置/错误编码比较无新增或移除，所有修改文件均无类型诊断；`pnpm typecheck` 的平台脚本退出成功不能代表显式类型检查通过。
+- 两份新增协议原始资料压缩包及 XML 可读取，已提取文档正文、核对表格工作表与数据行；本轮保持原文件不变归档，不将资料内容视为均衡功能已经实现或真机验证完成。
+- 本轮仅提交与推送，不重新部署后端/Web、发布客户端、修改数据库或向设备发送命令；2026-10-09 生产结果为历史记录，未刷新生产验收。真实 4G 板双端 owner/共享查看验收仍待完成，功能保持 `in_progress`。
+
+## 2026-10-09 生产发布验证
+
+- 生产后端二进制 SHA-256 与本地构建一致：`413657d05e7c35c907005fd017c08b098dfc5b15ad147d686cafb426ca2ceccc`。
+- `fjbms-backend` 发布后为 `active`，`NRestarts=0`；服务器本机和公网 `/health` 均返回 HTTP 200，重启后日志未命中 `panic/fatal/error`。
+- 公网匿名请求 `POST /api/v1/app/battery/interactive-snapshot` 返回 HTTP 401，确认路由存在且鉴权仍生效。
+- 生产 Web `index.html` 以及包含共享快照、owner session 的两个 JS 产物，服务器与公网 SHA-256 均和本地 `dist` 一致；公网首页返回 HTTP 200。
+- 本次未发布 UniApp，未同步配置、SQL 或 BMS Bridge。真实 4G 板 + 后台浏览器 + 微信小程序双端同时查看仍未执行，功能状态继续保持 `in_progress`。
+
+## 2026-10-09 多端共享查看本地验证
+
+- Web 定向断言 8 项通过：owner feature/session 握手、occupied 拒绝第二条透传、共享快照优先级、无效共享快照回退以及既有电芯无效值用例。
+- `cd frontend && pnpm typecheck` 通过；改动文件 ESLint 为 0 error，仅保留原文件既有未使用形参 warning。
+- `cd frontend && pnpm build` 通过并生成 `dist/`；构建仍输出既有组件命名冲突、`Card2Wrapper.vue` 使用 `eval` 及若干 UnoCSS 图标无法加载警告。
+- `cd fjbms-uniapp && pnpm exec tsc --noEmit --pretty false` 通过。
+- `cd backend && go test ./internal/service ./internal/api` 通过。
+- `cd backend && go test ./...` 的本次相关包均通过；全量仍被既有环境用例阻断：`initialize/test.TestSetDevice` 在未初始化 AlarmCache 时空指针，`test.TestDatebase` 因未设置 `run_env`/数据库报“未知环境”后空指针。
+- `git diff --check` 在根仓库及三个子仓库通过。
+- 尚未完成真实 4G 板、后台浏览器与微信小程序双端同时在线验收；因此不把本地检查标记为生产验收，状态保持 `in_progress`。
+
+建议真机回归：
+
+1. 后台先进入、手机后进入：后台保持 owner，手机 5 秒内刷新共享快照，手机参数/OTA仍阻断。
+2. 手机先进入、后台后进入：手机保持 owner，后台通过当前遥测 WebSocket刷新共享快照，后台参数通道保持未连接。
+3. 分别关闭 owner、切换设备、断网超过 TTL 后重连：确认旧 session 不再写快照且新 owner 正常接管。
+4. 同时观察 MQTTX/后端日志：每台设备仅一组下行读取，普通 `0x03`、参数写入和 OTA 不出现跨客户端交错。
 
 ## 2026-09-12 动态ACK超时本地验证
 

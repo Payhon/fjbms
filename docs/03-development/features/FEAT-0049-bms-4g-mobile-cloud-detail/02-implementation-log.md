@@ -2,9 +2,39 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-09-12
+- last_updated: 2026-10-09
 - related_feature: FEAT-0049
-- version: v0.2.11
+- version: v0.2.12
+
+## 2026-10-09 生产发布（后端 + Web）
+
+1. 发布范围
+   - 仅替换生产后端二进制并重启 `fjbms-backend`，随后原子替换生产 Web 静态目录。
+   - 未同步后端配置、SQL、BMS Bridge，未构建或发布 UniApp，也未提交或推送代码。
+2. 发布结果
+   - 后端本地与线上 SHA-256 均为 `413657d05e7c35c907005fd017c08b098dfc5b15ad147d686cafb426ca2ceccc`。
+   - Web `index.html` 本地、服务器与公网 SHA-256 均为 `61b0d346db255801157ced4c563b271a07a9fd4223a93df42d509f0293bf667a`；共享查看和 owner transport 两个产物也分别与公网校验一致。
+   - `fjbms-backend` 为 `active`、`NRestarts=0`，服务本机及公网 `/health` 均返回 HTTP 200，重启后日志未命中 `panic/fatal/error`；匿名访问共享快照接口返回预期 HTTP 401。
+3. 回滚备份
+   - 后端：`/www/fjia/backups/fjbms/backend/backend_20261009_212454_pre_shared_view.bin`。
+   - Web：`/www/fjia/backups/fjbms/frontend/frontend_20261009_212454_pre_shared_view.tar.gz`。
+
+## 2026-10-09 单透传会话、多端共享查看
+
+1. 保留设备级唯一透传 owner
+   - 后端 Redis owner、45 秒 TTL、session 匹配释放及非 owner 拒绝逻辑不变。
+   - occupied 提示由“其他账号”改为“其他终端”，避免同账号后台/手机并行查看时误导。
+2. Web owner 上报共享快照
+   - Web Transport 声明 `mqtt_socket_owner_v1`，等待并保存 `socket_ready.session_id`；`socket_occupied/socket_error` 在建立 BMS Client 前失败，旧后端仍保留 1.2 秒兼容窗口。
+   - 后台每次完整 `readAllStatus()` 成功后复用既有 `interactive-snapshot` 接口；单 in-flight、latest-wins 队列只保留最新状态，断开时清理未发送值。
+   - 后台快照上报使用静默请求，不清除或弹出业务操作消息；上报失败不影响当前 owner 本地实时显示。
+3. 多端共享查看
+   - 后端保存主动读取快照后复用当前遥测 Redis/WebSocket 事件广播 `bms.mqtt_interactive_snapshot`。
+   - Web 当前遥测首次查询与 WebSocket 订阅加入该键，显示优先级为本地实时状态 > owner 共享快照 > 普通 `bms.snapshot`。
+   - Web 仅在底层 Socket 已确认断开时清理旧本地实时状态，使新 owner 的共享快照能够接管；普通读取超时仍保留最后实时值并继续原重试行为。
+   - 手机端继续复用原 APP 当前遥测 5 秒轮询和原子快照优先级，仅将 occupied 文案调整为“共享/云端只读”。
+4. 未改范围
+   - 未新增数据库字段、依赖、MQTT Topic 或第二条设备透传；参数、控制和 OTA 继续仅 owner 可用。
 
 ## 2026-09-12 OTA动态超时兼容边界（当前生效）
 

@@ -2,9 +2,28 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-09-12
+- last_updated: 2026-10-09
 - related_feature: FEAT-0049
-- version: v0.2.11
+- version: v0.2.12
+
+## 2026-10-09 单透传会话、多端共享查看设计
+
+1. owner 规则保持不变
+   - `/api/v1/app/battery/socket/ws` 继续通过 `bms:mqtt_socket:owner:{device_id}` 保证每台设备只有一个透传 session。
+   - 非 owner 不订阅设备原始回包，也不进入 BMS Transport 请求队列；因此无需改变普通 `0x03` 回包匹配、参数写入或 OTA 独占语义。
+2. Web owner 补齐快照上报
+   - `WebMqttSocketBmsTransport` 声明 `mqtt_socket_owner_v1`、识别 `socket_ready/socket_occupied/socket_error` 并暴露只读 `session_id`。
+   - 新后端返回 `socket_ready` 时再完成连接；旧后端 1.2 秒内无控制消息时兼容放行，但因没有 `session_id` 而跳过共享快照上报。
+   - 后台完整读取成功后复用 `POST /api/v1/app/battery/interactive-snapshot`，采用单 in-flight、latest-wins 队列，避免 HTTP 堆积或乱序覆盖。
+3. 共享快照分发
+   - 后端完成 owner/session/用户/租户/设备校验并单调写入 `bms.mqtt_interactive_snapshot` 后，复用 `publishAppBatteryWSEvent` 广播同一原始 JSON 快照。
+   - Web 当前遥测订阅增加该键，展示优先级为 `bms.mqtt_interactive_snapshot` 高于 `bms.snapshot`，实时 owner 本地状态仍最高。
+   - 手机端 occupied 分支继续调用 APP 当前遥测接口并使用既有 `interactive_snapshot` 优先级，无新增轮询器。
+4. 权限与操作边界
+   - 共享查看只传递经过现有设备可见性校验的当前状态；不共享 token、session 控制权或原始双向透传通道。
+   - 非 owner 的参数修改、控制及 OTA 保持现有阻断；提示中的“其他账号”调整为准确的“其他终端”。
+5. 回滚
+   - 可独立回滚 Web owner feature/session、Web 快照上报、后端 WS 广播及 Web 共享快照优先级；设备 owner 锁和原有移动端快照机制无需回滚。
 
 ## 2026-09-12 OTA动态超时兼容边界（当前生效）
 

@@ -2,9 +2,19 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-09-12
+- last_updated: 2026-10-09
 - related_feature: FEAT-0049
-- version: v0.2.11
+- version: v0.2.12
+
+## 2026-10-09 多端共享查看
+
+- 后台管理和手机端现在可同时查看同一台 4G BMS：一个终端持有真实 MQTT 透传，另一个终端显示 owner 最近一次完整读取的共享只读快照。
+- 设备仍只有一个透传 owner；非 owner 不发送设备读取、参数写入或 OTA 指令，避免普通 `0x03` 回包串扰和升级中断。
+- 手机端提示改为“其他终端正在实时连接，当前显示共享/云端只读数据”；后台云端状态标识改为“共享/云端只读”。
+- 无数据库迁移、依赖或 MQTT Topic 变化。2026-10-09 生产仅发布后端和 Web；现有已支持 owner session/交互快照的移动端无需强制升级，仍显示旧 occupied 文案。更早移动端保持原云端兜底能力。
+- 可独立回滚 Web session/快照上报、后端共享快照广播及 Web 展示优先级；不要回滚设备级 owner 锁。
+- 生产后端和 Web 校验和均与本地产物一致，服务健康检查与公网首页均为 HTTP 200；回滚备份分别为 `/www/fjia/backups/fjbms/backend/backend_20261009_212454_pre_shared_view.bin` 和 `/www/fjia/backups/fjbms/frontend/frontend_20261009_212454_pre_shared_view.tar.gz`。
+- 本次未发布 UniApp，未变更配置、SQL 或 BMS Bridge；真实 4G 板双端同时查看验收仍待完成。
 
 ## 2026-09-12 OTA动态超时兼容边界（当前生效）
 

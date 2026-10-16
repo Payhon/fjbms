@@ -2,9 +2,26 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-09-12
+- last_updated: 2026-10-09
 - related_feature: FEAT-0049
-- version: v0.2.11
+- version: v0.2.12
+
+## 2026-10-09 单透传会话、多端共享查看
+
+- 同一台 4G BMS 继续只允许一个 MQTT Socket 实时透传 owner；不得取消设备级 Redis owner，也不得让后台和手机端并发发送普通读取、参数写入或 OTA 帧。
+- 当前 owner 每次完整 `readAllStatus()` 成功后，将原子快照写入既有 `bms.mqtt_interactive_snapshot`；后端同时通过现有当前遥测 WebSocket 广播该键。
+- 非 owner 端不建立第二条设备透传链路：手机端沿用 APP 当前遥测 5 秒轮询，后台沿用当前遥测 WebSocket/首次查询，优先显示 owner 的共享快照。
+- 非 owner 端仅共享查看仪表盘与电芯数据；参数修改、控制和 OTA 继续不可用。提示改为“其他终端实时连接/共享只读”，不再错误表述为“其他账号占用”。
+- 不新增数据库字段、依赖或 MQTT Topic，不改变 BLE、设备主动上报、参数串行队列及 OTA 协议。
+
+### 验收标准
+
+1. 后台先进入详情并持有 owner 时，手机端不发送第二套透传指令，能够在一次云端轮询周期内显示后台读取的完整共享快照。
+2. 手机端先进入详情并持有 owner 时，后台不发送第二套透传指令，能够通过当前遥测查询或 WebSocket 显示手机端读取的完整共享快照。
+3. 两端同时查看期间，Redis 中仍只有一个设备 owner；普通读取、参数写入与 OTA 不发生跨客户端回包竞争。
+4. owner 退出、切换设备或失去 session 后，旧 session 快照提交继续被后端拒绝；新 owner 可按原流程接管。
+5. 不支持 `mqtt_socket_owner_v1` 的旧后端仍按 1.2 秒兼容窗口连接，Web 端不提交缺少 `session_id` 的共享快照。
+6. BLE-only、4G OTA、参数读写、历史记录、在线判定和现有云端兜底行为保持不变。
 
 ## 2026-09-12 OTA动态超时兼容边界（当前生效）
 
