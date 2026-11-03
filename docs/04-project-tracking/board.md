@@ -23,6 +23,12 @@
 ## 模块泳道看板
 
 ### Mobile（`fjbms-uniapp/`）
+- [ ] `review` **FEAT-0079** 蓝牙扫描名称恢复
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：蓝牙广播 localName、设备 MAC 识别
+  - 进展：有效广播名优先、异常名称保护及无名称 MAC 匹配已实现；扫描回归、类型和 Vue 编译检查通过，iOS 微信小程序/App 及 Android 真机待验收，代码已分项提交并推送、客户端未发布；风险与回滚见功能文档
+  - 文档：`docs/03-development/features/FEAT-0079-ble-scan-name-recovery/`
 - [ ] `review` **FEAT-0078** iOS 扫码超时后继续搜索
   - owner：payhon
   - 优先级：P1
