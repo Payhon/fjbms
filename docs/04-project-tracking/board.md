@@ -23,6 +23,12 @@
 ## 模块泳道看板
 
 ### Mobile（`fjbms-uniapp/`）
+- [ ] `review` **FEAT-0077** 蓝牙重连搜索提速与阶段提示
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：现有 BLE 缓存、扫描租约与详情会话生命周期
+  - 进展：已实现目标命中即结束扫描等待、搜索/连接/初始化中英文提示、共享任务进度同步及旧会话回调隔离；18 组自动化回归、TypeScript、微信/Android/iOS 模拟器目标编译通过，保留校时/探测/重试/4G/OTA 与既有主动均衡修改，代码已分项提交并推送、客户端未发布，待真机耗时及兼容性验收；风险与回滚见功能文档
+  - 文档：`docs/03-development/features/FEAT-0077-ble-reconnect-progress/`
 - [ ] `review` **FEAT-0076** 主动均衡电流与电芯状态显示
   - owner：payhon
   - 优先级：P1
