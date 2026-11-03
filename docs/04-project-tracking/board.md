@@ -23,6 +23,12 @@
 ## 模块泳道看板
 
 ### Mobile（`fjbms-uniapp/`）
+- [ ] `review` **FEAT-0078** iOS 扫码超时后继续搜索
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：现有 BLE 扫描租约与二维码匹配
+  - 进展：续扫保留结果与本轮降级判断已实现；扫描回归、类型及 Vue 编译检查通过，iOS 微信小程序和 App 真机密集环境与布局待验收，代码已分项提交并推送、客户端未发布；风险与回滚见功能文档
+  - 文档：`docs/03-development/features/FEAT-0078-ios-qr-ble-scan-continue/`
 - [ ] `review` **FEAT-0077** 蓝牙重连搜索提速与阶段提示
   - owner：payhon
   - 优先级：P1
