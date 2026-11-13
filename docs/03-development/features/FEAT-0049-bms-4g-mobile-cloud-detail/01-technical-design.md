@@ -2,9 +2,19 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-10-09
+- last_updated: 2026-11-06
 - related_feature: FEAT-0049
-- version: v0.2.12
+- version: v0.2.13
+
+## 2026-11-06 当前遥测响应过滤旧交互快照
+
+- 生产已于 17:07（Asia/Shanghai）按二进制更新方式发布，本机和公网 APP 接口均验证旧快照被省略；运行中二进制校验和、49 个配置/SQL 文件校验和和回滚备份见发布证据。
+- 唯一业务入口为 `GetBatteryCurrentTelemetryForApp`，在 `buildAppBatteryCurrentTelemetryResp` 中复用本次查询已有的时间计算，避免新增查询或设备命令。
+- `last_report_ts` 仍取查询结果全部 current 行的最大存储时间（包含普通上报与交互快照）；当 `interactive_snapshot_ts < last_report_ts` 时，将响应的交互快照与时间置空/零，由现有 `omitempty` 序列化省略。相同时间保留交互快照，维持完整状态的确定性优先级。
+- 普通 `snapshot/current` 和它们的时间保持既有合成规则。客户端收到被过滤的响应后，按现有 `snapshot_ts >= last_report_ts` 条件选择普通快照，否则按普通 current 合成；不改动移动端选择函数。
+- 交互快照只在响应层被过滤，原数据库行、owner session 验证、共享快照广播和 Web 自身当前遥测订阅逻辑保持现状。新鲜或唯一的交互快照仍是完整原子状态。
+- 首屏、occupied 和读取失败兜底不可由现有请求区分，因此全部按同一时间规则处理；这是本轮对原“交互快照永远优先”约定的显式修正。
+- 验证包含 Go 响应选择/JSON 字段省略测试，以及实际移动端数据构建函数读取对应响应样例的隔离兼容检查。仅验证已入库时间，不把接口查询解释为设备即时采样。
 
 ## 2026-10-09 单透传会话、多端共享查看设计
 
@@ -18,7 +28,7 @@
 3. 共享快照分发
    - 后端完成 owner/session/用户/租户/设备校验并单调写入 `bms.mqtt_interactive_snapshot` 后，复用 `publishAppBatteryWSEvent` 广播同一原始 JSON 快照。
    - Web 当前遥测订阅增加该键，展示优先级为 `bms.mqtt_interactive_snapshot` 高于 `bms.snapshot`，实时 owner 本地状态仍最高。
-   - 手机端 occupied 分支继续调用 APP 当前遥测接口并使用既有 `interactive_snapshot` 优先级，无新增轮询器。
+   - 手机端 occupied 分支继续调用 APP 当前遥测接口；后端按 2026-11-06 时间规则过滤旧交互快照，无新增轮询器。
 4. 权限与操作边界
    - 共享查看只传递经过现有设备可见性校验的当前状态；不共享 token、session 控制权或原始双向透传通道。
    - 非 owner 的参数修改、控制及 OTA 保持现有阻断；提示中的“其他账号”调整为准确的“其他终端”。
@@ -82,7 +92,7 @@
 - Socket `socket_ready` 中的 `session_id` 由 `UniMqttSocketBmsTransport` 保存并只读暴露；旧后端未返回该字段时不上报主动读取快照。
 - 每次 MQTT `readAllStatus()` 完整成功后，把同一份 `BmsStatus` 作为主动读取快照异步上报；上报不阻塞页面实时状态提交，也不进入 BMS Transport 串行命令队列。
 - 快照上报使用单 in-flight、latest-wins 队列：请求进行中产生的新状态只保留最新一份，请求结束后继续发送；切换设备/session、断开或页面销毁时清理待发送值，迟到请求结果不写页面。
-- 云端状态合成优先级为 `interactive_snapshot` > 时间有效的 `bms.snapshot` > 普通 current 合成。主动读取快照作为原子状态使用，不叠加后来到达的普通主动上报字段；不存在主动读取快照时保持原行为。
+- 云端状态合成优先级为“后端确认不早于普通上报的 `interactive_snapshot` > 时间有效的 `bms.snapshot` > 普通 current 合成”。旧交互快照在响应中省略；返回的交互快照作为原子状态使用，不叠加普通主动上报字段。
 - 详情页新增 `bmsDataLoading` 首帧读取状态：
   - 连接建立后、`status` 仍为空时显示仪表盘加载卡片；
   - 首帧 `readAllStatus()` 或云端 `bms.snapshot` 返回后隐藏加载态；

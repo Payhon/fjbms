@@ -1,0 +1,135 @@
+{
+  "release_id": "20261106_170525",
+  "local_sha256": "101527064757f79b6d1beb3b5ac55bca40be3dda4a85a65b6bc64958a859694d",
+  "backup_path": "/www/fjia/backups/fjbms/backend/backend_20261106_170525_pre_current_telemetry.bin",
+  "remote_binary": "/www/fjia/fjbms/backend/fjbms",
+  "public_base": "https://cloud.fjiaenergy.com",
+  "before_probe": {
+    "device_id": "prod-device-a",
+    "database_interactive_ts": 1792397848955,
+    "database_ordinary_ts": 1793955727584,
+    "database_is_online": 1,
+    "auth_method": "existing_api_key",
+    "requests": [
+      {
+        "base": "http://127.0.0.1:9999",
+        "http_status": 200,
+        "business_code": 200,
+        "last_report_ts": 1793955727584,
+        "snapshot_ts": 1793955726759,
+        "interactive_snapshot_present": true,
+        "interactive_snapshot_ts": 1792397848955,
+        "interactive_soc": 13,
+        "current_soc": 10,
+        "reported_soc": 10
+      },
+      {
+        "base": "https://cloud.fjiaenergy.com",
+        "http_status": 200,
+        "business_code": 200,
+        "last_report_ts": 1793955727584,
+        "snapshot_ts": 1793955726759,
+        "interactive_snapshot_present": true,
+        "interactive_snapshot_ts": 1792397848955,
+        "interactive_soc": 13,
+        "current_soc": 10,
+        "reported_soc": 10
+      }
+    ]
+  },
+  "previous_sha256": "413657d05e7c35c907005fd017c08b098dfc5b15ad147d686cafb426ca2ceccc",
+  "previous_pid": "1634315",
+  "deployment_started_at": "2026-11-06T17:06:39.742827+08:00",
+  "verification": {
+    "service": {
+      "MainPID": "3771596",
+      "NRestarts": "0",
+      "ExecMainStartTimestamp": "Fri 2026-11-06 17:07:17 CST",
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    "installed_sha256": "101527064757f79b6d1beb3b5ac55bca40be3dda4a85a65b6bc64958a859694d",
+    "running_sha256": "101527064757f79b6d1beb3b5ac55bca40be3dda4a85a65b6bc64958a859694d",
+    "local_health": {
+      "code": 200,
+      "message": "操作成功"
+    },
+    "configuration_files_unchanged": 49
+  },
+  "after_probe": {
+    "device_id": "prod-device-a",
+    "database_interactive_ts": 1792397848955,
+    "database_ordinary_ts": 1793955727584,
+    "database_is_online": 0,
+    "auth_method": "existing_api_key",
+    "requests": [
+      {
+        "base": "http://127.0.0.1:9999",
+        "http_status": 200,
+        "business_code": 200,
+        "last_report_ts": 1793955727584,
+        "snapshot_ts": 1793955726759,
+        "interactive_snapshot_present": false,
+        "interactive_snapshot_ts": null,
+        "interactive_soc": null,
+        "current_soc": 10,
+        "reported_soc": 10
+      },
+      {
+        "base": "https://cloud.fjiaenergy.com",
+        "http_status": 200,
+        "business_code": 200,
+        "last_report_ts": 1793955727584,
+        "snapshot_ts": 1793955726759,
+        "interactive_snapshot_present": false,
+        "interactive_snapshot_ts": null,
+        "interactive_soc": null,
+        "current_soc": 10,
+        "reported_soc": 10
+      }
+    ]
+  },
+  "deployment_status": "verified",
+  "deployment_verified_at": "2026-11-06T17:07:18.439603+08:00",
+  "stability_verification": {
+    "service": {
+      "MainPID": "3771596",
+      "NRestarts": "0",
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    "health": {
+      "code": 200,
+      "message": "操作成功"
+    },
+    "backend_log_bytes_since_precheck": 506618,
+    "backend_log_bytes_scanned": 506528,
+    "panic_fatal_matches": 0,
+    "log_error_summary_superseded_by": "startup_log_verification"
+  },
+  "remote_probe_scripts_removed": true,
+  "startup_log_verification": {
+    "log_bytes_since_precheck": 542840,
+    "bytes_scanned": 542840,
+    "error_or_fatal_entries": 4,
+    "panic_entries": 0,
+    "redacted_entries": [
+      "ERROR [2026-11-06 17:05:57.0456] WebSocket读取错误:websocket: close 1005 (no status) [project/internal/api/telemetry_data.go:731]",
+      "ERROR [2026-11-06 17:06:15.6637] WebSocket读取错误:websocket: close 1005 (no status) [project/internal/api/telemetry_data.go:731]",
+      "ERROR: relation \"alarm_config\" already exists (SQLSTATE 42P07)",
+      "ERROR [2026-11-06 17:07:21.7384] WebSocket读取错误:websocket: close 1005 (no status) [project/internal/api/telemetry_data.go:731]"
+    ]
+  },
+  "database_startup_check": {
+    "database_version_rows": [],
+    "service": {
+      "NRestarts": "0",
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    "observed_error": "sql/1.sql: relation alarm_config already exists (SQLSTATE 42P07)",
+    "source_behavior": "existing CheckVersion transaction rolls back on SQL error; PgInit logs the error and continues",
+    "manually_applied_sql": false
+  },
+  "configuration_files_fingerprinted": 49
+}

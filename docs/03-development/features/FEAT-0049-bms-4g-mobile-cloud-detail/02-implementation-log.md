@@ -2,9 +2,48 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-10-09
+- last_updated: 2026-11-06
 - related_feature: FEAT-0049
-- version: v0.2.12
+- version: v0.2.13
+
+## 2026-11-13 Git 交付
+
+- 后端修复与回归测试通过 `2bb24066` 推送至 `main`。本次复跑 `go test ./internal/service ./internal/api` 通过。
+- 公开仓库中的生产验收设备统一使用代号 `prod-device-a`。2026-11-06 的生产发布和回滚记录见下方。
+
+## 2026-11-06 生产后端发布
+
+1. 发布范围与时间
+   - 用户授权后，于 17:06:39 开始更新、17:07:17 重启后端，17:07:18 完成本机和公网接口验证（均为 Asia/Shanghai）。
+   - 使用现有 DevOps `update backend --env prod --skip-build` 流程，仅替换 `/www/fjia/fjbms/backend/fjbms` 并重启 `fjbms-backend`；未上传配置/SQL、发布 Web/移动端或更新 BMS Bridge，未下发设备读取/控制命令。
+2. 产物与回滚
+   - 本地、生产磁盘及 `/proc/3771596/exe` 的 SHA-256 均为 `101527064757f79b6d1beb3b5ac55bca40be3dda4a85a65b6bc64958a859694d`。
+   - 更新前备份：`/www/fjia/backups/fjbms/backend/backend_20261106_170525_pre_current_telemetry.bin`，SHA-256 为 `413657d05e7c35c907005fd017c08b098dfc5b15ad147d686cafb426ca2ceccc`。
+   - 现有主配置、configs 和 SQL 共 49 个文件的 SHA-256 发布前后相同。回滚时恢复上述备份到后端路径并重启服务即可。
+3. 生产行为对比
+   - 只读核对设备 `prod-device-a`：旧交互快照 SOC=13%、时间 `1792397848955`，普通最新上报 SOC=10%、时间 `1793955727584`。
+   - 发布前本机/公网接口同时返回旧交互快照与新普通数据；发布后两个接口均 HTTP/业务码 200，旧 `interactive_snapshot` 和时间字段均省略，最新普通 SOC=10% 保留，数据时间未被改写。
+   - 使用现有 API Key 进行只读接口验证，不在证据中保存凭证；前置临时验证会话均已删除，远端验证脚本已清理。
+4. 稳定性与发现
+   - 服务为 `active/running`、`NRestarts=0`，本机 `/health` HTTP/业务码均 200，后续复核状态保持稳定。公网 `/health` 返回 Web SPA，不能作为后端健康证据，本次公网使用实际鉴权业务接口验证。
+   - 日志窗口发现 3 条 WebSocket close 1005 记录（2 条在发布前）以及启动数据库版本检查的 `alarm_config already exists`。当前 `sys_version` 无记录，既有 `CheckVersion` 会自动尝试 `sql/1.sql` 并在表已存在时回滚事务，`PgInit` 记录错误后继续启动；本轮未手动执行 SQL 或修改该检查。未见 panic/fatal，服务和目标接口正常。
+   - 完整脱敏证据归档为 `evidence/production-deployment-20261106.json`。本轮已部署但未提交/推送；真实移动端首页首帧及既有 OTA/共享查看硬件验收仍待完成，整体保持 `in_progress`。
+
+## 2026-11-06 后端修复旧交互快照遮蔽最新上报
+
+1. 数据链路复核
+   - 首页仅传设备 ID 和来源；详情并行请求 APP 当前遥测、连接 MQTT 透传。旧移动端对非空 `interactive_snapshot` 无条件优先，未使用接口已有的交互快照时间。
+   - `GetBatteryCurrentTelemetryForApp` 是响应构建函数的业务调用方；Web 走独立当前遥测查询/订阅，因此本轮只调整 APP 接口响应，不修改移动端或 Web 源码。
+2. 实现
+   - `buildAppBatteryCurrentTelemetryResp` 复用本次 current 查询的最大存储时间，过滤早于普通上报的交互快照及时间。相同时间、更新或唯一的交互快照仍整包返回。
+   - 旧客户端收到省略交互快照的响应后，自动按既有普通 `snapshot/current` 路径显示更新数据。首屏和各类云端兜底共用该规则；数据库交互快照不删改，owner 鉴权和广播不变。
+3. 验证与交付
+   - 后端新增 8 种数据组合 × 在线/离线，共 16 个响应/JSON 序列化用例，更新既有原子快照测试为“最新交互快照仍保持原子性”。
+   - 后端 service、api、router/apps 回归通过；隔离提取现有移动端真实数据构建函数，6 种响应样例及既有数据仲裁测试通过，移动端和 Web 工作区保持无改动。
+   - 规格、技术设计、测试报告、发布说明和看板同步到 v0.2.13；本地实现阶段未部署，随后按用户授权完成上方生产后端发布。本轮未提交/推送或发布客户端，真实设备首屏验收未执行，整体保持 `in_progress`。
+4. 风险与回滚
+   - 普通摘要比交互快照更新时可能缺少完整电芯/保护状态，现有客户端按已有路径展示。数据新旧仅以查询可见的存储时间判定，不增加设备即时采样。
+   - 单独回退后端响应过滤及对应测试即可恢复旧优先级；无数据库迁移或客户端回滚。
 
 ## 2026-10-09 生产发布（后端 + Web）
 

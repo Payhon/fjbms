@@ -2,9 +2,41 @@
 
 - status: in_progress
 - owner: payhon
-- last_updated: 2026-10-16
+- last_updated: 2026-11-06
 - related_feature: FEAT-0049
-- version: v0.2.12
+- version: v0.2.13
+
+## 2026-11-06 17:07 生产发布验证
+
+- 本地构建、生产文件及运行中进程二进制 SHA-256 均为 `101527064757f79b6d1beb3b5ac55bca40be3dda4a85a65b6bc64958a859694d`；旧产物已备份为 `/www/fjia/backups/fjbms/backend/backend_20261106_170525_pre_current_telemetry.bin`。
+- `fjbms-backend` 为 `active/running`，PID=3771596、`NRestarts=0`；本机 `/health` HTTP/业务码均 200，发布后稳定性复核通过。公网 `/health` 为 SPA 页面，本次不将该页面 HTTP 200 计为后端健康验证。
+- 使用生产已有数据及现有 API Key，对设备 `prod-device-a` 的本机和公网 `GET /api/v1/app/battery/current-telemetry/{device_id}` 做发布前后比较：
+  - 旧交互快照 SOC=13%、时间 `1792397848955`，较新普通上报 SOC=10%、时间 `1793955727584`。
+  - 发布前返回非空旧交互快照；发布后两个入口均 HTTP/业务码 200，交互快照及时间字段均省略，普通最新 SOC=10% 与真实上报时间保留。
+  - 原交互快照仍保存在数据库中，过滤仅发生在响应层。线上样本验证与现有移动端选择规则一致，但本轮没有在手机上实际操作控制面板。
+- 主配置、configs 与 SQL 共 49 个现有文件的 SHA-256 发布前后相同；未同步配置/SQL、执行手动迁移、发布 Web/移动端或向设备发送命令。
+- 日志检查不能记为“无 error”：窗口包含 3 条 WebSocket close 1005（2 条发生于发布前），及启动原有 `CheckVersion` 自动尝试 `sql/1.sql` 时的 `alarm_config already exists`。只读查询 `sys_version` 为空，源码确认该 SQL 失败事务会回滚，随后服务继续正常启动；本轮未修复版本登记问题。未见 panic/fatal，后续服务和接口核对正常。
+- 脱敏发布证据：`evidence/production-deployment-20261106.json`。前置临时验证会话已删除，远端验证脚本已清理，不保存认证凭证。
+- 本轮生产后端更新完成；尚未提交/推送，手机真机首屏、既有双端 owner/OTA 验收待完成，整体状态保持 `in_progress`。
+
+## 2026-11-06 后端当前遥测时间优先修复
+
+- `cd backend && go test ./internal/service -run 'TestBuildAppBatteryCurrentTelemetryResp|TestMergeCurrentTelemetryIntoAppBatterySnapshot|TestIsFourGBatteryDetail|TestMqttInteractive|TestSaveAppBattery' -count=1 -v` 通过。
+- `TestBuildAppBatteryCurrentTelemetryRespSelectsLatestStoredData`：8 种数据组合分别验证在线/离线，共 16 个子用例通过；覆盖更新普通快照、更新单项 current、两者都更新、最新交互快照、同时间、仅交互快照、仅普通上报和空数据。
+- 断言旧交互快照及时间在 JSON 中均省略；新鲜交互快照不混入普通 current；普通快照/current 数据和真实时间戳不被伪造；传入的原交互快照保持原样。
+- `TestBuildAppBatteryCurrentTelemetryRespKeepsLatestInteractiveSnapshotAtomic`、已有普通快照合成、owner 身份/会话校验及交互快照单调存储测试通过。
+- `cd backend && go test ./internal/service ./internal/api ./router/apps` 通过（router/apps 无测试文件，完成编译检查）。构建仅输出既有 macOS `IOMasterPort` 弃用警告。
+- 移动端隔离兼容检查：只读 AST 提取当前 `buildStatusFromCloudTelemetry` 及其辅助函数，加载真实 `selectPreferredCloudStatusSnapshot`，对与后端断言一致的 6 种响应样例执行断言。旧快照省略后分别显示普通快照 SOC=42%、最新 current SOC=10%；更新、同时间、唯一交互快照仍显示 SOC=91%。既有移动端仲裁测试也通过；这些是构造响应样例，不是线上 HTTP 或真机结果。
+- 根仓库/后端差异格式检查通过，后端修改文件已 gofmt；移动端和 Web 无改动。本地实现阶段未部署或发送设备命令，未执行真实设备验收或依赖数据库配置的后端全量测试；随后生产结果见上方发布验证。
+- 整体功能保持 `in_progress`，本轮后端本地修复、回归及生产发布已完成，待现有客户端真实进入详情验收。
+
+建议发布后回归：先记录设备最新普通上报与旧交互快照的时间和值，再用现有微信小程序/Android/iOS 从首页进入详情；确认接口过滤旧交互快照、首屏显示较新上报，随后正常切换到 MQTT 实时读取。另覆盖 Socket occupied、设备离线和只有交互快照的设备。
+
+交付检查：
+
+- [x] 文档已更新。
+- [x] `board.md` 已同步。
+- [x] 风险与回滚说明已更新。
 
 ## 2026-10-16 Git 交付前复核
 
