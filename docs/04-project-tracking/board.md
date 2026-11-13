@@ -143,6 +143,12 @@
   - 文档：`docs/03-development/features/FEAT-0052-uniapp-device-detail-scan-i18n-login-ux/`
 
 ### Web（`frontend/`）
+- [ ] `review` **FEAT-0080** 后台设备上下线通知优化
+  - owner：payhon
+  - 优先级：P1
+  - 依赖：现有设备状态 SSE、Naive UI 通知
+  - 进展：桌面、320px 窄屏、200% 缩放和交互回归通过，ESLint 零告警，类型检查与既有基线一致。2026-11-12 已发布生产 Web，547 个静态文件校验一致，公网资源与登录页验证通过。待生产真实设备事件验收，回滚备份见功能文档
+  - 文档：`docs/03-development/features/FEAT-0080-device-status-notification/`
 - [ ] `review` **FEAT-0069** Web 电池列表状态记忆与批量调拨
   - owner：payhon
   - 优先级：P1
